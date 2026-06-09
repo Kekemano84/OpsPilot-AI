@@ -318,3 +318,7 @@ Plans and + Yard Check buttons are hidden on login/register/auth pages.
 - After 14 days, Shift Calendar redirects to Plans.
 - Pro/Admin users keep full access.
 - Export remains Pro-only.
+
+## Custom Shift Pattern + Mobile Fix
+- Custom pattern examples: 3 on 4 off 4 on 3 off.
+- Improved mobile Shift Calendar layout.

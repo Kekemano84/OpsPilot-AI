@@ -1000,13 +1000,66 @@ SHIFT_STATUS_COLORS = {
     "Custom": "custom",
 }
 
-def generate_shift_pattern_dates(start_date, pattern, months, shift_name, start_time, end_time):
+
+def parse_custom_shift_pattern(pattern_text):
+    """
+    Converts human-friendly pattern text to a repeating status cycle.
+    Examples:
+    - "3 on 4 off 4 on 3 off"
+    - "2 work 2 off 3 holiday"
+    - "4 day 4 off"
+    """
+    text = (pattern_text or "").lower().strip()
+    if not text:
+        return None
+
+    text = text.replace("/", " ").replace(",", " ").replace("-", " ")
+    text = text.replace("work", "on").replace("working", "on").replace("days", "on").replace("day", "on")
+    text = text.replace("rest", "off").replace("offs", "off")
+    text = text.replace("annual leave", "holiday")
+    text = text.replace("sickness", "sick").replace("ill", "sick")
+    text = re.sub(r"\s+", " ", text)
+
+    tokens = text.split()
+    cycle = []
+    i = 0
+    status_map = {
+        "on": "Work",
+        "off": "Off",
+        "holiday": "Holiday",
+        "sick": "Sick",
+        "training": "Training",
+        "overtime": "Overtime",
+        "bankholiday": "Bank Holiday",
+        "bank": "Bank Holiday",
+        "custom": "Custom",
+    }
+
+    while i < len(tokens) - 1:
+        if tokens[i].isdigit():
+            count = int(tokens[i])
+            word = tokens[i + 1]
+            if word == "bank" and i + 2 < len(tokens) and tokens[i + 2] == "holiday":
+                word = "bankholiday"
+                i += 1
+            status = status_map.get(word)
+            if status and 0 < count <= 31:
+                cycle.extend([status] * count)
+                i += 2
+                continue
+        i += 1
+
+    return cycle if cycle else None
+
+
+def generate_shift_pattern_dates(start_date, pattern, months, shift_name, start_time, end_time, custom_pattern=""):
     start = datetime.strptime(start_date, "%Y-%m-%d").date()
     end = start + timedelta(days=int(months or 12) * 31)
     rows = []
 
-    # Pattern is a list of statuses. It repeats automatically.
-    if pattern == "4on4off":
+    if pattern == "custom":
+        cycle = parse_custom_shift_pattern(custom_pattern) or (["Work"] * 4 + ["Off"] * 4)
+    elif pattern == "4on4off":
         cycle = ["Work"] * 4 + ["Off"] * 4
     elif pattern == "5on2off":
         cycle = ["Work"] * 5 + ["Off"] * 2
@@ -1014,6 +1067,8 @@ def generate_shift_pattern_dates(start_date, pattern, months, shift_name, start_
         cycle = None
     elif pattern == "2days2nights4off":
         cycle = ["Work"] * 4 + ["Off"] * 4
+    elif pattern == "3on4off4on3off":
+        cycle = ["Work"] * 3 + ["Off"] * 4 + ["Work"] * 4 + ["Off"] * 3
     else:
         cycle = ["Work"] * 4 + ["Off"] * 4
 
@@ -1029,16 +1084,15 @@ def generate_shift_pattern_dates(start_date, pattern, months, shift_name, start_
             "date": d.isoformat(),
             "status": status,
             "shift_name": shift_name,
-            "start_time": start_time if status == "Work" else "",
-            "end_time": end_time if status == "Work" else "",
-            "notes": "",
+            "start_time": start_time if status in ["Work", "Training", "Overtime"] else "",
+            "end_time": end_time if status in ["Work", "Training", "Overtime"] else "",
+            "notes": custom_pattern if pattern == "custom" and i == 0 else "",
             "source": "Generated",
         })
         d += timedelta(days=1)
         i += 1
 
     return rows
-
 
 def get_week_start(date_obj=None):
     date_obj = date_obj or datetime.today().date()
@@ -1158,6 +1212,8 @@ def shift_calendar():
         ("5on2off", "5 days / 2 off"),
         ("monfri", "Monday-Friday"),
         ("2days2nights4off", "2 days / 2 nights / 4 off"),
+        ("3on4off4on3off", "3 on / 4 off / 4 on / 3 off"),
+        ("custom", "Custom pattern"),
     ]
 
     if request.method == "POST":
@@ -1174,7 +1230,7 @@ def shift_calendar():
             end_time = request.form.get("end_time", "18:00")
             replace_existing = request.form.get("replace_existing") == "yes"
 
-            rows = generate_shift_pattern_dates(start_date, pattern, months, shift_name, start_time, end_time)
+            rows = generate_shift_pattern_dates(start_date, pattern, months, shift_name, start_time, end_time, request.form.get("custom_pattern", ""))
 
             if replace_existing:
                 conn.execute("DELETE FROM shift_calendar WHERE user_id = ? AND date >= ?", (user["id"], start_date))

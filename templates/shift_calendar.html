@@ -16,60 +16,71 @@
 </section>
 {% endif %}
 
-<section class="two-col">
-    <section class="panel">
+<section class="shift-mobile-stack">
+    <section class="panel shift-card">
         <div class="panel-head">
             <div>
                 <h3>Auto Generate Calendar</h3>
-                <p class="muted">Set it once. OpsPilot generates the pattern for months ahead.</p>
+                <p class="muted">Choose a standard pattern or create your own.</p>
             </div>
             <span class="pill">PRO</span>
         </div>
 
-        <form method="POST" class="form-grid compact-form">
+        <form method="POST" class="shift-form">
             <input type="hidden" name="action" value="generate">
+
             <div>
                 <label>Pattern</label>
-                <select name="pattern">
+                <select name="pattern" id="patternSelect" onchange="toggleCustomPattern()">
                     {% for value, label in patterns %}
                     <option value="{{ value }}">{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div>
-                <label>Start Date</label>
-                <input type="date" name="start_date">
+
+            <div id="customPatternBox" class="custom-pattern-box" style="display:none;">
+                <label>Custom Pattern</label>
+                <input name="custom_pattern" placeholder="Example: 3 on 4 off 4 on 3 off">
+                <small>Use any repeating pattern, e.g. 4 on 4 off, 3 on 4 off 4 on 3 off, 2 on 2 off.</small>
             </div>
-            <div>
-                <label>Shift Name</label>
-                <input name="shift_name" placeholder="D2 / Day / Night / Early">
+
+            <div class="shift-form-grid">
+                <div>
+                    <label>Start Date</label>
+                    <input type="date" name="start_date">
+                </div>
+                <div>
+                    <label>Generate For</label>
+                    <select name="months">
+                        <option value="3">3 months</option>
+                        <option value="6">6 months</option>
+                        <option value="12" selected>12 months</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Shift Name</label>
+                    <input name="shift_name" placeholder="D2 / Day / Night / Early">
+                </div>
+                <div>
+                    <label>Start Time</label>
+                    <input type="time" name="start_time" value="06:00">
+                </div>
+                <div>
+                    <label>End Time</label>
+                    <input type="time" name="end_time" value="18:00">
+                </div>
             </div>
-            <div>
-                <label>Start Time</label>
-                <input type="time" name="start_time" value="06:00">
-            </div>
-            <div>
-                <label>End Time</label>
-                <input type="time" name="end_time" value="18:00">
-            </div>
-            <div>
-                <label>Generate For</label>
-                <select name="months">
-                    <option value="3">3 months</option>
-                    <option value="6">6 months</option>
-                    <option value="12" selected>12 months</option>
-                </select>
-            </div>
-            <div class="wide">
-                <label><input type="checkbox" name="replace_existing" value="yes"> Replace existing generated days from start date</label>
-            </div>
-            <div class="form-actions">
-                <button class="btn primary" type="submit">Generate Calendar</button>
-            </div>
+
+            <label class="check-line">
+                <input type="checkbox" name="replace_existing" value="yes">
+                Replace existing generated days from start date
+            </label>
+
+            <button class="btn primary full" type="submit">Generate Calendar</button>
         </form>
     </section>
 
-    <section class="panel">
+    <section class="panel shift-card">
         <div class="panel-head">
             <div>
                 <h3>Manual Day Update</h3>
@@ -77,42 +88,55 @@
             </div>
         </div>
 
-        <form method="POST" class="form-grid compact-form">
+        <form method="POST" class="shift-form">
             <input type="hidden" name="action" value="manual">
-            <div>
-                <label>Date</label>
-                <input type="date" name="manual_date">
+
+            <div class="shift-form-grid">
+                <div>
+                    <label>Date</label>
+                    <input type="date" name="manual_date">
+                </div>
+                <div>
+                    <label>Status</label>
+                    <select name="manual_status">
+                        {% for status in statuses %}
+                        <option>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Shift Name</label>
+                    <input name="manual_shift_name" placeholder="Optional">
+                </div>
+                <div>
+                    <label>Start</label>
+                    <input type="time" name="manual_start_time">
+                </div>
+                <div>
+                    <label>End</label>
+                    <input type="time" name="manual_end_time">
+                </div>
             </div>
+
             <div>
-                <label>Status</label>
-                <select name="manual_status">
-                    {% for status in statuses %}
-                    <option>{{ status }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label>Shift Name</label>
-                <input name="manual_shift_name" placeholder="Optional">
-            </div>
-            <div>
-                <label>Start</label>
-                <input type="time" name="manual_start_time">
-            </div>
-            <div>
-                <label>End</label>
-                <input type="time" name="manual_end_time">
-            </div>
-            <div class="wide">
                 <label>Notes</label>
                 <input name="manual_notes" placeholder="Annual leave, sickness, overtime, training etc.">
             </div>
-            <div class="form-actions">
-                <button class="btn primary" type="submit">Save Day</button>
-            </div>
+
+            <button class="btn primary full" type="submit">Save Day</button>
         </form>
     </section>
 </section>
+
+<script>
+function toggleCustomPattern() {
+    const select = document.getElementById("patternSelect");
+    const box = document.getElementById("customPatternBox");
+    if (!select || !box) return;
+    box.style.display = select.value === "custom" ? "block" : "none";
+}
+document.addEventListener("DOMContentLoaded", toggleCustomPattern);
+</script>
 
 <section class="panel">
     <div class="panel-head">
