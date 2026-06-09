@@ -1,0 +1,8 @@
+Flask==3.0.3
+Werkzeug==3.0.3
+reportlab==4.2.2
+openpyxl==3.1.5
+gunicorn==22.0.0
+openai==1.59.7
+stripe==11.4.1
+requests==2.34.2
