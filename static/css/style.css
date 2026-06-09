@@ -356,3 +356,62 @@ body.auth-page .btn { min-height: 58px; border-radius: 20px; font-size: 18px; }
     body.auth-page .auth-card h2 { font-size: 36px; }
     .loader-logo { width: 82px; height: 82px; }
 }
+
+
+/* ===== Professional OpsPilot logo + 3-second splash upgrade ===== */
+.op-logo {
+    background: linear-gradient(145deg, #07152f 0%, #123a7a 48%, #12b4a7 100%) !important;
+    box-shadow: 0 22px 55px rgba(20, 184, 166, 0.22), 0 18px 44px rgba(37, 99, 235, 0.28) !important;
+}
+.op-logo img {
+    width: 76%;
+    height: 76%;
+    object-fit: contain;
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 8px 14px rgba(0,0,0,.18));
+}
+.op-logo::after {
+    border-color: rgba(255,255,255,.20) !important;
+}
+.loader-card {
+    gap: 14px;
+}
+.loader-logo {
+    width: 104px;
+    height: 104px;
+    border-radius: 32px;
+    animation: opSpin 1.65s cubic-bezier(.2,.75,.35,1) infinite, opPulse 1.8s ease-in-out infinite;
+}
+.loader-card h1 {
+    font-size: clamp(34px, 7vw, 46px);
+}
+.loader-card p {
+    color: #dbeafe;
+    letter-spacing: .01em;
+}
+@keyframes opPulse {
+    0%, 100% { box-shadow: 0 22px 55px rgba(20,184,166,.22), 0 18px 44px rgba(37,99,235,.28); }
+    50% { box-shadow: 0 28px 72px rgba(20,184,166,.34), 0 22px 58px rgba(37,99,235,.42); }
+}
+.biometric-login-btn {
+    width: 100%;
+    min-height: 56px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: #0f172a;
+    color: white;
+    font-weight: 1000;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-top: 4px;
+    box-shadow: 0 14px 32px rgba(15,23,42,.16);
+}
+.biometric-login-btn:hover { background: #111f3d; }
+@media (max-width: 560px) {
+    .loader-logo { width: 94px; height: 94px; }
+}
