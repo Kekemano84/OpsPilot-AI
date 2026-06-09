@@ -10,6 +10,26 @@
     
 </section>
 
+{% if annual_leave %}
+<section class="holiday-tracker-card">
+    <div>
+        <span>Holiday Tracker {{ annual_leave.year }}</span>
+        <strong>{{ annual_leave.remaining_days }} days / {{ annual_leave.remaining_hours }} hrs left</strong>
+        <small>Used: {{ annual_leave.used_days }} days / {{ annual_leave.used_hours }} hrs · Paid day: {{ annual_leave.paid_hours_per_day }} hrs</small>
+    </div>
+    <a class="small-btn ghost-small" href="{{ url_for('settings') }}">Settings</a>
+</section>
+{% endif %}
+
+
+<section class="mobile-dashboard-tools">
+    <a href="{{ url_for('morning_brief') }}">📢<span>Brief</span></a>
+    <a href="{{ url_for('mileage') }}">🚗<span>Mileage</span></a>
+    <a href="{{ url_for('expenses') }}">💷<span>Expenses</span></a>
+    <a href="{{ url_for('handover') }}">📝<span>Handover</span></a>
+</section>
+
+
 <section class="today-status-grid">
     <div class="today-status-card status-{{ today_shift.status|lower|replace(' ', '-') }}">
         <span>Today</span>

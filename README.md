@@ -346,3 +346,15 @@ Added:
 - 3 second forced splash.
 - OpsPilot AI name + Operations Simplified slogan.
 - PWA manifest points to the new logo.
+
+## Mobile Tablet Holiday Tracker Fix
+
+- Fixed /more menu on mobile.
+- Dashboard mobile quick tools added.
+- Tablet layout optimized.
+- Holiday tracker added in days and hours.
+- Paid/unpaid break settings added.
+- Paid hours per day calculated automatically.
+- Holiday manual override supports hours and days.
+- Pricing subscription wording improved.
+- Render deploy checked with Python compile.

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}More{% endblock %}
+{% block content %}
+<section class="mobile-more-hero">
+    <p class="eyebrow">OpsPilot AI</p>
+    <h1>More</h1>
+    <p class="muted">All tools and settings in one place.</p>
+</section>
+
+<section class="more-grid-app">
+    <a class="more-tile" href="{{ url_for('morning_brief') }}"><span class="more-icon">📢</span><div><strong>Morning Brief</strong><small>Build daily shift message</small></div></a>
+    <a class="more-tile" href="{{ url_for('mileage') }}"><span class="more-icon">🚗</span><div><strong>Mileage</strong><small>Track business miles</small></div></a>
+    <a class="more-tile" href="{{ url_for('expenses') }}"><span class="more-icon">💷</span><div><strong>Expenses</strong><small>Record business costs</small></div></a>
+    <a class="more-tile" href="{{ url_for('handover') }}"><span class="more-icon">📝</span><div><strong>Handover</strong><small>End of shift report</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('yard_settings') }}"><span class="more-icon">⚙️</span><div><strong>Yard Settings</strong><small>Door and fence capacity</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('pricing') }}"><span class="more-icon">⭐</span><div><strong>Plans</strong><small>Free, trial and Pro access</small></div></a>
+    <a class="more-tile" href="{{ url_for('settings') }}"><span class="more-icon">👤</span><div><strong>Settings</strong><small>Account and business details</small></div></a>
+    {% if user and user.role == 'admin' %}
+    <a class="more-tile admin-tile" href="{{ url_for('admin') }}"><span class="more-icon">🛡️</span><div><strong>Admin</strong><small>Users, plans and testing</small></div><em>ADMIN</em></a>
+    <a class="more-tile admin-tile" href="{{ url_for('admin_billing') }}"><span class="more-icon">💳</span><div><strong>Billing</strong><small>Subscription controls</small></div><em>ADMIN</em></a>
+    {% endif %}
+    <a class="more-tile logout-tile" href="{{ url_for('logout') }}"><span class="more-icon">🚪</span><div><strong>Logout</strong><small>Sign out from this device</small></div></a>
+</section>
+{% endblock %}

@@ -84,6 +84,19 @@ def get_db():
     return conn
 
 
+
+def safe_add_column(table, column, definition):
+    conn = get_db()
+    try:
+        existing = [r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+            conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
 def init_db():
     conn = get_db()
     cur = conn.cursor()
@@ -555,6 +568,98 @@ def refresh_user_plan(user):
     return user
 
 
+
+
+def get_paid_hours_per_day(user):
+    try:
+        contracted = float(row_get(user, "contracted_shift_hours") or 12)
+    except Exception:
+        contracted = 12
+    try:
+        break_minutes = float(row_get(user, "break_minutes") or 0)
+    except Exception:
+        break_minutes = 0
+    try:
+        break_paid = int(row_get(user, "break_paid") or 0)
+    except Exception:
+        break_paid = 0
+
+    if break_paid:
+        return contracted
+    return max(contracted - (break_minutes / 60), 0)
+
+
+def annual_leave_summary(user_id):
+    user = current_user()
+    try:
+        entitlement = float(row_get(user, "annual_leave_entitlement") or 20)
+    except Exception:
+        entitlement = 20
+
+    unit = row_get(user, "annual_leave_unit") or "days"
+    paid_hours_day = get_paid_hours_per_day(user)
+
+    if unit == "hours":
+        entitlement_hours = entitlement
+        entitlement_days = entitlement_hours / paid_hours_day if paid_hours_day else 0
+    else:
+        entitlement_days = entitlement
+        entitlement_hours = entitlement_days * paid_hours_day
+
+    year = datetime.today().year
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT status, holiday_hours, holiday_days
+        FROM shift_calendar
+        WHERE user_id = ?
+          AND date BETWEEN ? AND ?
+          AND status = 'Holiday'
+    """, (user_id, f"{year}-01-01", f"{year}-12-31")).fetchall()
+    conn.close()
+
+    used_hours = 0
+    used_days = 0
+    for row in rows:
+        h = float(row["holiday_hours"] or 0) if "holiday_hours" in row.keys() else 0
+        d = float(row["holiday_days"] or 0) if "holiday_days" in row.keys() else 0
+        if h <= 0 and d <= 0:
+            d = 1
+            h = paid_hours_day
+        elif h <= 0 and d > 0:
+            h = d * paid_hours_day
+        elif d <= 0 and h > 0:
+            d = h / paid_hours_day if paid_hours_day else 0
+        used_hours += h
+        used_days += d
+
+    return {
+        "year": year,
+        "unit": unit,
+        "paid_hours_per_day": round(paid_hours_day, 2),
+        "contracted_shift_hours": float(row_get(user, "contracted_shift_hours") or 12),
+        "break_minutes": float(row_get(user, "break_minutes") or 0),
+        "break_paid": int(row_get(user, "break_paid") or 0),
+        "entitlement_days": round(entitlement_days, 2),
+        "entitlement_hours": round(entitlement_hours, 2),
+        "used_days": round(used_days, 2),
+        "used_hours": round(used_hours, 2),
+        "remaining_days": round(max(entitlement_days - used_days, 0), 2),
+        "remaining_hours": round(max(entitlement_hours - used_hours, 0), 2),
+    }
+
+
+def today_shift_status(user_id):
+    today = datetime.today().date().isoformat()
+    conn = get_db()
+    row = conn.execute("""
+        SELECT * FROM shift_calendar
+        WHERE user_id = ? AND date = ?
+        LIMIT 1
+    """, (user_id, today)).fetchone()
+    conn.close()
+    if row:
+        return row
+    return {"date": today, "status": "Not Set", "shift_name": "", "start_time": "", "end_time": "", "notes": "", "source": "Empty"}
 
 def shift_calendar_trial_info(user):
     """Free users can use Shift Calendar for 14 days after account creation."""
@@ -1253,9 +1358,28 @@ def allowed_image(filename):
 
 
 
+
+def ensure_holiday_schema_updates():
+    safe_add_column("users", "annual_leave_entitlement", "REAL DEFAULT 20")
+    safe_add_column("users", "annual_leave_unit", "TEXT DEFAULT 'days'")
+    safe_add_column("users", "contracted_shift_hours", "REAL DEFAULT 12")
+    safe_add_column("users", "break_minutes", "REAL DEFAULT 45")
+    safe_add_column("users", "break_paid", "INTEGER DEFAULT 0")
+    safe_add_column("users", "paid_hours_per_day", "REAL DEFAULT 11.25")
+    safe_add_column("shift_calendar", "holiday_hours", "REAL DEFAULT 0")
+    safe_add_column("shift_calendar", "holiday_days", "REAL DEFAULT 0")
+
 @app.before_request
 def load_remembered_user():
     consume_remember_token()
+
+
+@app.before_request
+def apply_holiday_schema_before_request():
+    try:
+        ensure_holiday_schema_updates()
+    except Exception:
+        pass
 
 @app.route("/")
 @login_required
@@ -1371,7 +1495,7 @@ def shift_calendar():
             for row in rows:
                 conn.execute("""
                     INSERT INTO shift_calendar
-                    (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at)
+                    (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at, holiday_hours, holiday_days)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(user_id, date) DO UPDATE SET
                         status = excluded.status,
@@ -1397,19 +1521,37 @@ def shift_calendar():
             start_time = request.form.get("manual_start_time", "")
             end_time = request.form.get("manual_end_time", "")
             notes = request.form.get("manual_notes", "").strip()
+            try:
+                manual_holiday_hours = float(request.form.get("manual_holiday_hours") or 0)
+            except Exception:
+                manual_holiday_hours = 0
+            try:
+                manual_holiday_days = float(request.form.get("manual_holiday_days") or 0)
+            except Exception:
+                manual_holiday_days = 0
+            if status == "Holiday" and manual_holiday_hours <= 0 and manual_holiday_days <= 0:
+                manual_holiday_days = 1
+                manual_holiday_hours = get_paid_hours_per_day(user)
+            elif status == "Holiday" and manual_holiday_hours > 0 and manual_holiday_days <= 0:
+                ph = get_paid_hours_per_day(user)
+                manual_holiday_days = manual_holiday_hours / ph if ph else 0
+            elif status == "Holiday" and manual_holiday_days > 0 and manual_holiday_hours <= 0:
+                manual_holiday_hours = manual_holiday_days * get_paid_hours_per_day(user)
 
             conn.execute("""
                 INSERT INTO shift_calendar
                 (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'Manual', ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'Manual', ?, ?, ?)
                 ON CONFLICT(user_id, date) DO UPDATE SET
                     status = excluded.status,
                     shift_name = excluded.shift_name,
                     start_time = excluded.start_time,
                     end_time = excluded.end_time,
                     notes = excluded.notes,
+                    holiday_hours = excluded.holiday_hours,
+                    holiday_days = excluded.holiday_days,
                     source = 'Manual'
-            """, (user["id"], date, status, shift_name, start_time, end_time, notes, datetime.now().isoformat()))
+            """, (user["id"], date, status, shift_name, start_time, end_time, notes, datetime.now().isoformat(), manual_holiday_hours, manual_holiday_days))
 
             conn.commit()
             conn.close()
@@ -2791,6 +2933,13 @@ def save_annual_leave_settings():
 
     flash("Annual leave entitlement saved.", "success")
     return redirect(url_for("settings"))
+
+
+@app.route("/more")
+@login_required
+def more_menu():
+    user = current_user()
+    return render_template("more.html", page="more", user=user)
 
 @app.route("/settings", methods=["GET", "POST"])
 @login_required

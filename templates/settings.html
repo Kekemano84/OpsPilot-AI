@@ -34,3 +34,49 @@
         </div>
     </form>
 </section>
+
+<section class="panel holiday-settings-panel">
+    <div class="panel-head">
+        <div>
+            <h3>Holiday Tracker Settings</h3>
+            <p class="muted">Set entitlement, paid hours and break rules. Holiday can be tracked in days and hours.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('save_annual_leave_settings') }}" class="form-grid compact-form">
+        <div>
+            <label>Annual Holiday Entitlement</label>
+            <input type="number" step="0.5" name="annual_leave_entitlement" value="{{ user.annual_leave_entitlement or 20 }}">
+        </div>
+
+        <div>
+            <label>Entitlement Unit</label>
+            <select name="annual_leave_unit">
+                <option value="days" {% if user.annual_leave_unit != 'hours' %}selected{% endif %}>Days</option>
+                <option value="hours" {% if user.annual_leave_unit == 'hours' %}selected{% endif %}>Hours</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Contracted Shift Hours</label>
+            <input type="number" step="0.25" name="contracted_shift_hours" value="{{ user.contracted_shift_hours or 12 }}">
+        </div>
+
+        <div>
+            <label>Break Minutes</label>
+            <input type="number" step="1" name="break_minutes" value="{{ user.break_minutes or 45 }}">
+        </div>
+
+        <div class="wide">
+            <label class="remember-line">
+                <input type="checkbox" name="break_paid" value="yes" {% if user.break_paid %}checked{% endif %}>
+                <span>Break is paid</span>
+            </label>
+            <p class="muted">Example: 12h shift with 45 min unpaid break = 11.25 paid hours. 6h shift with paid break = 6 paid hours.</p>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn primary" type="submit">Save Holiday Settings</button>
+        </div>
+    </form>
+</section>
