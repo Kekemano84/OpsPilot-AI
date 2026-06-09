@@ -21,6 +21,16 @@
 </head>
 <body>
 
+<div id="app-loader" class="app-loader" aria-label="Loading OpsPilot AI">
+    <div class="loader-logo-wrap">
+        <div class="loader-ring"></div>
+        <div class="loader-logo">OP</div>
+    </div>
+    <div class="loader-title">OpsPilot AI</div>
+    <div class="loader-subtitle">Loading operations hub...</div>
+</div>
+
+
 {% if user %}
 <button class="mobile-menu-btn" type="button" aria-label="Open menu" onclick="document.body.classList.toggle('sidebar-open')">
     ☰
@@ -100,7 +110,14 @@
     </main>
 </div>
 
+
 <script>
+  window.addEventListener('load', function () {
+    window.setTimeout(function () {
+      document.body.classList.add('app-loaded');
+    }, 550);
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.nav a').forEach(function (link) {
       link.addEventListener('click', function () {
@@ -109,5 +126,6 @@
     });
   });
 </script>
+
 </body>
 </html>
