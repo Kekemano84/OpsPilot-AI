@@ -19,6 +19,22 @@
       }
     </script>
 </head>
+
+<div id="op-splash-screen" class="op-splash-screen">
+    <div class="op-splash-card">
+        <div class="op-splash-logo-wrap">
+            <img class="op-splash-logo" src="{{ url_for('static', filename='icons/opspilot-logo.svg') }}" alt="OpsPilot AI">
+        </div>
+        <div class="op-splash-title">OpsPilot AI</div>
+        <div class="op-splash-subtitle">Operations Simplified</div>
+        <div class="op-splash-loader">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+</div>
+
 <body class="{{ "auth-page" if page in ['auth', 'login', 'register'] else "" }}">
 
 <div class="app-shell">
@@ -107,6 +123,32 @@
             <a class="{{ 'active' if page == 'settings' else '' }}" href="{{ url_for('settings') }}">☰<span>More</span></a>
         </nav>
         {% endif %}
+
+
+<script>
+(function () {
+    var splash = document.getElementById("op-splash-screen");
+    if (!splash) return;
+
+    document.documentElement.classList.add("op-loading");
+
+    function hideSplash() {
+        splash.classList.add("op-splash-hide");
+        document.documentElement.classList.remove("op-loading");
+        setTimeout(function () {
+            if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+        }, 650);
+    }
+
+    // Minimum 3 seconds every full page load
+    window.addEventListener("load", function () {
+        setTimeout(hideSplash, 3000);
+    });
+
+    // Safety fallback, in case load event is delayed
+    setTimeout(hideSplash, 4200);
+})();
+</script>
 
 </body>
 </html>

@@ -322,3 +322,8 @@ Plans and + Yard Check buttons are hidden on login/register/auth pages.
 ## Custom Shift Pattern + Mobile Fix
 - Custom pattern examples: 3 on 4 off 4 on 3 off.
 - Improved mobile Shift Calendar layout.
+
+## Forced Splash Fix
+- 3 second splash screen on every full page load.
+- Spinning OpsPilot logo.
+- Login/register no longer appears immediately before splash finishes.

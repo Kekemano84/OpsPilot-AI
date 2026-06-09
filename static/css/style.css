@@ -543,3 +543,123 @@ input[type="file"] {
         border-radius: 16px;
     }
 }
+
+
+/* Forced 3 second splash screen */
+html.op-loading,
+html.op-loading body {
+    overflow: hidden !important;
+}
+
+.op-splash-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, .22), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(16, 185, 129, .22), transparent 34%),
+        #0f172a;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .6s ease, visibility .6s ease;
+}
+
+.op-splash-screen.op-splash-hide {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.op-splash-card {
+    display: grid;
+    place-items: center;
+    gap: 13px;
+    padding: 28px;
+    text-align: center;
+    color: white;
+}
+
+.op-splash-logo-wrap {
+    width: 108px;
+    height: 108px;
+    border-radius: 34px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 30px 80px rgba(37, 99, 235, .35);
+}
+
+.op-splash-logo {
+    width: 82px;
+    height: 82px;
+    border-radius: 26px;
+    animation: opLogoSpin 3s cubic-bezier(.2,.7,.2,1) infinite;
+    filter: drop-shadow(0 12px 24px rgba(0,0,0,.25));
+}
+
+.op-splash-title {
+    font-size: 30px;
+    font-weight: 950;
+    letter-spacing: -0.05em;
+}
+
+.op-splash-subtitle {
+    color: #cbd5e1;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+
+.op-splash-loader {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.op-splash-loader span {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: #60a5fa;
+    animation: opPulse 1.2s infinite ease-in-out;
+}
+
+.op-splash-loader span:nth-child(2) {
+    animation-delay: .18s;
+    background: #34d399;
+}
+
+.op-splash-loader span:nth-child(3) {
+    animation-delay: .36s;
+    background: #93c5fd;
+}
+
+@keyframes opLogoSpin {
+    0% { transform: rotate(0deg) scale(.92); }
+    45% { transform: rotate(360deg) scale(1.04); }
+    100% { transform: rotate(720deg) scale(.96); }
+}
+
+@keyframes opPulse {
+    0%, 100% { transform: translateY(0); opacity: .4; }
+    50% { transform: translateY(-8px); opacity: 1; }
+}
+
+@media (max-width: 520px) {
+    .op-splash-logo-wrap {
+        width: 96px;
+        height: 96px;
+        border-radius: 30px;
+    }
+
+    .op-splash-logo {
+        width: 74px;
+        height: 74px;
+        border-radius: 24px;
+    }
+
+    .op-splash-title {
+        font-size: 27px;
+    }
+}
