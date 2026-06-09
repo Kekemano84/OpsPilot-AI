@@ -23,10 +23,10 @@
 <div id="app-loader" class="app-loader" aria-label="Loading OpsPilot AI">
     <div class="loader-card">
         <div class="op-logo loader-logo" aria-hidden="true">
-            <span>OP</span>
+            <img src="{{ url_for('static', filename='icons/opspilot-logo.svg') }}" alt="OpsPilot AI logo">
         </div>
         <h1>OpsPilot AI</h1>
-        <p>Operations hub loading...</p>
+        <p>Preparing your operations cockpit...</p>
     </div>
 </div>
 
@@ -41,7 +41,7 @@
     {% if user %}
     <aside class="sidebar">
         <div class="brand">
-            <div class="op-logo brand-icon"><span>OP</span></div>
+            <div class="op-logo brand-icon"><img src="{{ url_for('static', filename='icons/opspilot-logo.svg') }}" alt="OpsPilot AI logo"></div>
             <div>
                 <h1>OpsPilot AI</h1>
                 <p>Operations hub</p>
@@ -112,8 +112,30 @@
   window.addEventListener('load', function () {
     setTimeout(function () {
       document.body.classList.add('loaded');
-    }, 650);
+    }, 3000);
   });
 </script>
+
+<script>
+  // Biometric UI preview. Real Face ID / fingerprint login needs WebAuthn backend routes.
+  window.addEventListener('DOMContentLoaded', function () {
+    if (!document.body.classList.contains('auth-page')) return;
+    if (!window.PublicKeyCredential) return;
+    var forms = document.querySelectorAll('form');
+    if (!forms.length) return;
+    var form = forms[0];
+    var existing = document.querySelector('.biometric-login-btn');
+    if (existing) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'biometric-login-btn';
+    btn.innerHTML = '<span>🔐</span> Face ID / Fingerprint';
+    btn.addEventListener('click', function () {
+      alert('Biometric login is supported by this browser, but it needs WebAuthn setup in app.py first.');
+    });
+    form.appendChild(btn);
+  });
+</script>
+
 </body>
 </html>
