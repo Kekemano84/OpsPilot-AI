@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Mileage{% endblock %}
+{% block content %}
+<section class="panel">
+    <div class="panel-head">
+        <div>
+            <h3>Add Mileage</h3>
+            <p class="muted">Enter postcode or address. Google Maps can calculate driving miles automatically.</p>
+        </div>
+        <span class="pill">Rate editable</span>
+    </div>
+
+    <form method="POST" class="form-grid">
+        <div>
+            <label>Date</label>
+            <input type="date" name="date">
+        </div>
+
+        <div>
+            <label>From Postcode / Address</label>
+            <input id="fromLocation" name="start_location" placeholder="WA1 1AA or Warrington">
+        </div>
+
+        <div>
+            <label>To Postcode / Address</label>
+            <input id="toLocation" name="end_location" placeholder="L1 8JQ or Liverpool">
+        </div>
+
+        <div>
+            <label>Miles</label>
+            <input id="milesInput" type="number" step="0.1" name="miles" placeholder="Auto calculated or manual">
+        </div>
+
+        <div>
+            <label>Rate (£ / mile)</label>
+            <input id="rateInput" type="number" step="0.01" name="rate" value="{{ '%.2f'|format(default_rate) }}">
+        </div>
+
+        <div>
+            <label>Claim</label>
+            <input id="claimPreview" disabled placeholder="£0.00">
+        </div>
+
+        <div class="form-actions">
+            <button class="btn ghost" type="button" onclick="calculateMileage()">Calculate Miles</button>
+        </div>
+
+        <div class="wide">
+            <label>Purpose</label>
+            <input name="purpose" placeholder="Delivery, client visit, job">
+        </div>
+
+        <div class="wide">
+            <div id="mileageResult" class="notice soft-notice">
+                Add Google Maps API key on Render/local environment to calculate mileage automatically.
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn primary" type="submit">Add Mileage</button>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="panel-head"><h3>Mileage History</h3><a class="small-btn" href="{{ url_for('export_mileage') }}">Download Excel</a></div>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Route</th><th>Purpose</th><th>Miles</th><th>Rate</th><th>Claim</th></tr></thead>
+        <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.date|dateuk }}</td>
+            <td>{{ row.start_location }} → {{ row.end_location }}</td>
+            <td>{{ row.purpose or "-" }}</td>
+            <td>{{ "%.1f"|format(row.miles) }}</td>
+            <td>{{ (row.rate or rate)|money }}</td>
+            <td>{{ (row.miles * (row.rate or rate))|money }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty">No mileage yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+
+<script>
+function updateClaimPreview() {
+    const miles = parseFloat(document.getElementById("milesInput").value || "0");
+    const rate = parseFloat(document.getElementById("rateInput").value || "0");
+    const claim = miles * rate;
+    document.getElementById("claimPreview").value = "£" + claim.toFixed(2);
+}
+
+document.getElementById("milesInput").addEventListener("input", updateClaimPreview);
+document.getElementById("rateInput").addEventListener("input", updateClaimPreview);
+
+async function calculateMileage() {
+    const origin = document.getElementById("fromLocation").value.trim();
+    const destination = document.getElementById("toLocation").value.trim();
+    const resultBox = document.getElementById("mileageResult");
+
+    if (!origin || !destination) {
+        resultBox.className = "notice";
+        resultBox.innerText = "Please enter From and To postcode/address.";
+        return;
+    }
+
+    resultBox.className = "notice soft-notice";
+    resultBox.innerText = "Calculating mileage with Google Maps...";
+
+    try {
+        const response = await fetch("{{ url_for('api_calculate_mileage') }}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({origin: origin, destination: destination})
+        });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+            resultBox.className = "notice";
+            resultBox.innerText = data.error;
+            return;
+        }
+
+        const r = data.result;
+        document.getElementById("milesInput").value = r.miles;
+        updateClaimPreview();
+
+        const rate = parseFloat(document.getElementById("rateInput").value || "0");
+        const claim = r.miles * rate;
+
+        resultBox.className = "notice success-notice";
+        resultBox.innerText = `${r.origin} → ${r.destination}: ${r.distance_text}, approx ${r.duration}. Claim at £${rate.toFixed(2)}/mile: £${claim.toFixed(2)}`;
+
+    } catch (err) {
+        resultBox.className = "notice";
+        resultBox.innerText = "Could not calculate mileage: " + err;
+    }
+}
+
+updateClaimPreview();
+</script>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+<section class="panel">
+    <h3>Create Invoice</h3>
+    <form method="POST" class="form-grid">
+        <div><label>Invoice Number</label><input name="invoice_number" value="{{ invoice_number }}"></div>
+        <div><label>Date</label><input type="date" name="date"></div>
+        <div><label>Status</label><select name="status"><option>Unpaid</option><option>Paid</option></select></div>
+        <div><label>Customer Name</label><input name="customer_name" placeholder="Customer Ltd"></div>
+        <div><label>Customer Email</label><input type="email" name="customer_email" placeholder="customer@example.com"></div>
+        <div><label>Amount</label><input type="number" step="0.01" name="amount" placeholder="120.00"></div>
+        <div class="wide"><label>Description</label><input name="description" placeholder="Delivery services, cleaning, repair work"></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Create Invoice</button></div>
+    </form>
+</section>
+<section class="panel">
+    <h3>Invoices</h3>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Status</th><th>Amount</th><th>PDF</th><th>Email</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.date|dateuk }}</td><td>{{ row.invoice_number }}</td><td>{{ row.customer_name }}</td><td><span class="status {{ row.status|lower }}">{{ row.status }}</span></td><td>{{ row.amount|money }}</td><td><a class="small-btn" href="{{ url_for('invoice_pdf', item_id=row.id) }}">Download</a></td><td><a class="small-btn ghost-small" href="{{ url_for('invoice_email', item_id=row.id) }}">Send</a></td></tr>{% else %}<tr><td colspan="7" class="empty">No invoices yet.</td></tr>{% endfor %}</tbody>
+    </table></div>
+</section>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Tax Estimate{% endblock %}
+{% block content %}
+<section class="stats-grid">
+    <div class="stat-card"><span>Income</span><strong>{{ totals.income|money }}</strong><small>Invoices</small></div>
+    <div class="stat-card"><span>Expenses</span><strong>{{ totals.expenses|money }}</strong><small>Costs</small></div>
+    <div class="stat-card"><span>Mileage Claim</span><strong>{{ totals.mileage_claim|money }}</strong><small>{{ "%.1f"|format(totals.miles) }} miles</small></div>
+    <div class="stat-card highlight"><span>Estimated Tax</span><strong>{{ totals.estimated_tax|money }}</strong><small>Tax + NI</small></div>
+</section>
+<section class="panel">
+    <h3>Breakdown</h3>
+    <div class="breakdown">
+        <div><span>Total income</span><strong>{{ totals.income|money }}</strong></div>
+        <div><span>Minus expenses</span><strong>- {{ totals.expenses|money }}</strong></div>
+        <div><span>Minus mileage claim</span><strong>- {{ totals.mileage_claim|money }}</strong></div>
+        <div class="total-line"><span>Taxable profit</span><strong>{{ totals.taxable_profit|money }}</strong></div>
+        <div class="total-line accent"><span>Suggested tax set aside</span><strong>{{ totals.estimated_tax|money }}</strong></div>
+    </div>
+    <p class="notice">Estimate only, not financial advice.</p>
+</section>
+{% endblock %}

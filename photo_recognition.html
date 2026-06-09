@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Photo Trailer Recognition{% endblock %}
+{% block content %}
+<section class="panel">
+    <div class="panel-head">
+        <div><h3>Upload Photo Recognition Record</h3><p class="muted">Upload trailer photo and record trailer ID, location, damage and recognition notes.</p></div>
+        <span class="pill">BUSINESS</span>
+    </div>
+    <form method="POST" enctype="multipart/form-data" class="form-grid">
+        <div><label>Date</label><input type="date" name="date"></div>
+        <div><label>Photo</label><input type="file" name="image" accept="image/*"></div>
+        <div><label>Trailer ID</label><input name="trailer_id" placeholder="LG072"></div>
+        <div><label>Location Detail</label><input name="location_detail" placeholder="Door 12 / Fence A"></div>
+        <div><label>Confidence</label><select name="confidence"><option>Manual check</option><option>Low</option><option>Medium</option><option>High</option></select></div>
+        <div class="wide"><label>Damage Notes</label><input name="damage_notes" placeholder="Tyre damage, curtain damage, seal missing"></div>
+        <div class="wide"><label>Recognition Notes</label><input name="recognition_notes" placeholder="Number visible, plate unclear, trailer side photo"></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Save Photo Record</button></div>
+    </form>
+</section>
+<section class="panel">
+    <h3>Photo Recognition History</h3>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Photo</th><th>Trailer</th><th>Location</th><th>Damage</th><th>Recognition</th><th>AI Result</th><th>Confidence</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.date|dateuk }}</td><td>{{ "Uploaded" if row.image_filename else "-" }}</td><td><strong>{{ row.trailer_id or "-" }}</strong></td><td>{{ row.location_detail or "-" }}</td><td>{{ row.damage_notes or "-" }}</td><td>{{ row.recognition_notes or "-" }}</td><td><pre class="mini-report">{{ row.ai_result or "-" }}</pre></td><td>{{ row.confidence }}</td></tr>{% else %}<tr><td colspan="8" class="empty">No photo records yet.</td></tr>{% endfor %}</tbody>
+    </table></div>
+</section>
+{% endblock %}

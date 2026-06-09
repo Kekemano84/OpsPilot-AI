@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Operations Dashboard{% endblock %}
+{% block content %}
+<section class="hero-card pro-hero">
+    <div><p class="eyebrow">Business operations</p><h3>One view for KPIs, yard checks, team records, handovers and photo records.</h3></div>
+    <a class="btn light" href="{{ url_for('shift_planner') }}">AI Shift Planner</a>
+</section>
+<section class="stats-grid">
+    <div class="stat-card"><span>Total Volume</span><strong>{{ kpi.total_volume or 0 }}</strong><small>KPI</small></div>
+    <div class="stat-card"><span>Yard Checks</span><strong>{{ yard_count }}</strong><small>Trailer records</small></div>
+    <div class="stat-card"><span>Team Members</span><strong>{{ team_count }}</strong><small>Business users</small></div>
+    <div class="stat-card highlight"><span>Photo Records</span><strong>{{ photo_count }}</strong><small>Recognition logs</small></div>
+</section>
+<section class="two-col">
+    <div class="panel"><h3>Recommended Next Action</h3><p class="muted">Update KPI, check yard status, then create a handover before shift end.</p><a class="btn primary" href="{{ url_for('handover') }}">Create Handover</a></div>
+    <div class="panel"><h3>Team & Planning</h3><p class="muted">Use team accounts and AI planner to estimate capacity and staffing gaps.</p><a class="btn ghost" href="{{ url_for('team') }}">Open Team</a></div>
+</section>
+{% endblock %}

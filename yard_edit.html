@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Edit Yard Check{% endblock %}
+{% block content %}
+<section class="panel">
+    <div class="panel-head">
+        <h3>Edit Yard Check</h3>
+        <a class="small-btn ghost-small" href="{{ url_for('yard_check') }}">Back to Yard Check</a>
+    </div>
+
+    <form method="POST" class="form-grid">
+        <div><label>Date</label><input type="date" name="date" value="{{ row.date }}"></div>
+        <div><label>Trailer ID</label><input name="trailer_id" value="{{ row.trailer_id }}"></div>
+        <div>
+            <label>Location Type</label>
+            <select name="location_type">
+                {% for loc in locations %}
+                <option value="{{ loc }}" {{ "selected" if row.location_type == loc else "" }}>{{ loc }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div><label>Location Detail</label><input name="location_detail" value="{{ row.location_detail or '' }}"></div>
+        <div>
+            <label>Status</label>
+            <select name="status">
+                {% for status in statuses %}
+                <option value="{{ status }}" {{ "selected" if row.status == status else "" }}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Source</label>
+            <select name="source">
+                <option {{ "selected" if row.source == "Manual" else "" }}>Manual</option>
+                <option {{ "selected" if row.source == "Voice" else "" }}>Voice</option>
+                <option {{ "selected" if row.source == "Photo" else "" }}>Photo</option>
+            </select>
+        </div>
+        <div class="wide"><label>Notes</label><input name="notes" value="{{ row.notes or '' }}"></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Save Changes</button></div>
+    </form>
+</section>
+{% endblock %}

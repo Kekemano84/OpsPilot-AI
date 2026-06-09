@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Yard Settings{% endblock %}
+{% block content %}
+
+<section class="hero-card pro-hero">
+    <div>
+        <p class="eyebrow">Pro Yard Configuration</p>
+        <h3>Set your own Door Capacity and Fence Capacity for your site.</h3>
+    </div>
+    <span class="btn light">PRO</span>
+</section>
+
+<section class="panel">
+    <div class="panel-head">
+        <div>
+            <h3>Door / Fence Capacity</h3>
+            <p class="muted">Free users use Door 1–100 and Fence 1–120. Pro users can customise these numbers.</p>
+        </div>
+        <a class="small-btn ghost-small" href="{{ url_for('yard_check') }}">Back to Yard Check</a>
+    </div>
+
+    <form method="POST" class="form-grid">
+        <div>
+            <label>Door Start</label>
+            <input type="number" min="1" max="9999" name="door_start" value="{{ cfg.door_start }}">
+        </div>
+        <div>
+            <label>Door End</label>
+            <input type="number" min="1" max="9999" name="door_end" value="{{ cfg.door_end }}">
+        </div>
+        <div>
+            <label>Fence Start</label>
+            <input type="number" min="1" max="9999" name="fence_start" value="{{ cfg.fence_start }}">
+        </div>
+        <div>
+            <label>Fence End</label>
+            <input type="number" min="1" max="9999" name="fence_end" value="{{ cfg.fence_end }}">
+        </div>
+
+        <div class="wide">
+            <div class="notice soft-notice">
+                Current display will be: Door Capacity {{ cfg.door_start }}–{{ cfg.door_end }} and Fence Capacity {{ cfg.fence_start }}–{{ cfg.fence_end }}.
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn primary" type="submit">Save Yard Configuration</button>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

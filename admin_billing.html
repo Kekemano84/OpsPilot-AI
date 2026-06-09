@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Admin Billing{% endblock %}
+{% block content %}
+
+<section class="hero-card pro-hero">
+    <div>
+        <p class="eyebrow">Admin billing setup</p>
+        <h3>Connect OpsPilot AI to Stripe for Pro monthly subscriptions.</h3>
+    </div>
+    <span class="btn light">Stripe</span>
+</section>
+
+<section class="panel">
+    <div class="panel-head">
+        <div>
+            <h3>Stripe Settings</h3>
+            <p class="muted">Use Stripe test keys while testing. Use live keys only when you are ready to launch.</p>
+        </div>
+        <span class="pill">ADMIN</span>
+    </div>
+
+    <form method="POST" class="form-grid">
+        <div class="wide">
+            <label>App Base URL</label>
+            <input name="app_base_url" value="{{ cfg.app_base_url }}" placeholder="https://your-render-url.onrender.com">
+        </div>
+
+        <div class="wide">
+            <label>Stripe Publishable Key</label>
+            <input name="stripe_publishable_key" value="{{ cfg.publishable_key }}" placeholder="pk_test_...">
+        </div>
+
+        <div class="wide">
+            <label>Stripe Secret Key</label>
+            <input name="stripe_secret_key" value="{{ cfg.secret_key }}" placeholder="sk_test_...">
+        </div>
+
+        <div class="wide">
+            <label>Stripe Webhook Secret</label>
+            <input name="stripe_webhook_secret" value="{{ cfg.webhook_secret }}" placeholder="whsec_...">
+        </div>
+
+        <div class="wide">
+            <label>Stripe Pro Price ID (£4.99/month)</label>
+            <input name="stripe_pro_price_id" value="{{ cfg.pro_price_id }}" placeholder="price_...">
+        </div>
+
+        <div>
+            <label>Billing Mode</label>
+            <select name="billing_mode">
+                <option value="rolling" {{ "selected" if cfg.billing_mode == "rolling" else "" }}>Rolling monthly from purchase date</option>
+                <option value="calendar_prorated" {{ "selected" if cfg.billing_mode == "calendar_prorated" else "" }}>Calendar month prorated to 1st</option>
+            </select>
+        </div>
+
+        <div class="wide">
+            <label>Payout Note</label>
+            <input name="payout_note" value="{{ cfg.payout_note }}">
+        </div>
+
+        <div class="form-actions">
+            <button class="btn primary" type="submit">Save Billing Settings</button>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <h3>Where does the money go?</h3>
+    <p class="muted">
+        Payments are paid into the bank account connected to your Stripe account. Change payout bank details in Stripe Dashboard → Settings → Bank accounts and scheduling / Payout settings.
+        Do not store bank card details inside OpsPilot AI.
+    </p>
+</section>
+
+<section class="panel">
+    <h3>Webhook URL</h3>
+    <div class="report-box">{{ cfg.app_base_url }}/stripe/webhook</div>
+    <p class="muted">Add this webhook endpoint in Stripe and listen for checkout.session.completed, invoice.payment_succeeded, customer.subscription.updated and customer.subscription.deleted.</p>
+</section>
+
+{% endblock %}

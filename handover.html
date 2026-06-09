@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Handover{% endblock %}
+{% block content %}
+<section class="panel">
+    <div class="panel-head">
+        <div><h3>Generate Handover</h3><p class="muted">Use this at the end of shift or when handing over to the next manager.</p></div>
+        <span class="pill">FREE</span>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="form-grid">
+        <div><label>Date</label><input type="date" name="date"></div>
+        <div><label>Shift</label><input name="shift" placeholder="D2 / Day / Night"></div>
+        <div><label>Manager</label><input name="manager" placeholder="Laszlo"></div>
+        <div><label>Role</label><input name="role" placeholder="FLM / Bay Manager / Shift Lead"></div>
+        <div><label>Volume</label><input type="number" name="volume"></div>
+        <div><label>Planned HC</label><input type="number" name="planned_hc"></div>
+        <div><label>Actual HC</label><input type="number" name="actual_hc"></div>
+        <div><label>Late Trailers</label><input type="number" name="late_trailers"></div>
+        <div><label>Take Photo</label><input type="file" name="camera_photo" accept="image/*" capture="environment"></div>
+        <div><label>Upload Photo</label><input type="file" name="photo" accept="image/*"></div>
+        <div class="wide"><label>Issues</label><input name="issues" placeholder="Late trailers, sickness, system issue, yard issue"></div>
+        <div class="wide"><label>Actions / Follow-up</label><input name="actions" placeholder="What the next shift needs to do"></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Generate Handover</button></div>
+    </form>
+</section>
+
+<section class="panel">
+    <h3>Saved Handovers</h3>
+    {% for row in rows %}
+    <div class="handover-card">
+        <div class="panel-head">
+            <strong>{{ row.date|dateuk }} - {{ row.shift }}</strong>
+            <div class="mini-actions">
+                <a class="small-btn" href="{{ url_for('handover_download', item_id=row.id) }}">TXT</a>
+                <a class="small-btn" href="{{ url_for('handover_pdf', item_id=row.id) }}">PDF</a>
+            </div>
+        </div>
+        <pre class="report-box">{{ row.generated_report }}</pre>
+        {% if row.photo_filename %}
+        <p class="muted">Photo attached: {{ row.photo_filename }}</p>
+        {% endif %}
+    </div>
+    {% else %}
+    <p class="empty">No handovers yet.</p>
+    {% endfor %}
+</section>
+{% endblock %}

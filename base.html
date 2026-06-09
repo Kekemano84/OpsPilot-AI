@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OpsPilot AI - Operations Management Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script defer src="{{ url_for('static', filename='js/voice.js') }}"></script>
+    <link rel="manifest" href="{{ url_for('manifest_json') }}">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js').catch(function() {});
+        });
+      }
+    </script>
+</head>
+<body>
+
+<div class="app-shell">
+    {% if user %}
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">OP</div>
+            <div>
+                <h1>OpsPilot AI</h1>
+                <p>Operations hub</p>
+            </div>
+        </div>
+
+        <div class="plan-chip">{{ 'Pro' if user.plan in ['pro','business'] else plan_names[user.plan] }} plan</div>
+
+        <nav class="nav">
+            <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('index') }}">Dashboard</a>
+            <a class="{{ 'active' if page == 'morning_brief' else '' }}" href="{{ url_for('morning_brief') }}">Morning Brief</a>
+            <a class="{{ 'active' if page == 'mileage' else '' }}" href="{{ url_for('mileage') }}">Mileage</a>
+            <a class="{{ 'active' if page == 'expenses' else '' }}" href="{{ url_for('expenses') }}">Expenses</a>
+            <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">Yard Check <span class="pro-badge">PRO</span></a>
+            {% if user and user.plan in ['pro', 'business'] %}<a class="{{ 'active' if page == 'yard_settings' else '' }}" href="{{ url_for('yard_settings') }}">Yard Settings <span class="pro-badge">PRO</span></a>{% endif %}
+            <a class="{{ 'active' if page == 'handover' else '' }}" href="{{ url_for('handover') }}">Handover <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">Team <span class="pro-badge">PRO</span></a>
+            {% if user and user.email == "admin@opspilot.ai" %}
+            <a class="{{ 'active' if page == 'admin' else '' }}" href="{{ url_for('admin_dashboard') }}">Admin <span class="pro-badge">ADMIN</span></a>
+            <a class="{{ 'active' if page == 'admin_billing' else '' }}" href="{{ url_for('admin_billing') }}">Billing <span class="pro-badge">ADMIN</span></a>
+            {% endif %}
+            <a class="{{ 'active' if page == 'pricing' else '' }}" href="{{ url_for('pricing') }}">Plans</a>
+            <a class="{{ 'active' if page == 'settings' else '' }}" href="{{ url_for('settings') }}">Settings</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </nav>
+
+        <div class="sidebar-note">
+            <strong>HMRC mileage</strong>
+            <span>45p per business mile</span>
+        </div>
+    </aside>
+    {% endif %}
+
+    <main class="main {{ 'auth-main' if not user else '' }}">
+        {% if user %}
+        <header class="topbar">
+            <div>
+                <h2>{% block title %}{% endblock %}</h2>
+            </div>
+            <div class="top-actions">
+                <a class="btn ghost" href="{{ url_for('pricing') }}">Plans</a>
+                <a class="btn primary" href="{{ url_for('yard_check') }}">+ Yard Check</a>
+            </div>
+        </header>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-wrap">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+
+        {% if user %}
+        <footer class="footer">
+            OpsPilot AI © {{ current_year }} · Tax calculations are estimates only.
+        </footer>
+        {% endif %}
+    </main>
+</div>
+
+</body>
+</html>

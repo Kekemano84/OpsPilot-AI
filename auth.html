@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth-card">
+    <div class="brand auth-brand">
+        <div class="brand-icon">OP</div>
+        <div>
+            <h1>OpsPilot AI</h1>
+            <p>Finance + logistics + operations</p>
+        </div>
+    </div>
+
+    {% if mode == "register" %}
+    <h2>Create account</h2>
+    <form method="POST" class="auth-form">
+        <label>Name</label>
+        <input name="name" placeholder="Laszlo Kertesz">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="you@example.com">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="At least 6 characters">
+        <button class="btn primary full" type="submit">Create Account</button>
+    </form>
+    <p class="muted">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+    {% else %}
+    <h2>Login</h2>
+    <form method="POST" class="auth-form">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="you@example.com">
+        <label>Password</label>
+        <input type="password" name="password">
+        <button class="btn primary full" type="submit">Login</button>
+    </form>
+    <p class="muted">No account yet? <a href="{{ url_for('register') }}">Create one</a></p>
+    {% endif %}
+</section>
+{% endblock %}

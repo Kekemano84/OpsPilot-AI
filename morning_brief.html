@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Morning Brief{% endblock %}
+{% block content %}
+
+<section class="hero-card pro-hero">
+    <div>
+        <p class="eyebrow">Free FLM tool</p>
+        <h3>Build a clear morning brief for your team in less than one minute.</h3>
+    </div>
+    <span class="btn light">Free</span>
+</section>
+
+<section class="panel">
+    <div class="panel-head">
+        <div>
+            <h3>Create Morning Brief</h3>
+            <p class="muted">Use this before the shift starts. Keep it short, clear and practical.</p>
+        </div>
+        <span class="pill">FREE</span>
+    </div>
+
+    <form method="POST" class="form-grid">
+        <div><label>Date</label><input type="date" name="date"></div>
+        <div><label>Shift</label><input name="shift" placeholder="D2 / Day / Night"></div>
+        <div><label>Manager</label><input name="manager" placeholder="Laszlo"></div>
+        <div><label>Your Role</label><input name="role" placeholder="FLM / Bay Manager / Shift Lead"></div>
+        <div><label>Volume</label><input type="number" name="volume" placeholder="12000"></div>
+        <div><label>Available HC</label><input type="number" name="available_hc" placeholder="22"></div>
+        <div><label>Late Trailers</label><input type="number" name="late_trailers" placeholder="2"></div>
+        <div class="wide"><label>Safety Message</label><input name="safety_message" placeholder="MHE keys, housekeeping, no blocked walkways"></div>
+        <div class="wide"><label>Priorities</label><input name="priorities" placeholder="Late trailers, yard control, SLAM, clean handover"></div>
+        <div class="wide"><label>Team Messages</label><input name="team_messages" placeholder="Communication, support each other, report issues early"></div>
+        <div class="wide"><label>Break Reminder</label><input name="break_reminder" placeholder="No breaks after 16:00 unless work is under control"></div>
+        <div class="wide"><label>Equipment Reminder</label><input name="equipment_reminder" placeholder="Return scanners, MHE keys and radios"></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Generate Brief</button></div>
+    </form>
+</section>
+
+<section class="panel">
+    <h3>Saved Morning Briefs</h3>
+    {% for row in rows %}
+    <div class="handover-card">
+        <div class="panel-head">
+            <strong>{{ row.date|dateuk }} - {{ row.shift }}</strong>
+            <a class="small-btn" href="{{ url_for('morning_brief_download', item_id=row.id) }}">Download TXT</a>
+        </div>
+        <pre class="report-box">{{ row.generated_brief }}</pre>
+    </div>
+    {% else %}
+    <p class="empty">No morning briefs yet.</p>
+    {% endfor %}
+</section>
+
+{% endblock %}

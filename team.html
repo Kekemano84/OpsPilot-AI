@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Team{% endblock %}
+{% block content %}
+<section class="panel">
+    <div class="panel-head">
+        <div><h3>Add Team Member</h3><p class="muted">Keep a simple team list for daily operations.</p></div>
+        <span class="pill">FREE</span>
+    </div>
+
+    <form method="POST" class="form-grid">
+        <div><label>Name</label><input name="name" placeholder="Jake Nicholson"></div>
+        <div>
+            <label>Role</label>
+            <select name="role_select">
+                <option>Manager</option>
+                <option>Supervisor</option>
+                <option>Team Leader</option>
+                <option>Bay Staff</option>
+                <option>Driver</option>
+                <option>Admin</option>
+                <option>Other</option>
+            </select>
+        </div>
+        <div><label>Custom Role</label><input name="custom_role" placeholder="e.g. Yard Marshal"></div>
+        <div><label>Email</label><input type="email" name="email"></div>
+        <div><label>Phone</label><input name="phone" placeholder="Optional"></div>
+        <div><label>Status</label><select name="status"><option>Active</option><option>Inactive</option><option>Holiday</option><option>Sick</option></select></div>
+        <div class="wide"><label>Notes</label><input name="notes" placeholder="Skills, restrictions, licence, comment"></div>
+        <input type="hidden" name="permissions" value="View only">
+        <div class="form-actions"><button class="btn primary" type="submit">Add Member</button></div>
+    </form>
+</section>
+
+<section class="panel">
+    <h3>Team Members</h3>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Phone</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody>
+        {% for row in rows %}
+        <tr>
+            <td><strong>{{ row.name }}</strong></td>
+            <td>{{ row.role }}</td>
+            <td>{{ row.email or "-" }}</td>
+            <td>{{ row.phone or "-" }}</td>
+            <td><span class="status yard">{{ row.status }}</span></td>
+            <td>{{ row.notes or "-" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty">No team members yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endblock %}

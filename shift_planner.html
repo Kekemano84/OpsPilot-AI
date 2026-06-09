@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}AI Shift Planner{% endblock %}
+{% block content %}
+<section class="panel">
+    <div class="panel-head"><h3>Create Shift Plan</h3><span class="pill">BUSINESS</span></div>
+    <form method="POST" class="form-grid">
+        <div><label>Date</label><input type="date" name="date"></div>
+        <div><label>Shift</label><select name="shift"><option>Day</option><option>Night</option><option>Early</option><option>Late</option></select></div>
+        <div><label>Expected Volume</label><input type="number" name="volume" placeholder="12000"></div>
+        <div><label>Available HC</label><input type="number" name="available_hc" placeholder="22"></div>
+        <div><label>Target Rate / Hour</label><input type="number" step="0.1" name="target_rate" placeholder="55"></div>
+        <div><label>Planned Hours</label><input type="number" step="0.1" name="planned_hours" placeholder="10.5"></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Generate Plan</button></div>
+    </form>
+</section>
+<section class="panel">
+    <h3>Saved AI Plans</h3>
+    {% for row in rows %}
+    <div class="handover-card"><div class="panel-head"><strong>{{ row.date|dateuk }} - {{ row.shift }}</strong><span class="pill">AI PLAN</span></div><pre class="report-box">{{ row.ai_plan }}</pre></div>
+    {% else %}<p class="empty">No shift plans yet.</p>{% endfor %}
+</section>
+{% endblock %}
