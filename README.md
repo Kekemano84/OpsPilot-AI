@@ -338,3 +338,11 @@ Added:
 5. PWA manifest improvement
 6. Annual leave entitlement + counter
 7. Today Status dashboard widget from Shift Calendar
+
+## Premium Logo + Splash Update
+
+- New premium SVG OpsPilot AI logo.
+- Dark enterprise splash screen.
+- 3 second forced splash.
+- OpsPilot AI name + Operations Simplified slogan.
+- PWA manifest points to the new logo.

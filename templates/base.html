@@ -20,7 +20,10 @@
     </script>
 </head>
 
+
 <div id="op-splash-screen" class="op-splash-screen">
+    <div class="op-splash-glow op-glow-one"></div>
+    <div class="op-splash-glow op-glow-two"></div>
     <div class="op-splash-card">
         <div class="op-splash-logo-wrap">
             <img class="op-splash-logo" src="{{ url_for('static', filename='icons/opspilot-logo.svg') }}" alt="OpsPilot AI">
@@ -125,6 +128,9 @@
         {% endif %}
 
 
+
+
+
 <script>
 (function () {
     var splash = document.getElementById("op-splash-screen");
@@ -133,20 +139,19 @@
     document.documentElement.classList.add("op-loading");
 
     function hideSplash() {
+        if (!splash) return;
         splash.classList.add("op-splash-hide");
         document.documentElement.classList.remove("op-loading");
         setTimeout(function () {
             if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
-        }, 650);
+        }, 700);
     }
 
-    // Minimum 3 seconds every full page load
     window.addEventListener("load", function () {
         setTimeout(hideSplash, 3000);
     });
 
-    // Safety fallback, in case load event is delayed
-    setTimeout(hideSplash, 4200);
+    setTimeout(hideSplash, 4300);
 })();
 </script>
 
