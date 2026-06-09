@@ -458,3 +458,86 @@ input[type="file"] {
         font-size: 32px;
     }
 }
+
+
+/* OpsPilot AI loading screen */
+.app-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: radial-gradient(circle at top left, #2563eb 0%, #0f172a 42%, #020617 100%);
+    color: white;
+    transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+
+body.app-loaded .app-loader {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.loader-logo-wrap {
+    width: 112px;
+    height: 112px;
+    position: relative;
+    display: grid;
+    place-items: center;
+}
+
+.loader-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 32px;
+    background: conic-gradient(from 0deg, #2563eb, #10b981, #60a5fa, #2563eb);
+    animation: opspilotSpin 1.15s linear infinite;
+    box-shadow: 0 22px 60px rgba(37, 99, 235, 0.55);
+}
+
+.loader-ring::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 26px;
+    background: #0f172a;
+}
+
+.loader-logo {
+    position: relative;
+    z-index: 1;
+    width: 76px;
+    height: 76px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #2563eb, #10b981);
+    color: white;
+    font-size: 24px;
+    font-weight: 950;
+    letter-spacing: -0.04em;
+}
+
+.loader-title {
+    font-size: 28px;
+    font-weight: 950;
+    letter-spacing: -0.05em;
+}
+
+.loader-subtitle {
+    color: #cbd5e1;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+@keyframes opspilotSpin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loader-ring { animation: none; }
+    .app-loader { transition: none; }
+}
