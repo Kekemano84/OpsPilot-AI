@@ -21,9 +21,17 @@
 </head>
 <body>
 
+{% if user %}
+<button class="mobile-menu-btn" type="button" aria-label="Open menu" onclick="document.body.classList.toggle('sidebar-open')">
+    ☰
+</button>
+<div class="mobile-backdrop" onclick="document.body.classList.remove('sidebar-open')"></div>
+{% endif %}
+
 <div class="app-shell">
     {% if user %}
     <aside class="sidebar">
+        <button class="sidebar-close" type="button" aria-label="Close menu" onclick="document.body.classList.remove('sidebar-open')">×</button>
         <div class="brand">
             <div class="brand-icon">OP</div>
             <div>
@@ -92,5 +100,14 @@
     </main>
 </div>
 
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.nav a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        document.body.classList.remove('sidebar-open');
+      });
+    });
+  });
+</script>
 </body>
 </html>
