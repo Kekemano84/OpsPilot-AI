@@ -205,339 +205,154 @@ input[type="file"] {
 }
 
 
-/* ---------- Mobile app layout fix ---------- */
-.mobile-menu-btn,
-.sidebar-close,
-.mobile-backdrop {
-    display: none;
+/* ===== OpsPilot AI logo + dynamic loader + mobile app polish ===== */
+.op-logo {
+    display: grid;
+    place-items: center;
+    color: #06112b;
+    font-weight: 1000;
+    letter-spacing: -0.08em;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,.55), transparent 28%),
+      linear-gradient(135deg, #2563eb 0%, #14b8a6 100%);
+    box-shadow: 0 18px 42px rgba(37, 99, 235, 0.28);
+    position: relative;
+    overflow: hidden;
 }
-
-@media (max-width: 980px) {
-    body {
-        overflow-x: hidden;
-    }
-
-    .app-shell {
-        display: block;
-        min-width: 0;
-    }
-
-    .main {
-        width: 100%;
-        max-width: none;
-        padding: 18px 14px 28px;
-        margin: 0;
-        min-width: 0;
-    }
-
-    .mobile-menu-btn {
-        display: inline-flex;
-        position: fixed;
-        left: 14px;
-        top: 14px;
-        z-index: 1001;
-        width: 44px;
-        height: 44px;
-        border: 0;
-        border-radius: 14px;
-        background: #0f172a;
-        color: #fff;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        font-weight: 900;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
-    }
-
-    .mobile-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.48);
-        z-index: 999;
-    }
-
-    body.sidebar-open .mobile-backdrop {
-        display: block;
-    }
-
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: min(82vw, 310px);
-        height: 100dvh;
-        z-index: 1000;
-        padding: 22px 18px;
-        transform: translateX(-105%);
-        transition: transform 0.22s ease;
-        overflow-y: auto;
-        border-radius: 0 24px 24px 0;
-    }
-
-    body.sidebar-open .sidebar {
-        transform: translateX(0);
-    }
-
-    .sidebar-close {
-        display: inline-flex;
-        position: absolute;
-        right: 14px;
-        top: 14px;
-        width: 38px;
-        height: 38px;
-        border: 0;
-        border-radius: 12px;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.10);
-        color: #fff;
-        font-size: 24px;
-        font-weight: 900;
-    }
-
-    .brand {
-        padding-right: 42px;
-    }
-
-    .brand h1 {
-        font-size: 20px;
-    }
-
-    .nav {
-        grid-template-columns: 1fr;
-    }
-
-    .nav a {
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .topbar {
-        padding-top: 52px;
-        margin-bottom: 14px;
-        gap: 12px;
-    }
-
-    .topbar h2 {
-        font-size: 28px;
-        line-height: 1.05;
-    }
-
-    .top-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        width: 100%;
-        gap: 10px;
-    }
-
-    .top-actions .btn {
-        width: 100%;
-        min-height: 48px;
-        white-space: normal;
-        text-align: center;
-        padding: 12px 10px;
-    }
-
-    .hero-card {
-        display: grid;
-        grid-template-columns: 1fr;
-        padding: 22px 18px;
-        gap: 16px;
-        overflow: hidden;
-    }
-
-    .hero-card h3 {
-        font-size: 24px;
-        line-height: 1.15;
-        max-width: 100%;
-        overflow-wrap: anywhere;
-    }
-
-    .hero-card .btn,
-    .hero-actions .btn {
-        width: 100%;
-    }
-
-    .stats-grid,
-    .two-col,
-    .form-grid,
-    .pricing-grid,
-    .two-plans,
-    .compact-form {
-        grid-template-columns: 1fr !important;
-        gap: 12px;
-    }
-
-    .form-grid .wide {
-        grid-column: auto;
-    }
-
-    .stat-card,
-    .panel,
-    .auth-card,
-    .price-card {
-        width: 100%;
-        border-radius: 18px;
-    }
-
-    .stat-card {
-        padding: 18px;
-    }
-
-    .stat-card strong {
-        font-size: 26px;
-    }
-
-    .panel {
-        padding: 18px;
-    }
-
-    .panel-head {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .list-row {
-        flex-direction: column;
-    }
-
-    .table-wrap {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    table {
-        min-width: 680px;
-    }
-
-    input,
-    select,
-    textarea,
-    .btn,
-    .small-btn {
-        font-size: 16px;
-    }
-
-    .voice-box {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .footer {
-        text-align: center;
-    }
+.op-logo::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 2px solid rgba(255,255,255,.32);
+    border-radius: inherit;
 }
+.op-logo span { position: relative; z-index: 1; }
+.brand-icon { width: 52px; height: 52px; border-radius: 18px; }
 
-@media (max-width: 560px) {
-    .main {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    .topbar h2 {
-        font-size: 25px;
-    }
-
-    .hero-card h3 {
-        font-size: 21px;
-    }
-
-    .top-actions {
-        grid-template-columns: 1fr;
-    }
-
-    .brand-icon {
-        width: 44px;
-        height: 44px;
-    }
-
-    .price-head strong {
-        font-size: 32px;
-    }
-}
-
-
-/* OpsPilot AI loading screen */
 .app-loader {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    background: radial-gradient(circle at top left, #2563eb 0%, #0f172a 42%, #020617 100%);
-    color: white;
-    transition: opacity 0.45s ease, visibility 0.45s ease;
-}
-
-body.app-loaded .app-loader {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-}
-
-.loader-logo-wrap {
-    width: 112px;
-    height: 112px;
-    position: relative;
     display: grid;
     place-items: center;
-}
-
-.loader-ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 32px;
-    background: conic-gradient(from 0deg, #2563eb, #10b981, #60a5fa, #2563eb);
-    animation: opspilotSpin 1.15s linear infinite;
-    box-shadow: 0 22px 60px rgba(37, 99, 235, 0.55);
-}
-
-.loader-ring::after {
-    content: "";
-    position: absolute;
-    inset: 8px;
-    border-radius: 26px;
-    background: #0f172a;
-}
-
-.loader-logo {
-    position: relative;
-    z-index: 1;
-    width: 76px;
-    height: 76px;
-    border-radius: 24px;
-    display: grid;
-    place-items: center;
-    background: linear-gradient(135deg, #2563eb, #10b981);
+    background:
+      radial-gradient(circle at top left, rgba(37,99,235,.24), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(20,184,166,.28), transparent 36%),
+      #0f172a;
     color: white;
-    font-size: 24px;
-    font-weight: 950;
-    letter-spacing: -0.04em;
+    transition: opacity .45s ease, visibility .45s ease;
+}
+.loader-card { display: grid; place-items: center; gap: 12px; text-align: center; transform: translateY(-8px); }
+.loader-logo { width: 92px; height: 92px; border-radius: 30px; font-size: 30px; animation: opSpin 1.25s cubic-bezier(.2,.75,.35,1) infinite; }
+.loader-card h1 { margin: 8px 0 0; font-size: 32px; letter-spacing: -0.05em; }
+.loader-card p { margin: 0; color: #cbd5e1; font-weight: 800; }
+@keyframes opSpin {
+    0% { transform: rotate(0deg) scale(.96); }
+    55% { transform: rotate(360deg) scale(1.05); }
+    100% { transform: rotate(360deg) scale(.96); }
+}
+body.loaded .app-loader { opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* Auth page: keep it clean. No app header/actions/menu on login/register. */
+body.auth-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 10% 10%, rgba(37,99,235,.18), transparent 28%),
+      radial-gradient(circle at 90% 20%, rgba(16,185,129,.16), transparent 30%),
+      linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
+}
+body.auth-page .app-shell { display: block; min-height: 100vh; }
+body.auth-page .auth-main { min-height: 100vh; display: grid; place-items: center; padding: 22px; }
+body.auth-page .topbar,
+body.auth-page .sidebar,
+body.auth-page .mobile-menu-btn,
+body.auth-page .mobile-backdrop { display: none !important; }
+body.auth-page .auth-card {
+    width: min(100%, 480px);
+    margin: 0 auto;
+    padding: 32px;
+    border-radius: 30px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+}
+body.auth-page .auth-brand { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+body.auth-page .auth-brand .brand-icon { flex: 0 0 auto; }
+body.auth-page .auth-card h2 { font-size: 40px; letter-spacing: -0.06em; margin-bottom: 22px; }
+body.auth-page input { min-height: 58px; border-radius: 20px; font-size: 18px; }
+body.auth-page .btn { min-height: 58px; border-radius: 20px; font-size: 18px; }
+
+.mobile-menu-btn, .mobile-backdrop { display: none; }
+
+@media (max-width: 980px) {
+    body.app-page { overflow-x: hidden; }
+    .app-shell { display: block; min-height: 100vh; }
+    .mobile-menu-btn {
+        display: inline-grid;
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + 18px);
+        left: 18px;
+        z-index: 1001;
+        width: 58px;
+        height: 58px;
+        border: 0;
+        border-radius: 18px;
+        background: #0f172a;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, .22);
+        place-content: center;
+        gap: 6px;
+    }
+    .mobile-menu-btn span { display: block; width: 25px; height: 3px; border-radius: 999px; background: white; }
+    .mobile-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,.46);
+        z-index: 998;
+        opacity: 0;
+        visibility: hidden;
+        transition: .25s ease;
+    }
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        width: min(86vw, 320px);
+        height: 100dvh;
+        padding: calc(env(safe-area-inset-top) + 88px) 18px 18px;
+        transform: translateX(-105%);
+        transition: transform .28s ease;
+        border-radius: 0 28px 28px 0;
+        box-shadow: 22px 0 55px rgba(15,23,42,.28);
+    }
+    body.menu-open .sidebar { transform: translateX(0); }
+    body.menu-open .mobile-backdrop { opacity: 1; visibility: visible; }
+    .nav { grid-template-columns: 1fr; }
+    .nav a { font-size: 16px; padding: 14px 14px; }
+    .main { padding: calc(env(safe-area-inset-top) + 96px) 14px 20px; max-width: 100%; }
+    .topbar { display: grid; gap: 14px; margin-bottom: 18px; }
+    .topbar h2 { font-size: clamp(28px, 9vw, 40px); line-height: 1; }
+    .top-actions { display: grid; grid-template-columns: 1fr; gap: 12px; width: 100%; }
+    .top-actions .btn { width: 100%; min-height: 58px; font-size: 18px; border-radius: 20px; }
+    .hero-card { padding: 22px; border-radius: 26px; display: grid; align-items: start; gap: 18px; }
+    .hero-card h3 { font-size: clamp(24px, 7vw, 34px); line-height: 1.14; max-width: 100%; }
+    .hero-card .btn { width: 100%; }
+    .stats-grid, .two-col, .form-grid, .pricing-grid, .two-plans, .compact-form { grid-template-columns: 1fr !important; }
+    .form-grid .wide { grid-column: auto; }
+    .stat-card, .panel, .price-card { border-radius: 24px; padding: 20px; }
+    .panel-head { align-items: flex-start; flex-direction: column; }
+    .list-row { align-items: flex-start; flex-direction: column; }
+    .form-actions, .form-actions .btn, form .btn, form button { width: 100%; }
+    input, select, textarea { font-size: 16px; min-height: 52px; border-radius: 18px; }
+    .table-wrap { margin-inline: -8px; padding-inline: 8px; }
+    table { min-width: 680px; }
+    .voice-box { align-items: stretch; flex-direction: column; }
 }
 
-.loader-title {
-    font-size: 28px;
-    font-weight: 950;
-    letter-spacing: -0.05em;
-}
-
-.loader-subtitle {
-    color: #cbd5e1;
-    font-size: 14px;
-    font-weight: 800;
-}
-
-@keyframes opspilotSpin {
-    to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .loader-ring { animation: none; }
-    .app-loader { transition: none; }
+@media (max-width: 560px) {
+    .main { padding-left: 12px; padding-right: 12px; }
+    .stat-card strong { font-size: 30px; }
+    .panel h3 { font-size: 22px; }
+    .auth-card { padding: 26px 22px !important; }
+    body.auth-page .auth-card h2 { font-size: 36px; }
+    .loader-logo { width: 82px; height: 82px; }
 }
