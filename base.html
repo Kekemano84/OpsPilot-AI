@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>OpsPilot AI - Operations Management Platform</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#2563eb">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script defer src="{{ url_for('static', filename='js/voice.js') }}"></script>
     <link rel="manifest" href="{{ url_for('manifest_json') }}">
-    <meta name="theme-color" content="#2563eb">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script>
@@ -19,13 +18,30 @@
       }
     </script>
 </head>
-<body class="{{ "auth-page" if page in ['auth', 'login', 'register'] else "" }}">
+<body class="{{ 'auth-page' if not user else 'app-page' }}">
+
+<div id="app-loader" class="app-loader" aria-label="Loading OpsPilot AI">
+    <div class="loader-card">
+        <div class="op-logo loader-logo" aria-hidden="true">
+            <img src="{{ url_for('static', filename='icons/opspilot-logo.svg') }}" alt="OpsPilot AI logo">
+        </div>
+        <h1>OpsPilot AI</h1>
+        <p>Preparing your operations cockpit...</p>
+    </div>
+</div>
+
+{% if user %}
+<button class="mobile-menu-btn" type="button" aria-label="Open menu" onclick="document.body.classList.toggle('menu-open')">
+    <span></span><span></span><span></span>
+</button>
+<div class="mobile-backdrop" onclick="document.body.classList.remove('menu-open')"></div>
+{% endif %}
 
 <div class="app-shell">
     {% if user %}
     <aside class="sidebar">
         <div class="brand">
-            <div class="brand-icon">OP</div>
+            <div class="op-logo brand-icon"><img src="{{ url_for('static', filename='icons/opspilot-logo.svg') }}" alt="OpsPilot AI logo"></div>
             <div>
                 <h1>OpsPilot AI</h1>
                 <p>Operations hub</p>
@@ -40,11 +56,10 @@
             <a class="{{ 'active' if page == 'mileage' else '' }}" href="{{ url_for('mileage') }}">Mileage</a>
             <a class="{{ 'active' if page == 'expenses' else '' }}" href="{{ url_for('expenses') }}">Expenses</a>
             <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">Yard Check <span class="pro-badge">PRO</span></a>
-            {% if user and user.plan in ['pro', 'business'] %}<a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">Shift Calendar <span class="pro-badge">PRO</span></a>{% endif %}
             {% if user and user.plan in ['pro', 'business'] %}<a class="{{ 'active' if page == 'yard_settings' else '' }}" href="{{ url_for('yard_settings') }}">Yard Settings <span class="pro-badge">PRO</span></a>{% endif %}
             <a class="{{ 'active' if page == 'handover' else '' }}" href="{{ url_for('handover') }}">Handover <span class="pro-badge">PRO</span></a>
             <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">Team <span class="pro-badge">PRO</span></a>
-            {% if user and user.email == "admin@opspilot.ai" %}
+            {% if user and (user.email == "admin@opspilot.ai" or user.role == "admin") %}
             <a class="{{ 'active' if page == 'admin' else '' }}" href="{{ url_for('admin_dashboard') }}">Admin <span class="pro-badge">ADMIN</span></a>
             <a class="{{ 'active' if page == 'admin_billing' else '' }}" href="{{ url_for('admin_billing') }}">Billing <span class="pro-badge">ADMIN</span></a>
             {% endif %}
@@ -66,12 +81,10 @@
             <div>
                 <h2>{% block title %}{% endblock %}</h2>
             </div>
-            {% if page not in ['auth', 'login', 'register'] %}
             <div class="top-actions">
                 <a class="btn ghost" href="{{ url_for('pricing') }}">Plans</a>
                 <a class="btn primary" href="{{ url_for('yard_check') }}">+ Yard Check</a>
             </div>
-            {% endif %}
         </header>
         {% endif %}
 
@@ -94,6 +107,35 @@
         {% endif %}
     </main>
 </div>
+
+<script>
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      document.body.classList.add('loaded');
+    }, 3000);
+  });
+</script>
+
+<script>
+  // Biometric UI preview. Real Face ID / fingerprint login needs WebAuthn backend routes.
+  window.addEventListener('DOMContentLoaded', function () {
+    if (!document.body.classList.contains('auth-page')) return;
+    if (!window.PublicKeyCredential) return;
+    var forms = document.querySelectorAll('form');
+    if (!forms.length) return;
+    var form = forms[0];
+    var existing = document.querySelector('.biometric-login-btn');
+    if (existing) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'biometric-login-btn';
+    btn.innerHTML = '<span>🔐</span> Face ID / Fingerprint';
+    btn.addEventListener('click', function () {
+      alert('Biometric login is supported by this browser, but it needs WebAuthn setup in app.py first.');
+    });
+    form.appendChild(btn);
+  });
+</script>
 
 </body>
 </html>

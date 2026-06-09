@@ -294,3 +294,20 @@ Render:
 
 Local:
 - python app.py
+
+
+## Shift Calendar Pro
+
+Added:
+- Pro Shift Calendar page
+- 4 on / 4 off generator
+- 5 on / 2 off generator
+- Monday-Friday generator
+- manual day override: Holiday, Sick, Training, Overtime, Bank Holiday, Custom
+- Dashboard weekly coloured shift strip
+- Excel export
+- slower splash logo animation
+
+## Auth Page Fix
+
+Plans and + Yard Check buttons are hidden on login/register/auth pages.

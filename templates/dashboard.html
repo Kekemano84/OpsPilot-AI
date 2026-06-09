@@ -10,6 +10,30 @@
     <a class="btn light" href="{{ url_for('pricing') }}">View Plans</a>
 </section>
 
+{% if week_shifts %}
+<section class="panel week-strip-panel">
+    <div class="panel-head">
+        <div>
+            <h3>This Week</h3>
+            <p class="muted">Your current shift calendar</p>
+        </div>
+        <a class="small-btn ghost-small" href="{{ url_for('shift_calendar') }}">Open Calendar</a>
+    </div>
+    <div class="week-strip">
+        {% for day in week_shifts %}
+        <div class="week-day status-{{ day.status|lower|replace(' ', '-') }}">
+            <span>{{ day.date|dateuk }}</span>
+            <strong>{{ day.status }}</strong>
+            {% if day.start_time or day.end_time %}
+            <small>{{ day.start_time }} - {{ day.end_time }}</small>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+
 <section class="stats-grid">
     <div class="stat-card"><span>Total Expenses</span><strong>{{ totals.expenses|money }}</strong><small>Business costs</small></div>
     <div class="stat-card"><span>Mileage Claim</span><strong>{{ totals.mileage_claim|money }}</strong><small>{{ "%.1f"|format(totals.miles) }} miles</small></div>

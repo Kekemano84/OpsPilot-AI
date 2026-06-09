@@ -41,7 +41,7 @@ except Exception:
     requests = None
 
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "opspilot-ai-dev-secret")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -61,7 +61,7 @@ CLASS4_NI_BASIC = 0.06
 CLASS4_NI_HIGHER = 0.02
 
 PLAN_ORDER = {"free": 0, "pro": 1, "business": 2}
-PLAN_NAMES = {"free": "Free", "pro": "Pro", "business": "Business"}
+PLAN_NAMES = {"free": "Free", "pro": "Pro", "business": "Pro"}
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID")
@@ -116,7 +116,6 @@ def init_db():
             start_location TEXT NOT NULL,
             end_location TEXT NOT NULL,
             miles REAL NOT NULL,
-            rate REAL DEFAULT 0.45,
             purpose TEXT,
             created_at TEXT NOT NULL
         )
@@ -160,7 +159,6 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'Recorded',
             notes TEXT,
             source TEXT NOT NULL DEFAULT 'Manual',
-            photo_filename TEXT,
             created_at TEXT NOT NULL
         )
     """)
@@ -228,6 +226,23 @@ def init_db():
         )
     """)
 
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS shift_calendar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Off',
+            shift_name TEXT,
+            start_time TEXT,
+            end_time TEXT,
+            notes TEXT,
+            source TEXT DEFAULT 'Generated',
+            created_at TEXT NOT NULL,
+            UNIQUE(user_id, date)
+        )
+    """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS morning_briefs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -287,14 +302,7 @@ def ensure_schema_updates():
             ("door_start", "INTEGER DEFAULT 1"),
             ("door_end", "INTEGER DEFAULT 100"),
             ("fence_start", "INTEGER DEFAULT 1"),
-            ("fence_end", "INTEGER DEFAULT 120"),
-            ("mileage_rate", "REAL DEFAULT 0.45")
-        ],
-        "mileage": [
-            ("rate", "REAL DEFAULT 0.45")
-        ],
-        "yard_checks": [
-            ("photo_filename", "TEXT")
+            ("fence_end", "INTEGER DEFAULT 120")
         ],
         "team_members": [
             ("permissions", "TEXT DEFAULT 'View only'")
@@ -387,7 +395,7 @@ def seed_admin_user():
 
 def is_admin(user=None):
     user = user or current_user()
-    return bool(user and (row_get(user, "email") == "admin@opspilot.ai" or row_get(user, "role") == "Admin"))
+    return bool(user and user["email"] == "admin@opspilot.ai")
 
 
 def current_user():
@@ -955,26 +963,110 @@ def calculate_google_maps_miles(origin, destination):
         return None, f"Could not calculate mileage: {exc}"
 
 
+
+SHIFT_STATUS_COLORS = {
+    "Work": "work",
+    "Off": "off",
+    "Holiday": "holiday",
+    "Sick": "sick",
+    "Training": "training",
+    "Overtime": "overtime",
+    "Bank Holiday": "bankholiday",
+    "Custom": "custom",
+}
+
+def generate_shift_pattern_dates(start_date, pattern, months, shift_name, start_time, end_time):
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end = start + timedelta(days=int(months or 12) * 31)
+    rows = []
+
+    # Pattern is a list of statuses. It repeats automatically.
+    if pattern == "4on4off":
+        cycle = ["Work"] * 4 + ["Off"] * 4
+    elif pattern == "5on2off":
+        cycle = ["Work"] * 5 + ["Off"] * 2
+    elif pattern == "monfri":
+        cycle = None
+    elif pattern == "2days2nights4off":
+        cycle = ["Work"] * 4 + ["Off"] * 4
+    else:
+        cycle = ["Work"] * 4 + ["Off"] * 4
+
+    d = start
+    i = 0
+    while d <= end:
+        if pattern == "monfri":
+            status = "Work" if d.weekday() < 5 else "Off"
+        else:
+            status = cycle[i % len(cycle)]
+
+        rows.append({
+            "date": d.isoformat(),
+            "status": status,
+            "shift_name": shift_name,
+            "start_time": start_time if status == "Work" else "",
+            "end_time": end_time if status == "Work" else "",
+            "notes": "",
+            "source": "Generated",
+        })
+        d += timedelta(days=1)
+        i += 1
+
+    return rows
+
+
+def get_week_start(date_obj=None):
+    date_obj = date_obj or datetime.today().date()
+    return date_obj - timedelta(days=date_obj.weekday())
+
+
+def get_current_week_shift_rows(user_id):
+    week_start = get_week_start()
+    week_end = week_start + timedelta(days=6)
+
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT * FROM shift_calendar
+        WHERE user_id = ? AND date BETWEEN ? AND ?
+        ORDER BY date ASC
+    """, (user_id, week_start.isoformat(), week_end.isoformat())).fetchall()
+    conn.close()
+
+    by_date = {row["date"]: row for row in rows}
+    week = []
+    for i in range(7):
+        d = week_start + timedelta(days=i)
+        key = d.isoformat()
+        row = by_date.get(key)
+        if row:
+            week.append(row)
+        else:
+            week.append({
+                "date": key,
+                "status": "Not Set",
+                "shift_name": "",
+                "start_time": "",
+                "end_time": "",
+                "notes": "",
+                "source": "Empty",
+            })
+    return week
+
+
 def allowed_image(filename):
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     return ext in {"png", "jpg", "jpeg", "webp"}
 
 
 @app.route("/")
+@login_required
 def index():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
     user = current_user()
     conn = get_db()
     recent_mileage = conn.execute("SELECT * FROM mileage WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     recent_yard = conn.execute("SELECT * FROM yard_checks WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     conn.close()
-    return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard)
-
-
-@app.route("/health")
-def health():
-    return {"status": "ok", "app": "OpsPilot AI"}
+    return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard, week_shifts=get_current_week_shift_rows(user["id"]))
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -1023,6 +1115,174 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+
+@app.route("/shift-calendar", methods=["GET", "POST"])
+@login_required
+@plan_required("pro")
+def shift_calendar():
+    user = current_user()
+    statuses = ["Work", "Off", "Holiday", "Sick", "Training", "Overtime", "Bank Holiday", "Custom"]
+    patterns = [
+        ("4on4off", "4 on / 4 off"),
+        ("5on2off", "5 days / 2 off"),
+        ("monfri", "Monday-Friday"),
+        ("2days2nights4off", "2 days / 2 nights / 4 off"),
+    ]
+
+    if request.method == "POST":
+        action = request.form.get("action")
+
+        conn = get_db()
+
+        if action == "generate":
+            start_date = request.form.get("start_date") or datetime.today().strftime("%Y-%m-%d")
+            pattern = request.form.get("pattern", "4on4off")
+            months = int(request.form.get("months") or 12)
+            shift_name = request.form.get("shift_name", "Shift").strip()
+            start_time = request.form.get("start_time", "06:00")
+            end_time = request.form.get("end_time", "18:00")
+            replace_existing = request.form.get("replace_existing") == "yes"
+
+            rows = generate_shift_pattern_dates(start_date, pattern, months, shift_name, start_time, end_time)
+
+            if replace_existing:
+                conn.execute("DELETE FROM shift_calendar WHERE user_id = ? AND date >= ?", (user["id"], start_date))
+
+            for row in rows:
+                conn.execute("""
+                    INSERT INTO shift_calendar
+                    (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, date) DO UPDATE SET
+                        status = excluded.status,
+                        shift_name = excluded.shift_name,
+                        start_time = excluded.start_time,
+                        end_time = excluded.end_time,
+                        notes = excluded.notes,
+                        source = excluded.source
+                """, (
+                    user["id"], row["date"], row["status"], row["shift_name"], row["start_time"],
+                    row["end_time"], row["notes"], row["source"], datetime.now().isoformat()
+                ))
+
+            conn.commit()
+            conn.close()
+            flash(f"Shift calendar generated for {months} month(s).", "success")
+            return redirect(url_for("shift_calendar"))
+
+        if action == "manual":
+            date = request.form.get("manual_date") or datetime.today().strftime("%Y-%m-%d")
+            status = request.form.get("manual_status", "Work")
+            shift_name = request.form.get("manual_shift_name", "").strip()
+            start_time = request.form.get("manual_start_time", "")
+            end_time = request.form.get("manual_end_time", "")
+            notes = request.form.get("manual_notes", "").strip()
+
+            conn.execute("""
+                INSERT INTO shift_calendar
+                (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'Manual', ?)
+                ON CONFLICT(user_id, date) DO UPDATE SET
+                    status = excluded.status,
+                    shift_name = excluded.shift_name,
+                    start_time = excluded.start_time,
+                    end_time = excluded.end_time,
+                    notes = excluded.notes,
+                    source = 'Manual'
+            """, (user["id"], date, status, shift_name, start_time, end_time, notes, datetime.now().isoformat()))
+
+            conn.commit()
+            conn.close()
+            flash("Shift day updated.", "success")
+            return redirect(url_for("shift_calendar"))
+
+    start = request.args.get("start")
+    try:
+        start_date = datetime.strptime(start, "%Y-%m-%d").date() if start else get_week_start()
+    except Exception:
+        start_date = get_week_start()
+
+    end_date = start_date + timedelta(days=27)
+
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT * FROM shift_calendar
+        WHERE user_id = ? AND date BETWEEN ? AND ?
+        ORDER BY date ASC
+    """, (user["id"], start_date.isoformat(), end_date.isoformat())).fetchall()
+    conn.close()
+
+    by_date = {row["date"]: row for row in rows}
+    calendar_days = []
+    d = start_date
+    while d <= end_date:
+        key = d.isoformat()
+        row = by_date.get(key)
+        calendar_days.append(row if row else {
+            "date": key,
+            "status": "Not Set",
+            "shift_name": "",
+            "start_time": "",
+            "end_time": "",
+            "notes": "",
+            "source": "Empty",
+        })
+        d += timedelta(days=1)
+
+    prev_start = (start_date - timedelta(days=28)).isoformat()
+    next_start = (start_date + timedelta(days=28)).isoformat()
+
+    return render_template(
+        "shift_calendar.html",
+        rows=calendar_days,
+        statuses=statuses,
+        patterns=patterns,
+        page="shift_calendar",
+        prev_start=prev_start,
+        next_start=next_start,
+        status_colors=SHIFT_STATUS_COLORS,
+    )
+
+
+@app.route("/shift-calendar/export")
+@login_required
+@plan_required("pro")
+def export_shift_calendar():
+    user = current_user()
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT * FROM shift_calendar
+        WHERE user_id = ?
+        ORDER BY date ASC
+    """, (user["id"],)).fetchall()
+    conn.close()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Shift Calendar"
+    headers = ["Date", "Status", "Shift", "Start", "End", "Notes", "Source"]
+    ws.append(headers)
+
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="2563EB")
+        cell.alignment = Alignment(horizontal="center")
+
+    for row in rows:
+        ws.append([
+            row["date"], row["status"], row["shift_name"], row["start_time"],
+            row["end_time"], row["notes"], row["source"]
+        ])
+
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width = 18
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="shift-calendar.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @app.route("/pricing")

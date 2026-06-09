@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Shift Calendar{% endblock %}
+{% block content %}
+
+<section class="hero-card pro-hero">
+    <div>
+        <p class="eyebrow">Pro Shift Calendar</p>
+        <h3>Generate your work pattern automatically for the next year and manually mark Holiday, Sick, Training or Overtime days.</h3>
+    </div>
+    <a class="btn light" href="{{ url_for('export_shift_calendar') }}">Export Excel</a>
+</section>
+
+<section class="two-col">
+    <section class="panel">
+        <div class="panel-head">
+            <div>
+                <h3>Auto Generate Calendar</h3>
+                <p class="muted">Set it once. OpsPilot generates the pattern for months ahead.</p>
+            </div>
+            <span class="pill">PRO</span>
+        </div>
+
+        <form method="POST" class="form-grid compact-form">
+            <input type="hidden" name="action" value="generate">
+            <div>
+                <label>Pattern</label>
+                <select name="pattern">
+                    {% for value, label in patterns %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Start Date</label>
+                <input type="date" name="start_date">
+            </div>
+            <div>
+                <label>Shift Name</label>
+                <input name="shift_name" placeholder="D2 / Day / Night / Early">
+            </div>
+            <div>
+                <label>Start Time</label>
+                <input type="time" name="start_time" value="06:00">
+            </div>
+            <div>
+                <label>End Time</label>
+                <input type="time" name="end_time" value="18:00">
+            </div>
+            <div>
+                <label>Generate For</label>
+                <select name="months">
+                    <option value="3">3 months</option>
+                    <option value="6">6 months</option>
+                    <option value="12" selected>12 months</option>
+                </select>
+            </div>
+            <div class="wide">
+                <label><input type="checkbox" name="replace_existing" value="yes"> Replace existing generated days from start date</label>
+            </div>
+            <div class="form-actions">
+                <button class="btn primary" type="submit">Generate Calendar</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-head">
+            <div>
+                <h3>Manual Day Update</h3>
+                <p class="muted">Override one day as Holiday, Sick, Training, Overtime or Custom.</p>
+            </div>
+        </div>
+
+        <form method="POST" class="form-grid compact-form">
+            <input type="hidden" name="action" value="manual">
+            <div>
+                <label>Date</label>
+                <input type="date" name="manual_date">
+            </div>
+            <div>
+                <label>Status</label>
+                <select name="manual_status">
+                    {% for status in statuses %}
+                    <option>{{ status }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Shift Name</label>
+                <input name="manual_shift_name" placeholder="Optional">
+            </div>
+            <div>
+                <label>Start</label>
+                <input type="time" name="manual_start_time">
+            </div>
+            <div>
+                <label>End</label>
+                <input type="time" name="manual_end_time">
+            </div>
+            <div class="wide">
+                <label>Notes</label>
+                <input name="manual_notes" placeholder="Annual leave, sickness, overtime, training etc.">
+            </div>
+            <div class="form-actions">
+                <button class="btn primary" type="submit">Save Day</button>
+            </div>
+        </form>
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-head">
+        <h3>Calendar View</h3>
+        <div class="mini-actions">
+            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', start=prev_start) }}">Previous</a>
+            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', start=next_start) }}">Next</a>
+        </div>
+    </div>
+
+    <div class="calendar-grid">
+        {% for row in rows %}
+        <div class="calendar-day status-{{ row.status|lower|replace(' ', '-') }}">
+            <span>{{ row.date|dateuk }}</span>
+            <strong>{{ row.status }}</strong>
+            {% if row.shift_name %}<small>{{ row.shift_name }}</small>{% endif %}
+            {% if row.start_time or row.end_time %}<small>{{ row.start_time }} - {{ row.end_time }}</small>{% endif %}
+            {% if row.notes %}<em>{{ row.notes }}</em>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="panel legend-panel">
+    <h3>Legend</h3>
+    <div class="legend-row">
+        {% for status in statuses %}
+        <span class="legend status-{{ status|lower|replace(' ', '-') }}">{{ status }}</span>
+        {% endfor %}
+    </div>
+</section>
+
+{% endblock %}
