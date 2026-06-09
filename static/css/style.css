@@ -203,3 +203,258 @@ textarea:focus {
 input[type="file"] {
     background: white;
 }
+
+
+/* ---------- Mobile app layout fix ---------- */
+.mobile-menu-btn,
+.sidebar-close,
+.mobile-backdrop {
+    display: none;
+}
+
+@media (max-width: 980px) {
+    body {
+        overflow-x: hidden;
+    }
+
+    .app-shell {
+        display: block;
+        min-width: 0;
+    }
+
+    .main {
+        width: 100%;
+        max-width: none;
+        padding: 18px 14px 28px;
+        margin: 0;
+        min-width: 0;
+    }
+
+    .mobile-menu-btn {
+        display: inline-flex;
+        position: fixed;
+        left: 14px;
+        top: 14px;
+        z-index: 1001;
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: 14px;
+        background: #0f172a;
+        color: #fff;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 900;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
+    }
+
+    .mobile-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.48);
+        z-index: 999;
+    }
+
+    body.sidebar-open .mobile-backdrop {
+        display: block;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: min(82vw, 310px);
+        height: 100dvh;
+        z-index: 1000;
+        padding: 22px 18px;
+        transform: translateX(-105%);
+        transition: transform 0.22s ease;
+        overflow-y: auto;
+        border-radius: 0 24px 24px 0;
+    }
+
+    body.sidebar-open .sidebar {
+        transform: translateX(0);
+    }
+
+    .sidebar-close {
+        display: inline-flex;
+        position: absolute;
+        right: 14px;
+        top: 14px;
+        width: 38px;
+        height: 38px;
+        border: 0;
+        border-radius: 12px;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.10);
+        color: #fff;
+        font-size: 24px;
+        font-weight: 900;
+    }
+
+    .brand {
+        padding-right: 42px;
+    }
+
+    .brand h1 {
+        font-size: 20px;
+    }
+
+    .nav {
+        grid-template-columns: 1fr;
+    }
+
+    .nav a {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .topbar {
+        padding-top: 52px;
+        margin-bottom: 14px;
+        gap: 12px;
+    }
+
+    .topbar h2 {
+        font-size: 28px;
+        line-height: 1.05;
+    }
+
+    .top-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .top-actions .btn {
+        width: 100%;
+        min-height: 48px;
+        white-space: normal;
+        text-align: center;
+        padding: 12px 10px;
+    }
+
+    .hero-card {
+        display: grid;
+        grid-template-columns: 1fr;
+        padding: 22px 18px;
+        gap: 16px;
+        overflow: hidden;
+    }
+
+    .hero-card h3 {
+        font-size: 24px;
+        line-height: 1.15;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .hero-card .btn,
+    .hero-actions .btn {
+        width: 100%;
+    }
+
+    .stats-grid,
+    .two-col,
+    .form-grid,
+    .pricing-grid,
+    .two-plans,
+    .compact-form {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    .form-grid .wide {
+        grid-column: auto;
+    }
+
+    .stat-card,
+    .panel,
+    .auth-card,
+    .price-card {
+        width: 100%;
+        border-radius: 18px;
+    }
+
+    .stat-card {
+        padding: 18px;
+    }
+
+    .stat-card strong {
+        font-size: 26px;
+    }
+
+    .panel {
+        padding: 18px;
+    }
+
+    .panel-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .list-row {
+        flex-direction: column;
+    }
+
+    .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+        min-width: 680px;
+    }
+
+    input,
+    select,
+    textarea,
+    .btn,
+    .small-btn {
+        font-size: 16px;
+    }
+
+    .voice-box {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .footer {
+        text-align: center;
+    }
+}
+
+@media (max-width: 560px) {
+    .main {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .topbar h2 {
+        font-size: 25px;
+    }
+
+    .hero-card h3 {
+        font-size: 21px;
+    }
+
+    .top-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .brand-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    .price-head strong {
+        font-size: 32px;
+    }
+}
