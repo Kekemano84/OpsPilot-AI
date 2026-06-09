@@ -10,6 +10,12 @@
     <a class="btn light" href="{{ url_for('export_shift_calendar') }}">Export Excel</a>
 </section>
 
+{% if trial and trial.is_trial %}
+<section class="notice soft-notice">
+    Shift Calendar is available for 14 days on the Free plan. After the trial ends, upgrade to Pro to continue using it.
+</section>
+{% endif %}
+
 <section class="two-col">
     <section class="panel">
         <div class="panel-head">

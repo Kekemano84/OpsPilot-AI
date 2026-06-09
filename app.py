@@ -413,7 +413,8 @@ def inject_context():
     return {
         "current_year": datetime.now().year,
         "user": user,
-        "plan_names": PLAN_NAMES
+        "plan_names": PLAN_NAMES,
+        "shift_trial": shift_calendar_trial_info(user) if user else None
     }
 
 
@@ -536,6 +537,30 @@ def refresh_user_plan(user):
         return user
 
     return user
+
+
+
+def shift_calendar_trial_info(user):
+    """Free users can use Shift Calendar for 14 days after account creation."""
+    if not user:
+        return {"allowed": False, "days_left": 0, "is_trial": False}
+
+    if is_admin(user) or row_get(user, "plan") in ["pro", "business"]:
+        return {"allowed": True, "days_left": None, "is_trial": False}
+
+    try:
+        created = datetime.fromisoformat(row_get(user, "created_at"))
+        trial_end = created + timedelta(days=14)
+        now = datetime.now()
+        days_left = max((trial_end.date() - now.date()).days, 0)
+        return {
+            "allowed": now <= trial_end,
+            "days_left": days_left,
+            "is_trial": True,
+            "trial_end": trial_end.date().isoformat(),
+        }
+    except Exception:
+        return {"allowed": False, "days_left": 0, "is_trial": True}
 
 
 def login_required(fn):
@@ -1120,9 +1145,13 @@ def logout():
 
 @app.route("/shift-calendar", methods=["GET", "POST"])
 @login_required
-@plan_required("pro")
 def shift_calendar():
     user = current_user()
+    trial = shift_calendar_trial_info(user)
+    if not trial["allowed"]:
+        flash("Your 14 day free Shift Calendar trial has ended. Upgrade to Pro to continue using Shift Calendar.", "error")
+        return redirect(url_for("pricing"))
+
     statuses = ["Work", "Off", "Holiday", "Sick", "Training", "Overtime", "Bank Holiday", "Custom"]
     patterns = [
         ("4on4off", "4 on / 4 off"),
@@ -1243,6 +1272,7 @@ def shift_calendar():
         prev_start=prev_start,
         next_start=next_start,
         status_colors=SHIFT_STATUS_COLORS,
+        trial=shift_calendar_trial_info(user),
     )
 
 

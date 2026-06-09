@@ -311,3 +311,10 @@ Added:
 ## Auth Page Fix
 
 Plans and + Yard Check buttons are hidden on login/register/auth pages.
+
+## Shift Calendar 14 Day Trial
+
+- Free users can use Shift Calendar for 14 days after registration.
+- After 14 days, Shift Calendar redirects to Plans.
+- Pro/Admin users keep full access.
+- Export remains Pro-only.
