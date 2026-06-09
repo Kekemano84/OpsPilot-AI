@@ -41,7 +41,7 @@ except Exception:
     requests = None
 
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("SECRET_KEY", "opspilot-ai-dev-secret")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -61,7 +61,7 @@ CLASS4_NI_BASIC = 0.06
 CLASS4_NI_HIGHER = 0.02
 
 PLAN_ORDER = {"free": 0, "pro": 1, "business": 2}
-PLAN_NAMES = {"free": "Free", "pro": "Pro", "business": "Pro"}
+PLAN_NAMES = {"free": "Free", "pro": "Pro", "business": "Business"}
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID")
@@ -116,6 +116,7 @@ def init_db():
             start_location TEXT NOT NULL,
             end_location TEXT NOT NULL,
             miles REAL NOT NULL,
+            rate REAL DEFAULT 0.45,
             purpose TEXT,
             created_at TEXT NOT NULL
         )
@@ -159,6 +160,7 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'Recorded',
             notes TEXT,
             source TEXT NOT NULL DEFAULT 'Manual',
+            photo_filename TEXT,
             created_at TEXT NOT NULL
         )
     """)
@@ -285,7 +287,14 @@ def ensure_schema_updates():
             ("door_start", "INTEGER DEFAULT 1"),
             ("door_end", "INTEGER DEFAULT 100"),
             ("fence_start", "INTEGER DEFAULT 1"),
-            ("fence_end", "INTEGER DEFAULT 120")
+            ("fence_end", "INTEGER DEFAULT 120"),
+            ("mileage_rate", "REAL DEFAULT 0.45")
+        ],
+        "mileage": [
+            ("rate", "REAL DEFAULT 0.45")
+        ],
+        "yard_checks": [
+            ("photo_filename", "TEXT")
         ],
         "team_members": [
             ("permissions", "TEXT DEFAULT 'View only'")
@@ -378,7 +387,7 @@ def seed_admin_user():
 
 def is_admin(user=None):
     user = user or current_user()
-    return bool(user and user["email"] == "admin@opspilot.ai")
+    return bool(user and (row_get(user, "email") == "admin@opspilot.ai" or row_get(user, "role") == "Admin"))
 
 
 def current_user():
@@ -952,14 +961,20 @@ def allowed_image(filename):
 
 
 @app.route("/")
-@login_required
 def index():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
     user = current_user()
     conn = get_db()
     recent_mileage = conn.execute("SELECT * FROM mileage WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     recent_yard = conn.execute("SELECT * FROM yard_checks WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     conn.close()
     return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard)
+
+
+@app.route("/health")
+def health():
+    return {"status": "ok", "app": "OpsPilot AI"}
 
 
 @app.route("/register", methods=["GET", "POST"])
