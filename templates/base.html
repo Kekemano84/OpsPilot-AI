@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>OpsPilot AI - Operations Management Platform</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#2563eb">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script defer src="{{ url_for('static', filename='js/voice.js') }}"></script>
     <link rel="manifest" href="{{ url_for('manifest_json') }}">
-    <meta name="theme-color" content="#2563eb">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script>
@@ -19,31 +18,30 @@
       }
     </script>
 </head>
-<body>
+<body class="{{ 'auth-page' if not user else 'app-page' }}">
 
 <div id="app-loader" class="app-loader" aria-label="Loading OpsPilot AI">
-    <div class="loader-logo-wrap">
-        <div class="loader-ring"></div>
-        <div class="loader-logo">OP</div>
+    <div class="loader-card">
+        <div class="op-logo loader-logo" aria-hidden="true">
+            <span>OP</span>
+        </div>
+        <h1>OpsPilot AI</h1>
+        <p>Operations hub loading...</p>
     </div>
-    <div class="loader-title">OpsPilot AI</div>
-    <div class="loader-subtitle">Loading operations hub...</div>
 </div>
 
-
 {% if user %}
-<button class="mobile-menu-btn" type="button" aria-label="Open menu" onclick="document.body.classList.toggle('sidebar-open')">
-    ☰
+<button class="mobile-menu-btn" type="button" aria-label="Open menu" onclick="document.body.classList.toggle('menu-open')">
+    <span></span><span></span><span></span>
 </button>
-<div class="mobile-backdrop" onclick="document.body.classList.remove('sidebar-open')"></div>
+<div class="mobile-backdrop" onclick="document.body.classList.remove('menu-open')"></div>
 {% endif %}
 
 <div class="app-shell">
     {% if user %}
     <aside class="sidebar">
-        <button class="sidebar-close" type="button" aria-label="Close menu" onclick="document.body.classList.remove('sidebar-open')">×</button>
         <div class="brand">
-            <div class="brand-icon">OP</div>
+            <div class="op-logo brand-icon"><span>OP</span></div>
             <div>
                 <h1>OpsPilot AI</h1>
                 <p>Operations hub</p>
@@ -61,7 +59,7 @@
             {% if user and user.plan in ['pro', 'business'] %}<a class="{{ 'active' if page == 'yard_settings' else '' }}" href="{{ url_for('yard_settings') }}">Yard Settings <span class="pro-badge">PRO</span></a>{% endif %}
             <a class="{{ 'active' if page == 'handover' else '' }}" href="{{ url_for('handover') }}">Handover <span class="pro-badge">PRO</span></a>
             <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">Team <span class="pro-badge">PRO</span></a>
-            {% if user and user.email == "admin@opspilot.ai" %}
+            {% if user and (user.email == "admin@opspilot.ai" or user.role == "admin") %}
             <a class="{{ 'active' if page == 'admin' else '' }}" href="{{ url_for('admin_dashboard') }}">Admin <span class="pro-badge">ADMIN</span></a>
             <a class="{{ 'active' if page == 'admin_billing' else '' }}" href="{{ url_for('admin_billing') }}">Billing <span class="pro-badge">ADMIN</span></a>
             {% endif %}
@@ -110,22 +108,12 @@
     </main>
 </div>
 
-
 <script>
   window.addEventListener('load', function () {
-    window.setTimeout(function () {
-      document.body.classList.add('app-loaded');
-    }, 550);
-  });
-
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.nav a').forEach(function (link) {
-      link.addEventListener('click', function () {
-        document.body.classList.remove('sidebar-open');
-      });
-    });
+    setTimeout(function () {
+      document.body.classList.add('loaded');
+    }, 650);
   });
 </script>
-
 </body>
 </html>
