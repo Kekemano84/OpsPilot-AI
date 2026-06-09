@@ -1,4 +1,5 @@
 import os
+import secrets
 import json
 import sqlite3
 import uuid
@@ -279,7 +280,22 @@ def init_db():
         )
     """)
 
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS remember_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            user_agent TEXT
+        )
+    """)
+
     conn.commit()
+
+    safe_add_column("users", "annual_leave_entitlement", "REAL DEFAULT 28")
+
     conn.close()
 
 
@@ -561,6 +577,105 @@ def shift_calendar_trial_info(user):
         }
     except Exception:
         return {"allowed": False, "days_left": 0, "is_trial": True}
+
+
+
+def create_remember_token(user_id):
+    token = secrets.token_urlsafe(48)
+    expires = datetime.now() + timedelta(days=30)
+    conn = get_db()
+    conn.execute("""
+        INSERT INTO remember_tokens (user_id, token, expires_at, created_at, user_agent)
+        VALUES (?, ?, ?, ?, ?)
+    """, (user_id, token, expires.isoformat(), datetime.now().isoformat(), request.headers.get("User-Agent", "")))
+    conn.commit()
+    conn.close()
+    return token, expires
+
+
+def consume_remember_token():
+    if session.get("user_id"):
+        return
+
+    token = request.cookies.get("opspilot_remember")
+    if not token:
+        return
+
+    conn = get_db()
+    row = conn.execute("""
+        SELECT rt.*, u.id AS uid
+        FROM remember_tokens rt
+        JOIN users u ON u.id = rt.user_id
+        WHERE rt.token = ?
+    """, (token,)).fetchone()
+    conn.close()
+
+    if not row:
+        return
+
+    try:
+        expires = datetime.fromisoformat(row["expires_at"])
+        if expires < datetime.now():
+            conn = get_db()
+            conn.execute("DELETE FROM remember_tokens WHERE token = ?", (token,))
+            conn.commit()
+            conn.close()
+            return
+        session["user_id"] = row["user_id"]
+    except Exception:
+        return
+
+
+def annual_leave_summary(user_id):
+    user = current_user()
+    entitlement = 28
+    try:
+        entitlement = float(row_get(user, "annual_leave_entitlement") or 28)
+    except Exception:
+        entitlement = 28
+
+    year = datetime.today().year
+    conn = get_db()
+    used_rows = conn.execute("""
+        SELECT COUNT(*) AS used
+        FROM shift_calendar
+        WHERE user_id = ?
+          AND status = 'Holiday'
+          AND date BETWEEN ? AND ?
+    """, (user_id, f"{year}-01-01", f"{year}-12-31")).fetchone()
+    conn.close()
+
+    used = float(used_rows["used"] if used_rows else 0)
+    return {
+        "entitlement": entitlement,
+        "used": used,
+        "remaining": max(entitlement - used, 0),
+        "year": year,
+    }
+
+
+def today_shift_status(user_id):
+    today = datetime.today().date().isoformat()
+    conn = get_db()
+    row = conn.execute("""
+        SELECT * FROM shift_calendar
+        WHERE user_id = ? AND date = ?
+        LIMIT 1
+    """, (user_id, today)).fetchone()
+    conn.close()
+
+    if row:
+        return row
+
+    return {
+        "date": today,
+        "status": "Not Set",
+        "shift_name": "",
+        "start_time": "",
+        "end_time": "",
+        "notes": "",
+        "source": "Empty",
+    }
 
 
 def login_required(fn):
@@ -1137,6 +1252,11 @@ def allowed_image(filename):
     return ext in {"png", "jpg", "jpeg", "webp"}
 
 
+
+@app.before_request
+def load_remembered_user():
+    consume_remember_token()
+
 @app.route("/")
 @login_required
 def index():
@@ -1145,7 +1265,7 @@ def index():
     recent_mileage = conn.execute("SELECT * FROM mileage WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     recent_yard = conn.execute("SELECT * FROM yard_checks WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     conn.close()
-    return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard, week_shifts=get_current_week_shift_rows(user["id"]))
+    return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard, week_shifts=get_current_week_shift_rows(user["id"]), today_shift=today_shift_status(user["id"]), annual_leave=annual_leave_summary(user["id"]))
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -1185,7 +1305,18 @@ def login():
         conn.close()
         if user and check_password_hash(user["password_hash"], password):
             session["user_id"] = user["id"]
-            return redirect(url_for("index"))
+            response = redirect(url_for("index"))
+            if request.form.get("remember_me") == "yes":
+                token, expires = create_remember_token(user["id"])
+                response.set_cookie(
+                    "opspilot_remember",
+                    token,
+                    max_age=60 * 60 * 24 * 30,
+                    httponly=True,
+                    secure=True,
+                    samesite="Lax"
+                )
+            return response
         flash("Invalid login details.", "error")
     return render_template("auth.html", mode="login", page="auth")
 
@@ -1193,7 +1324,9 @@ def login():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    response = redirect(url_for("login"))
+    response.delete_cookie("opspilot_remember")
+    return response
 
 
 
@@ -2639,6 +2772,25 @@ def yard_settings():
     cfg = get_yard_config(user)
     return render_template("yard_settings.html", cfg=cfg, page="yard_settings")
 
+
+
+@app.route("/settings/annual-leave", methods=["POST"])
+@login_required
+def save_annual_leave_settings():
+    user = current_user()
+    entitlement = request.form.get("annual_leave_entitlement", "28")
+    try:
+        entitlement = float(entitlement)
+    except Exception:
+        entitlement = 28
+
+    conn = get_db()
+    conn.execute("UPDATE users SET annual_leave_entitlement = ? WHERE id = ?", (entitlement, user["id"]))
+    conn.commit()
+    conn.close()
+
+    flash("Annual leave entitlement saved.", "success")
+    return redirect(url_for("settings"))
 
 @app.route("/settings", methods=["GET", "POST"])
 @login_required

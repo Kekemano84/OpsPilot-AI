@@ -327,3 +327,14 @@ Plans and + Yard Check buttons are hidden on login/register/auth pages.
 - 3 second splash screen on every full page load.
 - Spinning OpsPilot logo.
 - Login/register no longer appears immediately before splash finishes.
+
+## 7 Easy Feature Update
+
+Added:
+1. Mobile app layout improvement
+2. Plans/Yard top action removed from dashboard/auth top area
+3. Remember this device checkbox
+4. 30 day secure remember cookie
+5. PWA manifest improvement
+6. Annual leave entitlement + counter
+7. Today Status dashboard widget from Shift Calendar

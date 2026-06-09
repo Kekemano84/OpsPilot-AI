@@ -7,8 +7,26 @@
         <p class="eyebrow">Welcome back</p>
         <h3>Track mileage, expenses, yard checks, handovers and teams in one simple platform.</h3>
     </div>
-    <a class="btn light" href="{{ url_for('pricing') }}">View Plans</a>
+    
 </section>
+
+<section class="today-status-grid">
+    <div class="today-status-card status-{{ today_shift.status|lower|replace(' ', '-') }}">
+        <span>Today</span>
+        <strong>{{ today_shift.status }}</strong>
+        {% if today_shift.shift_name %}<small>{{ today_shift.shift_name }}</small>{% endif %}
+        {% if today_shift.start_time or today_shift.end_time %}
+        <small>{{ today_shift.start_time }} - {{ today_shift.end_time }}</small>
+        {% endif %}
+    </div>
+
+    <div class="today-status-card leave-card">
+        <span>Annual Leave {{ annual_leave.year }}</span>
+        <strong>{{ annual_leave.remaining|round(1) }} days</strong>
+        <small>{{ annual_leave.used|round(1) }} used / {{ annual_leave.entitlement|round(1) }} total</small>
+    </div>
+</section>
+
 
 {% if week_shifts %}
 <section class="panel week-strip-panel">
@@ -43,7 +61,7 @@
 
 <section class="two-col">
     <div class="panel">
-        <div class="panel-head"><h3>Quick Actions</h3><a href="{{ url_for('pricing') }}">Plans</a></div>
+        <div class="panel-head"><h3>Quick Actions</h3></div>
         <div class="simple-list">
             <div class="list-row"><div><strong>Yard Check</strong><span>Record trailers at doors, fence or yard</span></div><a class="small-btn" href="{{ url_for('yard_check') }}">Open</a></div>
             <div class="list-row"><div><strong>Morning Brief</strong><span>Build a clear daily shift message</span></div><a class="small-btn" href="{{ url_for('morning_brief') }}">Open</a></div>

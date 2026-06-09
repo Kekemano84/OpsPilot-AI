@@ -16,3 +16,21 @@
     </form>
 </section>
 {% endblock %}
+
+<section class="panel">
+    <div class="panel-head">
+        <div>
+            <h3>Annual Leave Settings</h3>
+            <p class="muted">Set your yearly holiday entitlement. Holiday days in Shift Calendar are deducted automatically.</p>
+        </div>
+    </div>
+    <form method="POST" action="{{ url_for('save_annual_leave_settings') }}" class="form-grid compact-form">
+        <div>
+            <label>Annual Leave Entitlement</label>
+            <input type="number" step="0.5" name="annual_leave_entitlement" value="{{ user.annual_leave_entitlement or 28 }}">
+        </div>
+        <div class="form-actions">
+            <button class="btn primary" type="submit">Save Leave Settings</button>
+        </div>
+    </form>
+</section>

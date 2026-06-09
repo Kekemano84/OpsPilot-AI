@@ -28,7 +28,11 @@
         <input type="email" name="email" placeholder="you@example.com">
         <label>Password</label>
         <input type="password" name="password">
-        <button class="btn primary full" type="submit">Login</button>
+        <label class="remember-line">
+                <input type="checkbox" name="remember_me" value="yes">
+                <span>Remember this device for 30 days</span>
+            </label>
+            <button class="btn primary full" type="submit">Login</button>
     </form>
     <p class="muted">No account yet? <a href="{{ url_for('register') }}">Create one</a></p>
     {% endif %}
