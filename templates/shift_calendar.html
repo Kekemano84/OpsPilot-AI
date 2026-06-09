@@ -83,7 +83,7 @@
     <section class="panel shift-card">
         <div class="panel-head">
             <div>
-                <h3>Manual Day Update</h3>
+                <h3>Manual Day Update</h3><a class="small-btn ghost-small" href="{{ url_for('holiday_tracker') }}">Holiday Tracker</a>
                 <p class="muted">Override one day as Holiday, Sick, Training, Overtime or Custom.</p>
             </div>
         </div>
@@ -120,7 +120,7 @@
 
             <div>
                 <label>Notes</label>
-                <input name="manual_notes" placeholder="Annual leave, sickness, overtime, training etc.">
+                <input name="manual_notes" value="Annual leave" placeholder="Annual leave, sickness, overtime, training etc.">
             <div class="holiday-manual-grid">
                 <div>
                     <label>Holiday Hours</label>

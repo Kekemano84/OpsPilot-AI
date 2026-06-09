@@ -1125,3 +1125,56 @@ html.op-loading body {
 @media (min-width: 821px) {
     .mobile-bottom-nav { display: none !important; }
 }
+
+
+/* Stable Holiday Tracker */
+.holiday-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.holiday-summary-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 16px 38px rgba(15,23,42,.08);
+}
+.holiday-summary-card.primary {
+    background: linear-gradient(135deg, #2563eb, #14b8a6);
+    color: #fff;
+}
+.holiday-summary-card span {
+    display: block;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.holiday-summary-card.primary span,
+.holiday-summary-card.primary small {
+    color: #dbeafe;
+}
+.holiday-summary-card strong {
+    display: block;
+    font-size: clamp(25px, 4vw, 36px);
+    line-height: 1;
+    margin: 8px 0;
+    letter-spacing: -0.05em;
+}
+.holiday-summary-card small {
+    color: var(--muted);
+    font-weight: 800;
+}
+@media (max-width: 1180px) {
+    .holiday-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 760px) {
+    .holiday-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}

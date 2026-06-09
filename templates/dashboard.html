@@ -17,7 +17,7 @@
         <strong>{{ annual_leave.remaining_days }} days / {{ annual_leave.remaining_hours }} hrs left</strong>
         <small>Used: {{ annual_leave.used_days }} days / {{ annual_leave.used_hours }} hrs · Paid day: {{ annual_leave.paid_hours_per_day }} hrs</small>
     </div>
-    <a class="small-btn ghost-small" href="{{ url_for('settings') }}">Settings</a>
+    <a class="small-btn ghost-small" href="{{ url_for('holiday_tracker') }}">Open</a>
 </section>
 {% endif %}
 

@@ -1496,7 +1496,7 @@ def shift_calendar():
                 conn.execute("""
                     INSERT INTO shift_calendar
                     (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at, holiday_hours, holiday_days)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(user_id, date) DO UPDATE SET
                         status = excluded.status,
                         shift_name = excluded.shift_name,
@@ -1506,7 +1506,7 @@ def shift_calendar():
                         source = excluded.source
                 """, (
                     user["id"], row["date"], row["status"], row["shift_name"], row["start_time"],
-                    row["end_time"], row["notes"], row["source"], datetime.now().isoformat()
+                    row["end_time"], row["notes"], row["source"], datetime.now().isoformat(), 0, 0
                 ))
 
             conn.commit()
@@ -1521,26 +1521,20 @@ def shift_calendar():
             start_time = request.form.get("manual_start_time", "")
             end_time = request.form.get("manual_end_time", "")
             notes = request.form.get("manual_notes", "").strip()
-            try:
-                manual_holiday_hours = float(request.form.get("manual_holiday_hours") or 0)
-            except Exception:
-                manual_holiday_hours = 0
-            try:
-                manual_holiday_days = float(request.form.get("manual_holiday_days") or 0)
-            except Exception:
-                manual_holiday_days = 0
-            if status == "Holiday" and manual_holiday_hours <= 0 and manual_holiday_days <= 0:
-                manual_holiday_days = 1
-                manual_holiday_hours = get_paid_hours_per_day(user)
-            elif status == "Holiday" and manual_holiday_hours > 0 and manual_holiday_days <= 0:
-                ph = get_paid_hours_per_day(user)
-                manual_holiday_days = manual_holiday_hours / ph if ph else 0
-            elif status == "Holiday" and manual_holiday_days > 0 and manual_holiday_hours <= 0:
-                manual_holiday_hours = manual_holiday_days * get_paid_hours_per_day(user)
+
+            holiday_hours = 0
+            holiday_days = 0
+            if status == "Holiday":
+                notes = notes or "Annual leave"
+                holiday_hours, holiday_days = normalize_holiday_amounts(
+                    user,
+                    request.form.get("manual_holiday_hours"),
+                    request.form.get("manual_holiday_days")
+                )
 
             conn.execute("""
                 INSERT INTO shift_calendar
-                (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at)
+                (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at, holiday_hours, holiday_days)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'Manual', ?, ?, ?)
                 ON CONFLICT(user_id, date) DO UPDATE SET
                     status = excluded.status,
@@ -1551,7 +1545,7 @@ def shift_calendar():
                     holiday_hours = excluded.holiday_hours,
                     holiday_days = excluded.holiday_days,
                     source = 'Manual'
-            """, (user["id"], date, status, shift_name, start_time, end_time, notes, datetime.now().isoformat(), manual_holiday_hours, manual_holiday_days))
+            """, (user["id"], date, status, shift_name, start_time, end_time, notes, datetime.now().isoformat(), holiday_hours, holiday_days))
 
             conn.commit()
             conn.close()
@@ -2934,6 +2928,84 @@ def save_annual_leave_settings():
     flash("Annual leave entitlement saved.", "success")
     return redirect(url_for("settings"))
 
+
+
+def normalize_holiday_amounts(user, holiday_hours, holiday_days):
+    try:
+        holiday_hours = float(holiday_hours or 0)
+    except Exception:
+        holiday_hours = 0
+    try:
+        holiday_days = float(holiday_days or 0)
+    except Exception:
+        holiday_days = 0
+
+    paid_hours = get_paid_hours_per_day(user) if "get_paid_hours_per_day" in globals() else 11.25
+
+    if holiday_hours <= 0 and holiday_days <= 0:
+        holiday_days = 1
+        holiday_hours = paid_hours
+    elif holiday_hours > 0 and holiday_days <= 0:
+        holiday_days = holiday_hours / paid_hours if paid_hours else 0
+    elif holiday_days > 0 and holiday_hours <= 0:
+        holiday_hours = holiday_days * paid_hours
+
+    return round(holiday_hours, 2), round(holiday_days, 2)
+
+
+@app.route("/holiday-tracker")
+@login_required
+def holiday_tracker():
+    user = current_user()
+    summary = annual_leave_summary(user["id"])
+    year = summary["year"]
+
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT *
+        FROM shift_calendar
+        WHERE user_id = ?
+          AND status = 'Holiday'
+          AND date BETWEEN ? AND ?
+        ORDER BY date DESC
+    """, (user["id"], f"{year}-01-01", f"{year}-12-31")).fetchall()
+    conn.close()
+
+    return render_template("holiday_tracker.html", page="holiday_tracker", summary=summary, rows=rows, user=user)
+
+
+@app.route("/holiday-tracker/add", methods=["POST"])
+@login_required
+def add_holiday_record():
+    user = current_user()
+    date = request.form.get("holiday_date") or datetime.today().strftime("%Y-%m-%d")
+    hours, days = normalize_holiday_amounts(
+        user,
+        request.form.get("holiday_hours"),
+        request.form.get("holiday_days")
+    )
+    notes = request.form.get("notes", "Annual leave").strip() or "Annual leave"
+
+    conn = get_db()
+    conn.execute("""
+        INSERT INTO shift_calendar
+        (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at, holiday_hours, holiday_days)
+        VALUES (?, ?, 'Holiday', 'Annual Leave', '', '', ?, 'Manual', ?, ?, ?)
+        ON CONFLICT(user_id, date) DO UPDATE SET
+            status = 'Holiday',
+            shift_name = 'Annual Leave',
+            start_time = '',
+            end_time = '',
+            notes = excluded.notes,
+            source = 'Manual',
+            holiday_hours = excluded.holiday_hours,
+            holiday_days = excluded.holiday_days
+    """, (user["id"], date, notes, datetime.now().isoformat(), hours, days))
+    conn.commit()
+    conn.close()
+
+    flash("Holiday added.", "success")
+    return redirect(url_for("holiday_tracker"))
 
 @app.route("/more")
 @login_required
