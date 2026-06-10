@@ -582,6 +582,84 @@ EXTRA_TRANSLATIONS = {
     "es": {"operations":"Operaciones","language":"Idioma","business_details":"Datos de empresa","business_name":"Nombre de empresa","company_site_name":"Empresa / sitio","your_name":"Tu nombre","your_role":"Tu rol","phone":"Teléfono","address":"Dirección","default_mileage_rate":"Tarifa por milla predeterminada (£/mile)","door_count":"Número de puertas","fence_count":"Número de vallas","save_settings":"Guardar ajustes","favorites":"Favoritos","dashboard_favorites":"Favoritos del panel","dashboard_favorites_help":"Elige los cuatro botones rápidos del panel móvil.","favorite":"Favorito","welcome_back":"Bienvenido de nuevo","dashboard_intro":"Panel operativo para turnos, revisiones, millas, gastos y traspasos.","today":"Hoy","no_shift_time":"Sin horario de turno","more_intro":"Herramientas Manager Toolkit y ajustes en un solo lugar.","holiday_settings":"Ajustes de vacaciones"},
     "de": {"operations":"Betrieb","language":"Sprache","business_details":"Firmendaten","business_name":"Firmenname","company_site_name":"Firma / Standort","your_name":"Dein Name","your_role":"Deine Rolle","phone":"Telefon","address":"Adresse","default_mileage_rate":"Standard-Meilensatz (£/mile)","door_count":"Anzahl Türen","fence_count":"Anzahl Zäune","save_settings":"Einstellungen speichern","favorites":"Favoriten","dashboard_favorites":"Dashboard-Favoriten","dashboard_favorites_help":"Wähle die vier Schnellzugriffe für dein mobiles Dashboard.","favorite":"Favorit","welcome_back":"Willkommen zurück","dashboard_intro":"Operations-Dashboard für Schichten, Checks, Fahrten, Ausgaben und Übergaben.","today":"Heute","no_shift_time":"Keine Schichtzeit gesetzt","more_intro":"Manager Toolkit Tools und Einstellungen an einem Ort.","holiday_settings":"Urlaubseinstellungen"},
 }
+
+AUTH_TRANSLATIONS = {
+    "en": {
+        "login_hero_text": "Mileage, expenses, shift notes, yard checks, handovers and team records in one clean manager tool.",
+        "excel_export": "Excel export", "download_reports_fast": "Download reports fast",
+        "pdf_handover": "PDF handover", "share_clean_shift_reports": "Share clean shift reports",
+        "calendar_notes": "Calendar notes", "calendar_notes_desc": "Meetings, probation dates, reminders",
+        "yard_checks": "Yard checks", "yard_checks_desc": "Doors, fences and custom locations",
+        "installable_app": "Installable app", "download_opspilot_app": "Download OpsPilot App",
+        "install_app_desc": "Install on phone, tablet or desktop.", "download_app": "Download App",
+        "create_account": "Create account", "name": "Name", "email": "Email", "password": "Password",
+        "password_placeholder": "At least 6 characters", "already_have_account": "Already have an account?",
+        "login": "Login", "remember_device": "Remember this device for 30 days", "no_account_yet": "No account yet?", "create_one": "Create one"
+    },
+    "hu": {
+        "login_hero_text": "Mérföldek, kiadások, műszakjegyzetek, yard ellenőrzések, átadások és csapatadatok egy tiszta manager eszközben.",
+        "excel_export": "Excel export", "download_reports_fast": "Riportok gyors letöltése",
+        "pdf_handover": "PDF átadás", "share_clean_shift_reports": "Tiszta műszakriportok megosztása",
+        "calendar_notes": "Naptár jegyzetek", "calendar_notes_desc": "Meetingek, próbaidő dátumok, emlékeztetők",
+        "yard_checks": "Yard ellenőrzések", "yard_checks_desc": "Doorok, fence-ek és egyedi helyek",
+        "installable_app": "Telepíthető app", "download_opspilot_app": "OpsPilot app letöltése",
+        "install_app_desc": "Telepítés telefonra, tabletre vagy desktopra.", "download_app": "App letöltése",
+        "create_account": "Fiók létrehozása", "name": "Név", "email": "Email", "password": "Jelszó",
+        "password_placeholder": "Legalább 6 karakter", "already_have_account": "Már van fiókod?",
+        "login": "Bejelentkezés", "remember_device": "Emlékezzen erre az eszközre 30 napig", "no_account_yet": "Nincs még fiókod?", "create_one": "Hozz létre egyet"
+    },
+    "pl": {
+        "login_hero_text": "Kilometrówka, wydatki, notatki ze zmiany, kontrole placu, przekazania i dane zespołu w jednym prostym narzędziu dla managera.",
+        "excel_export": "Eksport Excel", "download_reports_fast": "Szybkie pobieranie raportów",
+        "pdf_handover": "Przekazanie PDF", "share_clean_shift_reports": "Udostępniaj czytelne raporty zmianowe",
+        "calendar_notes": "Notatki kalendarza", "calendar_notes_desc": "Spotkania, daty okresu próbnego, przypomnienia",
+        "yard_checks": "Kontrole placu", "yard_checks_desc": "Bramy, ogrodzenia i własne lokalizacje",
+        "installable_app": "Aplikacja do instalacji", "download_opspilot_app": "Pobierz aplikację OpsPilot",
+        "install_app_desc": "Zainstaluj na telefonie, tablecie lub komputerze.", "download_app": "Pobierz aplikację",
+        "create_account": "Utwórz konto", "name": "Imię i nazwisko", "email": "Email", "password": "Hasło",
+        "password_placeholder": "Minimum 6 znaków", "already_have_account": "Masz już konto?",
+        "login": "Zaloguj", "remember_device": "Zapamiętaj to urządzenie przez 30 dni", "no_account_yet": "Nie masz konta?", "create_one": "Utwórz konto"
+    },
+    "ro": {
+        "login_hero_text": "Mileaj, cheltuieli, note de tură, verificări curte, predări și evidențe de echipă într-un instrument curat pentru manageri.",
+        "excel_export": "Export Excel", "download_reports_fast": "Descarcă rapid rapoarte",
+        "pdf_handover": "Predare PDF", "share_clean_shift_reports": "Partajează rapoarte clare de tură",
+        "calendar_notes": "Notițe calendar", "calendar_notes_desc": "Întâlniri, date de probă, memento-uri",
+        "yard_checks": "Verificări curte", "yard_checks_desc": "Uși, garduri și locații personalizate",
+        "installable_app": "Aplicație instalabilă", "download_opspilot_app": "Descarcă aplicația OpsPilot",
+        "install_app_desc": "Instalează pe telefon, tabletă sau desktop.", "download_app": "Descarcă aplicația",
+        "create_account": "Creează cont", "name": "Nume", "email": "Email", "password": "Parolă",
+        "password_placeholder": "Cel puțin 6 caractere", "already_have_account": "Ai deja cont?",
+        "login": "Autentificare", "remember_device": "Ține minte acest dispozitiv 30 de zile", "no_account_yet": "Nu ai cont?", "create_one": "Creează unul"
+    },
+    "es": {
+        "login_hero_text": "Kilometraje, gastos, notas de turno, revisiones de patio, entregas y registros de equipo en una herramienta limpia para managers.",
+        "excel_export": "Exportar Excel", "download_reports_fast": "Descarga informes rápido",
+        "pdf_handover": "Entrega PDF", "share_clean_shift_reports": "Comparte informes de turno claros",
+        "calendar_notes": "Notas de calendario", "calendar_notes_desc": "Reuniones, fechas de prueba, recordatorios",
+        "yard_checks": "Revisiones de patio", "yard_checks_desc": "Puertas, vallas y ubicaciones personalizadas",
+        "installable_app": "Aplicación instalable", "download_opspilot_app": "Descargar app OpsPilot",
+        "install_app_desc": "Instala en móvil, tablet o escritorio.", "download_app": "Descargar app",
+        "create_account": "Crear cuenta", "name": "Nombre", "email": "Email", "password": "Contraseña",
+        "password_placeholder": "Al menos 6 caracteres", "already_have_account": "¿Ya tienes cuenta?",
+        "login": "Iniciar sesión", "remember_device": "Recordar este dispositivo durante 30 días", "no_account_yet": "¿No tienes cuenta?", "create_one": "Crea una"
+    },
+    "de": {
+        "login_hero_text": "Fahrten, Ausgaben, Schichtnotizen, Hofprüfungen, Übergaben und Teamdaten in einem klaren Manager-Tool.",
+        "excel_export": "Excel-Export", "download_reports_fast": "Berichte schnell herunterladen",
+        "pdf_handover": "PDF-Übergabe", "share_clean_shift_reports": "Klare Schichtberichte teilen",
+        "calendar_notes": "Kalendernotizen", "calendar_notes_desc": "Meetings, Probezeitdaten, Erinnerungen",
+        "yard_checks": "Hofprüfungen", "yard_checks_desc": "Tore, Zäune und eigene Standorte",
+        "installable_app": "Installierbare App", "download_opspilot_app": "OpsPilot App herunterladen",
+        "install_app_desc": "Auf Telefon, Tablet oder Desktop installieren.", "download_app": "App herunterladen",
+        "create_account": "Konto erstellen", "name": "Name", "email": "E-Mail", "password": "Passwort",
+        "password_placeholder": "Mindestens 6 Zeichen", "already_have_account": "Du hast schon ein Konto?",
+        "login": "Anmelden", "remember_device": "Dieses Gerät 30 Tage merken", "no_account_yet": "Noch kein Konto?", "create_one": "Eins erstellen"
+    }
+}
+for _lang, _items in AUTH_TRANSLATIONS.items():
+    EXTRA_TRANSLATIONS.setdefault(_lang, {}).update(_items)
+
 for _lang, _items in EXTRA_TRANSLATIONS.items():
     TRANSLATIONS.setdefault(_lang, {}).update(_items)
 
