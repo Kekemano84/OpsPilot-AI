@@ -99,12 +99,9 @@
             <div>
                 <label>Location Type</label>
                 <select id="voiceLocationType" name="location_type" onchange="toggleYardLocationFields()">
-                    <option>Door</option>
-                    <option>Fence</option>
-                    <option>Yard</option>
-                    <option>Loading Bay</option>
-                    <option>Workshop</option>
-                    <option>Other</option>
+                    {% for loc in locations %}
+                    <option>{{ loc }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
@@ -282,7 +279,8 @@ function toggleYardLocationFields() {
     const type = document.getElementById("voiceLocationType").value;
     document.getElementById("doorField").style.display = type === "Door" ? "block" : "none";
     document.getElementById("fenceField").style.display = type === "Fence" ? "block" : "none";
-    document.getElementById("detailField").style.display = ["Yard", "Loading Bay", "Workshop"].includes(type) ? "block" : "none";
+    const standardDetail = ["Yard", "Loading Bay", "Workshop"].includes(type) || !["Door", "Fence", "Other"].includes(type);
+    document.getElementById("detailField").style.display = standardDetail ? "block" : "none";
     document.getElementById("customField").style.display = type === "Other" ? "block" : "none";
 }
 toggleYardLocationFields();

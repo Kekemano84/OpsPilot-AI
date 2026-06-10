@@ -1,31 +1,72 @@
 {% extends "base.html" %}
 {% block title %}Handover{% endblock %}
 {% block content %}
-<section class="panel">
+<section class="hero-card pro-hero compact-hero">
+    <div>
+        <p class="eyebrow">Shift Handover</p>
+        <h3>Build a proper end-of-shift handover. Every section is editable.</h3>
+    </div>
+    <a class="btn light" href="{{ url_for('export_handovers') }}">Download Excel</a>
+</section>
+
+<section class="panel compact-panel">
     <div class="panel-head">
-        <div><h3>Generate Handover</h3><p class="muted">Use this at the end of shift or when handing over to the next manager.</p></div>
-        <span class="pill">FREE</span>
+        <div><h3>Generate Handover</h3><p class="muted">Designed like the DHL-style handover sheet: Safety, Operations Pick, Sort Centre, Dispatch, Suntory and AOB.</p></div>
+        <span class="pill">PRO</span>
     </div>
 
-    <form method="POST" enctype="multipart/form-data" class="form-grid">
+    <form method="POST" enctype="multipart/form-data" class="form-grid handover-form">
         <div><label>Date</label><input type="date" name="date"></div>
-        <div><label>Shift</label><input name="shift" placeholder="D2 / Day / Night"></div>
+        <div><label>Shift</label><input name="shift" placeholder="D1 / D2 / Night / 06:00-18:00"></div>
         <div><label>Manager</label><input name="manager" placeholder="Laszlo"></div>
-        <div><label>Role</label><input name="role" placeholder="FLM / Bay Manager / Shift Lead"></div>
+        <div><label>Attendance</label><input name="attendance" placeholder="20/25, 4 Sick, 3 Holiday"></div>
         <div><label>Volume</label><input type="number" name="volume"></div>
         <div><label>Planned HC</label><input type="number" name="planned_hc"></div>
         <div><label>Actual HC</label><input type="number" name="actual_hc"></div>
         <div><label>Late Trailers</label><input type="number" name="late_trailers"></div>
+
+        <div class="wide section-title">Safety</div>
+        <div><label>Safe Shift</label><input name="safe_shift" placeholder="Safe Shift"></div>
+        <div><label>SLAMS</label><input name="slams" placeholder="12"></div>
+        <div><label>Safety Cons</label><input name="safety_cons" placeholder="3"></div>
+        <div><label>Loads</label><input name="loads" placeholder="3"></div>
+        <div><label>Safety Rules</label><input name="safety_rules" placeholder="3"></div>
+
+        <div class="wide section-title">Operations Pick</div>
+        <div><label>Pick Audits Completed</label><input name="pick_audits" placeholder="3"></div>
+        <div><label>Slam Plan</label><input name="slam_plan" placeholder="1900"></div>
+        <div><label>Picked Since Start</label><input name="picked_since_start" placeholder="934"></div>
+        <div><label>Full Well</label><input name="full_well" placeholder="1138/1037"></div>
+        <div class="wide"><label>Cover Notes</label><input name="cover_notes" placeholder="Well to cover EMC's at start & end of shift"></div>
+        <div class="wide"><label>Operations Comments</label><textarea name="ops_comments" rows="3" placeholder="Clear until 21:15"></textarea></div>
+
+        <div class="wide section-title">Sort Centre</div>
+        <div><label>Deliveries Planned</label><input name="deliveries_planned" placeholder="19 12 x SD, 7 x ND"></div>
+        <div><label>Deliveries Arrived</label><input name="deliveries_arrived" placeholder="All same day tipped"></div>
+        <div><label>Next Day Sortation</label><input name="next_day_sortation" placeholder="6/7 arrived status"></div>
+        <div class="wide"><label>Sort Comments</label><textarea name="sort_comments" rows="3" placeholder="All flatpack decanted into carrier, needs to be built & scanned"></textarea></div>
+
+        <div class="wide section-title">Dispatch</div>
+        <div><label>Collections Planned</label><input name="collections_planned" placeholder="29"></div>
+        <div><label>Collections Arrived</label><input name="collections_arrived" placeholder="9"></div>
+        <div><label>Late Arrivals</label><input name="late_arrivals" placeholder="2"></div>
+        <div><label>Trailers on Doors</label><input name="trailers_on_doors" placeholder="5"></div>
+        <div><label>Trailers Needed Cover</label><input name="trailers_needed_cover" placeholder="today CPT's"></div>
+        <div class="wide"><label>Dispatch Comments</label><textarea name="dispatch_comments" rows="3" placeholder="HEH1 built and loaded white goods in door 35,36,39"></textarea></div>
+
+        <div class="wide section-title">Suntory / AOB</div>
+        <div class="wide"><label>Suntory</label><textarea name="suntory" rows="2" placeholder="3 completed on shift"></textarea></div>
+        <div class="wide"><label>AOB</label><textarea name="aob" rows="3" placeholder="Anything else"></textarea></div>
+        <div class="wide"><label>Issues</label><input name="issues" placeholder="Optional extra issue notes"></div>
+        <div class="wide"><label>Actions / Follow-up</label><input name="actions" placeholder="Optional extra next-shift actions"></div>
         <div><label>Take Photo</label><input type="file" name="camera_photo" accept="image/*" capture="environment"></div>
         <div><label>Upload Photo</label><input type="file" name="photo" accept="image/*"></div>
-        <div class="wide"><label>Issues</label><input name="issues" placeholder="Late trailers, sickness, system issue, yard issue"></div>
-        <div class="wide"><label>Actions / Follow-up</label><input name="actions" placeholder="What the next shift needs to do"></div>
         <div class="form-actions"><button class="btn primary" type="submit">Generate Handover</button></div>
     </form>
 </section>
 
-<section class="panel">
-    <h3>Saved Handovers</h3>
+<section class="panel compact-panel">
+    <div class="panel-head"><h3>Saved Handovers</h3><a class="small-btn" href="{{ url_for('export_handovers') }}">Download Excel</a></div>
     {% for row in rows %}
     <div class="handover-card">
         <div class="panel-head">
@@ -36,12 +77,7 @@
             </div>
         </div>
         <pre class="report-box">{{ row.generated_report }}</pre>
-        {% if row.photo_filename %}
-        <p class="muted">Photo attached: {{ row.photo_filename }}</p>
-        {% endif %}
     </div>
-    {% else %}
-    <p class="empty">No handovers yet.</p>
-    {% endfor %}
+    {% else %}<p class="empty">No handovers yet.</p>{% endfor %}
 </section>
 {% endblock %}

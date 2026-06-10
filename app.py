@@ -1,4 +1,5 @@
 import os
+import requests
 import secrets
 import json
 import sqlite3
@@ -49,7 +50,19 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 DB_PATH = os.path.join(DATA_DIR, "opspilot_ai.db")
 
-HMRC_MILE_RATE = 0.45
+def get_hmrc_rate():
+    try:
+        html=requests.get("https://www.gov.uk/government/publications/rates-and-allowances-travel-mileage-and-fuel-allowances/travel-mileage-and-fuel-rates-and-allowances",timeout=10).text
+        if "55p" in html:
+            return 0.55
+        if "45p" in html:
+            return 0.45
+    except Exception:
+        pass
+    return 0.55
+
+
+HMRC_MILE_RATE = get_hmrc_rate()
 PERSONAL_ALLOWANCE = 12570
 BASIC_RATE_LIMIT = 50270
 INCOME_TAX_BASIC = 0.20
@@ -225,6 +238,16 @@ def init_db():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS custom_locations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            prefix TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS shift_plans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -333,7 +356,9 @@ def ensure_schema_updates():
             ("fence_end", "INTEGER DEFAULT 120")
         ],
         "team_members": [
-            ("permissions", "TEXT DEFAULT 'View only'")
+            ("permissions", "TEXT DEFAULT 'View only'"),
+            ("phone", "TEXT"),
+            ("notes", "TEXT")
         ],
         "invoices": [
             ("email_sent", "INTEGER DEFAULT 0")
@@ -375,7 +400,7 @@ def seed_admin_user():
     add_col("stripe_customer_id", "TEXT")
     add_col("stripe_subscription_id", "TEXT")
     add_col("subscription_status", "TEXT DEFAULT 'manual'")
-    add_col("mileage_rate", "REAL DEFAULT 0.45")
+    add_col("mileage_rate", "REAL DEFAULT 0.55")
     add_col("door_count", "INTEGER DEFAULT 100")
     add_col("fence_count", "INTEGER DEFAULT 120")
     add_col("door_start", "INTEGER DEFAULT 1")
@@ -409,7 +434,7 @@ def seed_admin_user():
             role = 'Admin',
             company_name = 'OpsPilot AI Admin',
             subscription_status = 'admin',
-            mileage_rate = 0.45,
+            mileage_rate = 0.55,
             door_count = 100,
             door_start = 1,
             door_end = 100,
@@ -423,7 +448,7 @@ def seed_admin_user():
 
 def is_admin(user=None):
     user = user or current_user()
-    return bool(user and user["email"] == "admin@opspilot.ai")
+    return bool(user and (row_get(user, "email") == "admin@opspilot.ai" or row_get(user, "role") == "Admin"))
 
 
 def current_user():
@@ -499,6 +524,31 @@ def row_get(row, key, default=None):
         return row[key]
     except Exception:
         return default
+
+
+def get_custom_locations(user_id):
+    conn = get_db()
+    try:
+        rows = conn.execute("SELECT * FROM custom_locations WHERE user_id = ? ORDER BY name ASC", (user_id,)).fetchall()
+        return rows
+    except Exception:
+        return []
+    finally:
+        conn.close()
+
+def excel_response(workbook, filename):
+    buffer = BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+def style_excel_header(ws):
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="2563EB")
+        cell.alignment = Alignment(horizontal="center")
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width = max(16, min(35, max(len(str(c.value or "")) for c in col) + 2))
 
 
 
@@ -759,41 +809,54 @@ Equipment / MHE / Scanner / Key Reminder:
 Let’s keep it safe, organised and productive.
 """
 
-def generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions):
-    staffing_gap = actual_hc - planned_hc
-    if staffing_gap < 0:
-        staffing_line = f"Short by {abs(staffing_gap)} colleague(s) against plan."
-    elif staffing_gap > 0:
-        staffing_line = f"{staffing_gap} colleague(s) above plan."
-    else:
-        staffing_line = "Headcount matched the plan."
+def generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, extra=None):
+    extra = extra or {}
+    def v(key, default=""):
+        return (extra.get(key) or default or "").strip()
 
-    return f"""Daily Handover Report
-
+    attendance = v("attendance", f"{actual_hc}/{planned_hc}" if planned_hc else str(actual_hc or ""))
+    return f"""{shift or 'Shift'} Handover
 Date: {date}
-Shift: {shift}
+Shift: {shift or 'Not specified'}
 Manager: {manager or 'Not specified'}
+Attendance: {attendance}
 
-Operational Summary:
-- Volume handled: {volume}
-- Planned HC: {planned_hc}
-- Actual HC: {actual_hc}
-- Late trailers: {late_trailers}
-- Staffing: {staffing_line}
+SAFETY
+Safe Shift: {v('safe_shift', 'Safe Shift')}
+SLAMS: {v('slams')}
+Safety Cons: {v('safety_cons')}
+Loads: {v('loads')}
+Safety Rules: {v('safety_rules')}
 
-Issues:
-{issues or 'No major issues reported.'}
+OPERATIONS PICK
+Pick Audits Completed: {v('pick_audits')}
+Slam Plan: {v('slam_plan')}
+Picked since start: {v('picked_since_start')}
+Full Well at start & end of shift: {v('full_well')}
+Cover / Notes: {v('cover_notes')}
+Additional Comments: {v('ops_comments') or issues or 'No major issues reported.'}
 
-Actions / Follow-up:
-{actions or 'No further action required.'}
+SORT CENTRE
+Deliveries Planned: {v('deliveries_planned')}
+Deliveries Arrived: {v('deliveries_arrived')}
+Planned Next Day Sortation: {v('next_day_sortation')}
+Additional Comments: {v('sort_comments')}
 
-Next Shift Focus:
-1. Confirm yard and trailer status early.
-2. Review late trailers and unresolved issues.
-3. Check headcount against expected volume.
-4. Keep the shift handover clear and agreed before finish.
+DISPATCH
+Late Slams Identified: {late_trailers}
+Collections Planned: {v('collections_planned')}
+Collections Arrived: {v('collections_arrived')}
+Late Arrivals: {v('late_arrivals')}
+Trailers on Doors: {v('trailers_on_doors')}
+Trailers Needed Cover Today CPTs: {v('trailers_needed_cover')}
+Additional Comments: {v('dispatch_comments') or actions or 'No further action required.'}
+
+SUNTORY
+{v('suntory')}
+
+AOB
+{v('aob')}
 """
-
 
 def generate_shift_plan(date, shift, volume, available_hc, target_rate, planned_hours):
     capacity = available_hc * target_rate * planned_hours if available_hc and target_rate and planned_hours else 0
@@ -2345,7 +2408,9 @@ def yard_check():
 
     door_options = [f"Door {i}" for i in range(door_start, door_end + 1)]
     fence_options = [f"Fence {i}" for i in range(fence_start, fence_end + 1)]
-    locations = ["Door", "Fence", "Yard", "Loading Bay", "Workshop", "Other"]
+    custom_locations = get_custom_locations(user["id"])
+    custom_location_names = [r["name"] for r in custom_locations]
+    locations = ["Door", "Fence", "Yard", "Loading Bay", "Workshop"] + custom_location_names + ["Other"]
     statuses = ["Recorded", "Checked", "Issue Found", "Missing", "Moved", "Loaded", "Empty"]
 
     if request.method == "POST":
@@ -2419,6 +2484,8 @@ def yard_check():
                 location_detail = request.form.get("fence_number", location_detail)
             elif location_type == "Other" and custom_location:
                 location_detail = custom_location
+            elif location_type not in ["Door", "Fence", "Yard", "Loading Bay", "Workshop", "Other"]:
+                location_detail = location_detail or location_type
 
             if not trailer_id:
                 conn.close()
@@ -2497,6 +2564,7 @@ def yard_check():
         rows=rows,
         locations=locations,
         statuses=statuses,
+        custom_locations=custom_locations,
         door_options=door_options,
         fence_options=fence_options,
         door_start=door_start,
@@ -2520,7 +2588,8 @@ def yard_check():
 def edit_yard_check(item_id):
     user = current_user()
     statuses = ["Recorded", "Checked", "Issue Found", "Missing", "Moved", "Loaded", "Empty"]
-    locations = ["Door", "Fence", "Yard", "Loading Bay", "Workshop", "Other"]
+    custom_locations = get_custom_locations(user["id"])
+    locations = ["Door", "Fence", "Yard", "Loading Bay", "Workshop"] + [r["name"] for r in custom_locations] + ["Other"]
 
     conn = get_db()
     row = conn.execute("SELECT * FROM yard_checks WHERE id = ? AND user_id = ?", (item_id, user["id"])).fetchone()
@@ -2669,7 +2738,9 @@ def handover():
         late_trailers = int(request.form.get("late_trailers") or 0)
         issues = request.form.get("issues", "").strip()
         actions = request.form.get("actions", "").strip()
-        generated = generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions)
+        handover_fields = ["attendance", "safe_shift", "slams", "safety_cons", "loads", "safety_rules", "pick_audits", "slam_plan", "picked_since_start", "full_well", "cover_notes", "ops_comments", "deliveries_planned", "deliveries_arrived", "next_day_sortation", "sort_comments", "collections_planned", "collections_arrived", "late_arrivals", "trailers_on_doors", "trailers_needed_cover", "dispatch_comments", "suntory", "aob"]
+        extra = {name: request.form.get(name, "").strip() for name in handover_fields}
+        generated = generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, extra)
         conn = get_db()
         conn.execute("""
             INSERT INTO handovers (user_id, date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, generated_report, created_at)
@@ -2729,16 +2800,20 @@ def team():
     user = current_user()
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        role = request.form.get("role", "").strip()
+        role_select = request.form.get("role_select", "").strip()
+        custom_role = request.form.get("custom_role", "").strip()
+        role = custom_role if custom_role else (role_select or request.form.get("role", "").strip())
         email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        notes = request.form.get("notes", "").strip()
         status = request.form.get("status", "Active")
         permissions = request.form.get("permissions", "View only")
         if not name or not role:
             flash("Please enter name and role.", "error")
             return redirect(url_for("team"))
         conn = get_db()
-        conn.execute("INSERT INTO team_members (user_id, name, role, email, status, permissions, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                     (user["id"], name, role, email, status, permissions, datetime.now().isoformat()))
+        conn.execute("INSERT INTO team_members (user_id, name, role, email, phone, notes, status, permissions, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                     (user["id"], name, role, email, phone, notes, status, permissions, datetime.now().isoformat()))
         conn.commit()
         conn.close()
         flash("Team member added.", "success")
@@ -2748,6 +2823,105 @@ def team():
     conn.close()
     return render_template("team.html", rows=rows, page="team")
 
+
+
+@app.route("/team/export")
+@login_required
+@plan_required("business")
+def export_team():
+    user = current_user()
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM team_members WHERE user_id = ? ORDER BY name ASC", (user["id"],)).fetchall()
+    conn.close()
+    wb = Workbook(); ws = wb.active; ws.title = "Team Members"
+    ws.append(["Name", "Role", "Email", "Phone", "Status", "Notes", "Created At"])
+    for row in rows:
+        ws.append([row["name"], row["role"], row["email"], row_get(row,"phone",""), row["status"], row_get(row,"notes",""), row["created_at"]])
+    style_excel_header(ws)
+    return excel_response(wb, "team-members.xlsx")
+
+@app.route("/handover/export")
+@login_required
+@plan_required("pro")
+def export_handovers():
+    user = current_user()
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM handovers WHERE user_id = ? ORDER BY date DESC, id DESC", (user["id"],)).fetchall()
+    conn.close()
+    wb = Workbook(); ws = wb.active; ws.title = "Handovers"
+    ws.append(["Date", "Shift", "Manager", "Volume", "Planned HC", "Actual HC", "Late Trailers", "Issues", "Actions", "Report", "Created At"])
+    for row in rows:
+        ws.append([row["date"], row["shift"], row["manager"], row["volume"], row["planned_hc"], row["actual_hc"], row["late_trailers"], row["issues"], row["actions"], row["generated_report"], row["created_at"]])
+    style_excel_header(ws)
+    return excel_response(wb, "handovers.xlsx")
+
+@app.route("/admin/export")
+@login_required
+def export_admin_users():
+    admin = current_user()
+    if not is_admin(admin):
+        flash("Admin access only.", "error")
+        return redirect(url_for("index"))
+    conn = get_db()
+    users = conn.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
+    conn.close()
+    wb = Workbook(); ws = wb.active; ws.title = "Users"
+    ws.append(["Name", "Email", "Plan", "Role", "Company", "Phone", "Status", "Pro Until", "Created At"])
+    for u in users:
+        ws.append([u["name"], u["email"], u["plan"], row_get(u,"role",""), row_get(u,"company_name",""), row_get(u,"phone",""), row_get(u,"subscription_status",""), row_get(u,"pro_expires_at",""), u["created_at"]])
+    style_excel_header(ws)
+    return excel_response(wb, "admin-users.xlsx")
+
+@app.route("/admin/account", methods=["POST"])
+@login_required
+def admin_account_update():
+    admin = current_user()
+    if not is_admin(admin):
+        flash("Admin access only.", "error")
+        return redirect(url_for("index"))
+    name = request.form.get("name", "").strip() or admin["name"]
+    email = request.form.get("email", "").strip().lower() or admin["email"]
+    password = request.form.get("password", "").strip()
+    conn = get_db()
+    try:
+        if password:
+            conn.execute("UPDATE users SET name = ?, email = ?, role = 'Admin', password_hash = ? WHERE id = ?", (name, email, generate_password_hash(password), admin["id"]))
+        else:
+            conn.execute("UPDATE users SET name = ?, email = ?, role = 'Admin' WHERE id = ?", (name, email, admin["id"]))
+        conn.commit()
+        flash("Admin login details updated.", "success")
+    except sqlite3.IntegrityError:
+        flash("That email address is already used by another account.", "error")
+    finally:
+        conn.close()
+    return redirect(url_for("admin_dashboard"))
+
+@app.route("/yard-settings/location/add", methods=["POST"])
+@login_required
+@plan_required("pro")
+def add_yard_location():
+    user = current_user()
+    name = request.form.get("location_name", "").strip()
+    prefix = request.form.get("location_prefix", "").strip()
+    if not name:
+        flash("Enter a location name.", "error")
+        return redirect(url_for("yard_settings"))
+    conn = get_db()
+    conn.execute("INSERT INTO custom_locations (user_id, name, prefix, created_at) VALUES (?, ?, ?, ?)", (user["id"], name, prefix, datetime.now().isoformat()))
+    conn.commit(); conn.close()
+    flash("Custom yard location added.", "success")
+    return redirect(url_for("yard_settings"))
+
+@app.route("/yard-settings/location/<int:location_id>/delete", methods=["POST"])
+@login_required
+@plan_required("pro")
+def delete_yard_location(location_id):
+    user = current_user()
+    conn = get_db()
+    conn.execute("DELETE FROM custom_locations WHERE id = ? AND user_id = ?", (location_id, user["id"]))
+    conn.commit(); conn.close()
+    flash("Custom yard location deleted.", "success")
+    return redirect(url_for("yard_settings"))
 
 @app.route("/operations")
 @login_required
@@ -3230,7 +3404,8 @@ def yard_settings():
         return redirect(url_for("yard_settings"))
 
     cfg = get_yard_config(user)
-    return render_template("yard_settings.html", cfg=cfg, page="yard_settings")
+    custom_locations = get_custom_locations(user["id"])
+    return render_template("yard_settings.html", cfg=cfg, custom_locations=custom_locations, page="yard_settings")
 
 
 
@@ -3256,7 +3431,7 @@ def settings():
             request.form.get("role", "Admin").strip(),
             request.form.get("phone", "").strip(),
             request.form.get("address", "").strip(),
-            float(request.form.get("mileage_rate") or 0.45),
+            float(request.form.get("mileage_rate") or 0.55),
             int(request.form.get("door_count") or 100),
             int(request.form.get("fence_count") or 120),
             user["id"]
@@ -3319,3 +3494,4 @@ seed_admin_user()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+

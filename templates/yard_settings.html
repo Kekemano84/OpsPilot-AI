@@ -2,51 +2,67 @@
 {% block title %}Yard Settings{% endblock %}
 {% block content %}
 
-<section class="hero-card pro-hero">
+<section class="hero-card pro-hero compact-hero">
     <div>
         <p class="eyebrow">Pro Yard Configuration</p>
-        <h3>Set your own Door Capacity and Fence Capacity for your site.</h3>
+        <h3>Customise Door/Fence ranges and add any extra yard locations you need.</h3>
     </div>
-    <span class="btn light">PRO</span>
+    <a class="btn light" href="{{ url_for('yard_check') }}">Back to Yard Check</a>
 </section>
 
-<section class="panel">
+<section class="panel compact-panel">
     <div class="panel-head">
         <div>
             <h3>Door / Fence Capacity</h3>
-            <p class="muted">Free users use Door 1–100 and Fence 1–120. Pro users can customise these numbers.</p>
+            <p class="muted">Set the range your site uses. Example: Door 1–100, Fence 1–120.</p>
         </div>
-        <a class="small-btn ghost-small" href="{{ url_for('yard_check') }}">Back to Yard Check</a>
     </div>
 
     <form method="POST" class="form-grid">
-        <div>
-            <label>Door Start</label>
-            <input type="number" min="1" max="9999" name="door_start" value="{{ cfg.door_start }}">
-        </div>
-        <div>
-            <label>Door End</label>
-            <input type="number" min="1" max="9999" name="door_end" value="{{ cfg.door_end }}">
-        </div>
-        <div>
-            <label>Fence Start</label>
-            <input type="number" min="1" max="9999" name="fence_start" value="{{ cfg.fence_start }}">
-        </div>
-        <div>
-            <label>Fence End</label>
-            <input type="number" min="1" max="9999" name="fence_end" value="{{ cfg.fence_end }}">
-        </div>
-
-        <div class="wide">
-            <div class="notice soft-notice">
-                Current display will be: Door Capacity {{ cfg.door_start }}–{{ cfg.door_end }} and Fence Capacity {{ cfg.fence_start }}–{{ cfg.fence_end }}.
-            </div>
-        </div>
-
-        <div class="form-actions">
-            <button class="btn primary" type="submit">Save Yard Configuration</button>
-        </div>
+        <div><label>Door Start</label><input type="number" min="1" max="9999" name="door_start" value="{{ cfg.door_start }}"></div>
+        <div><label>Door End</label><input type="number" min="1" max="9999" name="door_end" value="{{ cfg.door_end }}"></div>
+        <div><label>Fence Start</label><input type="number" min="1" max="9999" name="fence_start" value="{{ cfg.fence_start }}"></div>
+        <div><label>Fence End</label><input type="number" min="1" max="9999" name="fence_end" value="{{ cfg.fence_end }}"></div>
+        <div class="wide"><div class="notice soft-notice">Current display: Door {{ cfg.door_start }}–{{ cfg.door_end }} and Fence {{ cfg.fence_start }}–{{ cfg.fence_end }}.</div></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Save Yard Configuration</button></div>
     </form>
+</section>
+
+<section class="panel compact-panel">
+    <div class="panel-head">
+        <div>
+            <h3>Manual Yard Locations</h3>
+            <p class="muted">Add anything else: Sort Centre, Dispatch, Suntory, Chamber 2, Bay, Gatehouse, Workshop, etc. These will appear in Yard Check.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_yard_location') }}" class="form-grid">
+        <div><label>Location Name</label><input name="location_name" placeholder="Sort Centre / Dispatch / Chamber 2"></div>
+        <div><label>Optional Prefix</label><input name="location_prefix" placeholder="SC / DISP / C2"></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Add Location</button></div>
+    </form>
+
+    <div class="table-wrap" style="margin-top:18px;">
+        <table>
+            <thead><tr><th>Location</th><th>Prefix</th><th>Created</th><th>Action</th></tr></thead>
+            <tbody>
+            {% for loc in custom_locations %}
+                <tr>
+                    <td><strong>{{ loc.name }}</strong></td>
+                    <td>{{ loc.prefix or '-' }}</td>
+                    <td>{{ loc.created_at[:10] }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('delete_yard_location', location_id=loc.id) }}" onsubmit="return confirm('Delete this location?')">
+                            <button class="small-btn ghost-small" type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4" class="empty">No custom locations yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 
 {% endblock %}

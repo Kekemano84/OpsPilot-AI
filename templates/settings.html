@@ -8,7 +8,7 @@
         <div><label>Your Name</label><input name="name" value="{{ row.name or '' }}"></div>
         <div><label>Email</label><input value="{{ row.email or '' }}" disabled></div><div><label>Your Role</label><select name="role"><option {{ "selected" if row.role == "Admin" else "" }}>Admin</option><option {{ "selected" if row.role == "Manager" else "" }}>Manager</option><option {{ "selected" if row.role == "FLM" else "" }}>FLM</option><option {{ "selected" if row.role == "User" else "" }}>User</option></select></div>
         <div><label>Phone</label><input name="phone" value="{{ row.phone or '' }}"></div>
-        <div><label>Default Mileage Rate (£/mile)</label><input type="number" step="0.01" name="mileage_rate" value="{{ row.mileage_rate or 0.45 }}"></div>
+        <div><label>Default Mileage Rate (£/mile)</label><input type="number" step="0.01" name="mileage_rate" value="{{ row.mileage_rate or 0.55 }}"></div>
         <div><label>Door Count</label><input type="number" min="1" max="1000" name="door_count" value="{{ row.door_count or 100 }}"></div>
         <div><label>Fence Count</label><input type="number" min="1" max="1000" name="fence_count" value="{{ row.fence_count or 120 }}"></div>
         <div class="wide"><label>Address</label><input name="address" value="{{ row.address or '' }}"></div>
