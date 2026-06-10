@@ -4,15 +4,15 @@
 
 <section class="hero-card dashboard-hero-compact">
     <div>
-        <p class="eyebrow">Welcome back</p>
-        <h3>Operations dashboard for shifts, checks, mileage, expenses and handovers.</h3>
+        <p class="eyebrow">{{ t("welcome_back") if t("welcome_back") != "welcome_back" else "Welcome back" }}</p>
+        <h3>{{ t("dashboard_intro") if t("dashboard_intro") != "dashboard_intro" else "Operations dashboard for shifts, checks, mileage, expenses and handovers." }}</h3>
     </div>
 </section>
 
 
 {% if notifications %}
 <section class="panel compact-panel notifications-panel">
-  <div class="panel-head"><h3>Notifications</h3><a class="small-btn ghost-small" href="{{ url_for('actions') }}">Open Actions</a></div>
+  <div class="panel-head"><h3>{{ t("notifications") }}</h3><a class="small-btn ghost-small" href="{{ url_for('actions') }}">{{ t("actions") }}</a></div>
   <div class="simple-list">
     {% for n in notifications %}
     <div class="list-row notice-row {{ n.level }}"><div><strong>{{ n.text }}</strong><span>{{ n.level|title }} priority</span></div></div>
@@ -24,9 +24,9 @@
 <section class="dashboard-compact-grid">
     {% if today_shift %}
     <a class="dash-mini-card status-{{ today_shift.status|lower|replace(' ', '-') }}" href="{{ url_for('shift_calendar') }}">
-        <span>Today</span>
+        <span>{{ t("today") if t("today") != "today" else "Today" }}</span>
         <strong>{{ today_shift.status or 'Not Set' }}</strong>
-        <small>{% if today_shift.shift_name %}{{ today_shift.shift_name }} · {% endif %}{% if today_shift.start_time or today_shift.end_time %}{{ today_shift.start_time }} - {{ today_shift.end_time }}{% else %}No shift time set{% endif %}</small>
+        <small>{% if today_shift.shift_name %}{{ today_shift.shift_name }} · {% endif %}{% if today_shift.start_time or today_shift.end_time %}{{ today_shift.start_time }} - {{ today_shift.end_time }}{% else %}{{ t("no_shift_time") if t("no_shift_time") != "no_shift_time" else "No shift time set" }}{% endif %}</small>
     </a>
     {% endif %}
 
@@ -38,19 +38,18 @@
     </a>
     {% endif %}
 
-    <a class="dash-mini-card" href="{{ url_for('mileage') }}"><span>Mileage Claim</span><strong>{{ totals.mileage_claim|money }}</strong><small>{{ "%.1f"|format(totals.miles) }} miles</small></a>
-    <a class="dash-mini-card" href="{{ url_for('expenses') }}"><span>Expenses</span><strong>{{ totals.expenses|money }}</strong><small>Business costs</small></a>
+    <a class="dash-mini-card" href="{{ url_for('mileage') }}"><span>{{ t("mileage") }}</span><strong>{{ totals.mileage_claim|money }}</strong><small>{{ "%.1f"|format(totals.miles) }} miles</small></a>
+    <a class="dash-mini-card" href="{{ url_for('expenses') }}"><span>{{ t("expenses") }}</span><strong>{{ totals.expenses|money }}</strong><small>Business costs</small></a>
     <a class="dash-mini-card" href="{{ url_for('yard_check') }}"><span>Yard Checks</span><strong>{{ recent_yard|length }}</strong><small>Recent records</small></a>
-    <a class="dash-mini-card" href="{{ url_for('handover') }}"><span>Handovers</span><strong>Open</strong><small>Shift reports</small></a>
-    <a class="dash-mini-card" href="{{ url_for('daily_shift_log') }}"><span>Daily Log</span><strong>Shift</strong><small>Full daily record</small></a>
-    <a class="dash-mini-card" href="{{ url_for('actions') }}"><span>Actions</span><strong>Follow-up</strong><small>Owner, due date, status</small></a>
+    <a class="dash-mini-card" href="{{ url_for('handover') }}"><span>{{ t("handover") }}</span><strong>Open</strong><small>Shift reports</small></a>
+    <a class="dash-mini-card" href="{{ url_for('daily_shift_log') }}"><span>{{ t("daily_log") }}</span><strong>Shift</strong><small>Full daily record</small></a>
+    <a class="dash-mini-card" href="{{ url_for('actions') }}"><span>{{ t("actions") }}</span><strong>Follow-up</strong><small>Owner, due date, status</small></a>
 </section>
 
 <section class="mobile-dashboard-tools compact-tools">
-    <a href="{{ url_for('morning_brief') }}">📢<span>Brief</span></a>
-    <a href="{{ url_for('mileage') }}">🚗<span>Mileage</span></a>
-    <a href="{{ url_for('expenses') }}">💷<span>Expenses</span></a>
-    <a href="{{ url_for('handover') }}">📝<span>Handover</span></a>
+    {% for key, icon, label_key, endpoint in favorite_tools %}
+    <a href="{{ url_for(endpoint) }}">{{ icon }}<span>{{ t(label_key) }}</span></a>
+    {% endfor %}
 </section>
 
 {% if week_shifts %}

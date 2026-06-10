@@ -22,6 +22,14 @@
     </section>
 
     <section class="auth-card auth-card-modern">
+        <form class="auth-language-form" method="POST" action="{{ url_for('set_language') }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <label>🌍</label>
+            <select name="language" onchange="this.form.submit()">
+                {% for code,label in available_languages %}<option value="{{ code }}" {% if current_language==code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </form>
+
         <div class="brand auth-brand">
             <div class="brand-icon">OP</div>
             <div>

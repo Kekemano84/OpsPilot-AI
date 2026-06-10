@@ -3,31 +3,31 @@
 {% block content %}
 <section class="mobile-more-hero">
     <p class="eyebrow">OpsPilot AI</p>
-    <h1>More</h1>
-    <p class="muted">Manager Toolkit tools and settings in one place.</p>
+    <h1>{{ t("more") }}</h1>
+    <p class="muted">{{ t("more_intro") if t("more_intro") != "more_intro" else "Manager Toolkit tools and settings in one place." }}</p>
 </section>
 
 <section class="more-grid-app">
-    <a class="more-tile" href="{{ url_for('morning_brief') }}"><span class="more-icon">📢</span><div><strong>Morning Brief</strong><small>Build daily shift message</small></div></a>
-    <a class="more-tile" href="{{ url_for('mileage') }}"><span class="more-icon">🚗</span><div><strong>Mileage</strong><small>Track business miles</small></div></a>
-    <a class="more-tile" href="{{ url_for('expenses') }}"><span class="more-icon">💷</span><div><strong>Expenses</strong><small>Record business costs</small></div></a>
-    <a class="more-tile" href="{{ url_for('handover') }}"><span class="more-icon">📝</span><div><strong>Handover</strong><small>End of shift report</small></div><em>PRO</em></a>
-    <a class="more-tile" href="{{ url_for('yard_settings') }}"><span class="more-icon">⚙️</span><div><strong>Yard Settings</strong><small>Door and fence capacity</small></div><em>PRO</em></a>
-    <a class="more-tile" href="{{ url_for('pricing') }}"><span class="more-icon">⭐</span><div><strong>Plans</strong><small>Free and Pro access</small></div></a>
+    <a class="more-tile" href="{{ url_for('morning_brief') }}"><span class="more-icon">📢</span><div><strong>{{ t("morning_brief") }}</strong><small>Build daily shift message</small></div></a>
+    <a class="more-tile" href="{{ url_for('mileage') }}"><span class="more-icon">🚗</span><div><strong>{{ t("mileage") }}</strong><small>Track business miles</small></div></a>
+    <a class="more-tile" href="{{ url_for('expenses') }}"><span class="more-icon">💷</span><div><strong>{{ t("expenses") }}</strong><small>Record business costs</small></div></a>
+    <a class="more-tile" href="{{ url_for('handover') }}"><span class="more-icon">📝</span><div><strong>{{ t("handover") }}</strong><small>End of shift report</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('yard_settings') }}"><span class="more-icon">⚙️</span><div><strong>{{ t("yard_settings") }}</strong><small>Door and fence capacity</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('pricing') }}"><span class="more-icon">⭐</span><div><strong>{{ t("plans") }}</strong><small>Free and Pro access</small></div></a>
     <a class="more-tile" href="{{ url_for('holiday_tracker') }}"><span class="more-icon">🏖️</span><div><strong>Holiday Tracker</strong><small>Days, hours and remaining leave</small></div></a>
     <a class="more-tile" href="{{ url_for('holiday_settings') }}"><span class="more-icon">🧮</span><div><strong>Holiday Settings</strong><small>Allowance, paid hours and breaks</small></div></a>
-    <a class="more-tile" href="{{ url_for('daily_shift_log') }}"><span class="more-icon">📋</span><div><strong>Daily Shift Log</strong><small>Volume, HC, safety, issues</small></div><em>PRO</em></a>
-    <a class="more-tile" href="{{ url_for('actions') }}"><span class="more-icon">✅</span><div><strong>Action Tracker</strong><small>Owner, due date, status</small></div><em>PRO</em></a>
-    <a class="more-tile" href="{{ url_for('absence') }}"><span class="more-icon">🗓️</span><div><strong>Absence Tracker</strong><small>Sick, holiday, training</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('daily_shift_log') }}"><span class="more-icon">📋</span><div><strong>{{ t("daily_log") }}</strong><small>Volume, HC, safety, issues</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('actions') }}"><span class="more-icon">✅</span><div><strong>{{ t("actions") }}</strong><small>Owner, due date, status</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('absence') }}"><span class="more-icon">🗓️</span><div><strong>{{ t("absence") }}</strong><small>Sick, holiday, training</small></div><em>PRO</em></a>
     <a class="more-tile" href="{{ url_for('evidence') }}"><span class="more-icon">📷</span><div><strong>Photo Evidence</strong><small>Damage and safety photos</small></div><em>PRO</em></a>
-    <a class="more-tile" href="{{ url_for('global_search') }}"><span class="more-icon">🔎</span><div><strong>Search</strong><small>Find notes, issues, names</small></div></a>
+    <a class="more-tile" href="{{ url_for('global_search') }}"><span class="more-icon">🔎</span><div><strong>{{ t("search") }}</strong><small>Find notes, issues, names</small></div></a>
 
 
-    <a class="more-tile" href="{{ url_for('settings') }}"><span class="more-icon">👤</span><div><strong>Settings</strong><small>Account and business details</small></div></a>
+    <a class="more-tile" href="{{ url_for('settings') }}"><span class="more-icon">👤</span><div><strong>{{ t("settings") }}</strong><small>Account and business details</small></div></a>
     {% if user and user.email == 'admin@opspilot.ai' %}
-    <a class="more-tile admin-tile" href="{{ url_for('admin') }}"><span class="more-icon">🛡️</span><div><strong>Admin</strong><small>Users, plans and testing</small></div><em>ADMIN</em></a>
+    <a class="more-tile admin-tile" href="{{ url_for('admin_dashboard') }}"><span class="more-icon">🛡️</span><div><strong>Admin</strong><small>Users, plans and testing</small></div><em>ADMIN</em></a>
     <a class="more-tile admin-tile" href="{{ url_for('admin_billing') }}"><span class="more-icon">💳</span><div><strong>Billing</strong><small>Subscription controls</small></div><em>ADMIN</em></a>
     {% endif %}
-    <a class="more-tile logout-tile" href="{{ url_for('logout') }}"><span class="more-icon">🚪</span><div><strong>Logout</strong><small>Sign out from this device</small></div></a>
+    <a class="more-tile logout-tile" href="{{ url_for('logout') }}"><span class="more-icon">🚪</span><div><strong>{{ t("logout") }}</strong><small>Sign out from this device</small></div></a>
 </section>
 {% endblock %}

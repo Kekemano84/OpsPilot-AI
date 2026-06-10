@@ -1,82 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Settings{% endblock %}
+{% block title %}{{ t("settings") }}{% endblock %}
 {% block content %}
-<section class="panel">
-    <h3>Business Details</h3>
+<section class="panel settings-tabs-panel">
+    <div class="settings-tab-links">
+        <a href="#business-settings">{{ t("business_details") if t("business_details") != "business_details" else "Business Details" }}</a>
+        <a href="#language-settings">{{ t("language") if t("language") != "language" else "Language" }}</a>
+        <a href="#favorite-settings">{{ t("favorites") if t("favorites") != "favorites" else "Favorites" }}</a>
+        <a href="{{ url_for('pricing') }}">{{ t("plans") }}</a>
+        <a href="{{ url_for('holiday_settings') }}">{{ t("holiday_settings") if t("holiday_settings") != "holiday_settings" else "Holiday Settings" }}</a>
+    </div>
+</section>
+
+<section class="panel" id="business-settings">
+    <h3>{{ t("business_details") if t("business_details") != "business_details" else "Business Details" }}</h3>
     <form method="POST" class="form-grid">
-        <div><label>Business Name</label><input name="business_name" value="{{ row.business_name or '' }}"></div><div><label>Company / Site Name</label><input name="company_name" value="{{ row.company_name or '' }}"></div>
-        <div><label>Your Name</label><input name="name" value="{{ row.name or '' }}"></div>
-        <div><label>Email</label><input value="{{ row.email or '' }}" disabled></div><div><label>Your Role</label><select name="role"><option {{ "selected" if row.role == "Admin" else "" }}>Admin</option><option {{ "selected" if row.role == "Manager" else "" }}>Manager</option><option {{ "selected" if row.role == "FLM" else "" }}>FLM</option><option {{ "selected" if row.role == "User" else "" }}>User</option></select></div>
-        <div><label>Phone</label><input name="phone" value="{{ row.phone or '' }}"></div>
-        <div><label>Default Mileage Rate (£/mile)</label><input type="number" step="0.01" name="mileage_rate" value="{{ row.mileage_rate or 0.55 }}"></div>
-        <div><label>Door Count</label><input type="number" min="1" max="1000" name="door_count" value="{{ row.door_count or 100 }}"></div>
-        <div><label>Fence Count</label><input type="number" min="1" max="1000" name="fence_count" value="{{ row.fence_count or 120 }}"></div>
-        <div class="wide"><label>Address</label><input name="address" value="{{ row.address or '' }}"></div>
-        <div class="form-actions"><button class="btn primary" type="submit">Save Settings</button></div>
-    <div><label>Language</label><select name="language">{% for code,label in available_languages %}<option value="{{ code }}" {% if row.language==code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div></form>
-</section>
-{% endblock %}
+        <div><label>{{ t("business_name") if t("business_name") != "business_name" else "Business Name" }}</label><input name="business_name" value="{{ row.business_name or '' }}"></div>
+        <div><label>{{ t("company_site_name") if t("company_site_name") != "company_site_name" else "Company / Site Name" }}</label><input name="company_name" value="{{ row.company_name or '' }}"></div>
+        <div><label>{{ t("your_name") if t("your_name") != "your_name" else "Your Name" }}</label><input name="name" value="{{ row.name or '' }}"></div>
+        <div><label>Email</label><input value="{{ row.email or '' }}" disabled></div>
+        <div><label>{{ t("your_role") if t("your_role") != "your_role" else "Your Role" }}</label><select name="role"><option {{ "selected" if row.role == "Admin" else "" }}>Admin</option><option {{ "selected" if row.role == "Manager" else "" }}>Manager</option><option {{ "selected" if row.role == "FLM" else "" }}>FLM</option><option {{ "selected" if row.role == "User" else "" }}>User</option></select></div>
+        <div><label>{{ t("phone") if t("phone") != "phone" else "Phone" }}</label><input name="phone" value="{{ row.phone or '' }}"></div>
+        <div><label>{{ t("default_mileage_rate") if t("default_mileage_rate") != "default_mileage_rate" else "Default Mileage Rate (£/mile)" }}</label><input type="number" step="0.01" name="mileage_rate" value="{{ row.mileage_rate or 0.55 }}"></div>
+        <div><label>{{ t("door_count") if t("door_count") != "door_count" else "Door Count" }}</label><input type="number" min="1" max="1000" name="door_count" value="{{ row.door_count or 100 }}"></div>
+        <div><label>{{ t("fence_count") if t("fence_count") != "fence_count" else "Fence Count" }}</label><input type="number" min="1" max="1000" name="fence_count" value="{{ row.fence_count or 120 }}"></div>
+        <div class="wide"><label>{{ t("address") if t("address") != "address" else "Address" }}</label><input name="address" value="{{ row.address or '' }}"></div>
 
-<section class="panel">
-    <div class="panel-head">
-        <div>
-            <h3>Annual Leave Settings</h3>
-            <p class="muted">Set your yearly holiday entitlement. Holiday days in Shift Calendar are deducted automatically.</p>
-        </div>
-    </div>
-    <form method="POST" action="{{ url_for('save_annual_leave_settings') }}" class="form-grid compact-form">
-        <div>
-            <label>Annual Leave Entitlement</label>
-            <input type="number" step="0.5" name="annual_leave_entitlement" value="{{ user.annual_leave_entitlement or 28 }}">
-        </div>
-        <div class="form-actions">
-            <button class="btn primary" type="submit">Save Leave Settings</button>
-        </div>
-    </form>
-</section>
+        <div id="language-settings"><label>{{ t("language") if t("language") != "language" else "Language" }}</label><select name="language">{% for code,label in available_languages %}<option value="{{ code }}" {% if row.language==code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
 
-<section class="panel holiday-settings-panel">
-    <div class="panel-head">
-        <div>
-            <h3>Holiday Tracker Settings</h3>
-            <p class="muted">Set entitlement, paid hours and break rules. Holiday can be tracked in days and hours.</p>
+        <div class="wide" id="favorite-settings">
+            <h3>{{ t("dashboard_favorites") if t("dashboard_favorites") != "dashboard_favorites" else "Dashboard Favorites" }}</h3>
+            <p class="muted">{{ t("dashboard_favorites_help") if t("dashboard_favorites_help") != "dashboard_favorites_help" else "Choose the four quick buttons shown on your mobile dashboard." }}</p>
         </div>
-    </div>
-
-    <form method="POST" action="{{ url_for('save_annual_leave_settings') }}" class="form-grid compact-form">
+        {% for i in range(1,5) %}
         <div>
-            <label>Annual Holiday Entitlement</label>
-            <input type="number" step="0.5" name="annual_leave_entitlement" value="{{ user.annual_leave_entitlement or 20 }}">
-        </div>
-
-        <div>
-            <label>Entitlement Unit</label>
-            <select name="annual_leave_unit">
-                <option value="days" {% if user.annual_leave_unit != 'hours' %}selected{% endif %}>Days</option>
-                <option value="hours" {% if user.annual_leave_unit == 'hours' %}selected{% endif %}>Hours</option>
+            <label>{{ t("favorite") if t("favorite") != "favorite" else "Favorite" }} {{ i }}</label>
+            <select name="favorite_{{ i }}">
+                {% for key, icon, label_key, endpoint in favorite_options %}
+                <option value="{{ key }}" {% if selected_favorites|length >= i and selected_favorites[i-1] == key %}selected{% endif %}>{{ icon }} {{ t(label_key) }}</option>
+                {% endfor %}
             </select>
         </div>
+        {% endfor %}
 
-        <div>
-            <label>Contracted Shift Hours</label>
-            <input type="number" step="0.25" name="contracted_shift_hours" value="{{ user.contracted_shift_hours or 12 }}">
-        </div>
-
-        <div>
-            <label>Break Minutes</label>
-            <input type="number" step="1" name="break_minutes" value="{{ user.break_minutes or 45 }}">
-        </div>
-
-        <div class="wide">
-            <label class="remember-line">
-                <input type="checkbox" name="break_paid" value="yes" {% if user.break_paid %}checked{% endif %}>
-                <span>Break is paid</span>
-            </label>
-            <p class="muted">Example: 12h shift with 45 min unpaid break = 11.25 paid hours. 6h shift with paid break = 6 paid hours.</p>
-        </div>
-
-        <div class="form-actions">
-            <button class="btn primary" type="submit">Save Holiday Settings</button>
-        </div>
+        <div class="form-actions"><button class="btn primary" type="submit">{{ t("save_settings") if t("save_settings") != "save_settings" else "Save Settings" }}</button></div>
     </form>
 </section>
+{% endblock %}

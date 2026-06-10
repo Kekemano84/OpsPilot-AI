@@ -383,6 +383,7 @@ def init_db():
 
     safe_add_column("users", "annual_leave_entitlement", "REAL DEFAULT 28")
     safe_add_column("users", "language", "TEXT DEFAULT 'en'")
+    safe_add_column("users", "favorite_tools", "TEXT DEFAULT 'morning_brief,mileage,expenses,handover'")
     safe_add_column("users", "last_login_at", "TEXT")
     safe_add_column("users", "inactive_warning_at", "TEXT")
     safe_add_column("team_members", "licence_expiry", "TEXT")
@@ -477,6 +478,7 @@ def seed_admin_user():
     add_col("fence_start", "INTEGER DEFAULT 1")
     add_col("fence_end", "INTEGER DEFAULT 120")
     add_col("language", "TEXT DEFAULT 'en'")
+    add_col("favorite_tools", "TEXT DEFAULT 'morning_brief,mileage,expenses,handover'")
     add_col("last_login_at", "TEXT")
     add_col("inactive_warning_at", "TEXT")
     add_col("pro_expires_at", "TEXT")
@@ -571,10 +573,56 @@ TRANSLATIONS = {
     },
 }
 
+
+EXTRA_TRANSLATIONS = {
+    "en": {"operations":"Operations","language":"Language","business_details":"Business Details","business_name":"Business Name","company_site_name":"Company / Site Name","your_name":"Your Name","your_role":"Your Role","phone":"Phone","address":"Address","default_mileage_rate":"Default Mileage Rate (£/mile)","door_count":"Door Count","fence_count":"Fence Count","save_settings":"Save Settings","favorites":"Favorites","dashboard_favorites":"Dashboard Favorites","dashboard_favorites_help":"Choose the four quick buttons shown on your mobile dashboard.","favorite":"Favorite","welcome_back":"Welcome back","dashboard_intro":"Operations dashboard for shifts, checks, mileage, expenses and handovers.","today":"Today","no_shift_time":"No shift time set","more_intro":"Manager Toolkit tools and settings in one place.","holiday_settings":"Holiday Settings"},
+    "hu": {"operations":"Műveletek","language":"Nyelv","business_details":"Céges adatok","business_name":"Cég neve","company_site_name":"Cég / telephely neve","your_name":"Neved","your_role":"Szerepköröd","phone":"Telefon","address":"Cím","default_mileage_rate":"Alap mérföld díj (£/mile)","door_count":"Door darabszám","fence_count":"Fence darabszám","save_settings":"Beállítások mentése","favorites":"Kedvencek","dashboard_favorites":"Vezérlőpult kedvencek","dashboard_favorites_help":"Válaszd ki a négy gyorsgombot, ami a mobil vezérlőpulton megjelenik.","favorite":"Kedvenc","welcome_back":"Üdv újra","dashboard_intro":"Műszakok, ellenőrzések, mérföldek, kiadások és átadások egy helyen.","today":"Ma","no_shift_time":"Nincs műszakidő beállítva","more_intro":"Manager Toolkit eszközök és beállítások egy helyen.","holiday_settings":"Szabadság beállítások"},
+    "pl": {"operations":"Operacje","language":"Język","business_details":"Dane firmy","business_name":"Nazwa firmy","company_site_name":"Firma / lokalizacja","your_name":"Twoje imię","your_role":"Twoja rola","phone":"Telefon","address":"Adres","default_mileage_rate":"Domyślna stawka za milę (£/mile)","door_count":"Liczba bram","fence_count":"Liczba płotów","save_settings":"Zapisz ustawienia","favorites":"Ulubione","dashboard_favorites":"Ulubione pulpitu","dashboard_favorites_help":"Wybierz cztery szybkie przyciski na pulpicie mobilnym.","favorite":"Ulubione","welcome_back":"Witaj ponownie","dashboard_intro":"Panel operacyjny dla zmian, kontroli, kilometrówki, wydatków i przekazań.","today":"Dzisiaj","no_shift_time":"Brak ustawionego czasu zmiany","more_intro":"Narzędzia Manager Toolkit i ustawienia w jednym miejscu.","holiday_settings":"Ustawienia urlopu"},
+    "ro": {"operations":"Operațiuni","language":"Limbă","business_details":"Detalii firmă","business_name":"Nume firmă","company_site_name":"Firmă / locație","your_name":"Numele tău","your_role":"Rolul tău","phone":"Telefon","address":"Adresă","default_mileage_rate":"Rată implicită mile (£/mile)","door_count":"Număr uși","fence_count":"Număr garduri","save_settings":"Salvează setările","favorites":"Favorite","dashboard_favorites":"Favorite panou","dashboard_favorites_help":"Alege cele patru butoane rapide afișate pe panoul mobil.","favorite":"Favorit","welcome_back":"Bine ai revenit","dashboard_intro":"Panou pentru ture, verificări, mileaj, cheltuieli și predări.","today":"Astăzi","no_shift_time":"Nu este setat timpul turei","more_intro":"Instrumente Manager Toolkit și setări într-un singur loc.","holiday_settings":"Setări concediu"},
+    "es": {"operations":"Operaciones","language":"Idioma","business_details":"Datos de empresa","business_name":"Nombre de empresa","company_site_name":"Empresa / sitio","your_name":"Tu nombre","your_role":"Tu rol","phone":"Teléfono","address":"Dirección","default_mileage_rate":"Tarifa por milla predeterminada (£/mile)","door_count":"Número de puertas","fence_count":"Número de vallas","save_settings":"Guardar ajustes","favorites":"Favoritos","dashboard_favorites":"Favoritos del panel","dashboard_favorites_help":"Elige los cuatro botones rápidos del panel móvil.","favorite":"Favorito","welcome_back":"Bienvenido de nuevo","dashboard_intro":"Panel operativo para turnos, revisiones, millas, gastos y traspasos.","today":"Hoy","no_shift_time":"Sin horario de turno","more_intro":"Herramientas Manager Toolkit y ajustes en un solo lugar.","holiday_settings":"Ajustes de vacaciones"},
+    "de": {"operations":"Betrieb","language":"Sprache","business_details":"Firmendaten","business_name":"Firmenname","company_site_name":"Firma / Standort","your_name":"Dein Name","your_role":"Deine Rolle","phone":"Telefon","address":"Adresse","default_mileage_rate":"Standard-Meilensatz (£/mile)","door_count":"Anzahl Türen","fence_count":"Anzahl Zäune","save_settings":"Einstellungen speichern","favorites":"Favoriten","dashboard_favorites":"Dashboard-Favoriten","dashboard_favorites_help":"Wähle die vier Schnellzugriffe für dein mobiles Dashboard.","favorite":"Favorit","welcome_back":"Willkommen zurück","dashboard_intro":"Operations-Dashboard für Schichten, Checks, Fahrten, Ausgaben und Übergaben.","today":"Heute","no_shift_time":"Keine Schichtzeit gesetzt","more_intro":"Manager Toolkit Tools und Einstellungen an einem Ort.","holiday_settings":"Urlaubseinstellungen"},
+}
+for _lang, _items in EXTRA_TRANSLATIONS.items():
+    TRANSLATIONS.setdefault(_lang, {}).update(_items)
+
 def tr(key):
     user = current_user()
-    lang = row_get(user, "language", "en") if user else "en"
+    lang = row_get(user, "language", "en") if user else session.get("language", "en")
     return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, TRANSLATIONS["en"].get(key, key))
+
+def current_language():
+    user = current_user()
+    return row_get(user, "language", session.get("language", "en")) if user else session.get("language", "en")
+
+FAVORITE_TOOL_OPTIONS = [
+    ("morning_brief", "📢", "morning_brief", "morning_brief"),
+    ("mileage", "🚗", "mileage", "mileage"),
+    ("expenses", "💷", "expenses", "expenses"),
+    ("handover", "📝", "handover", "handover"),
+    ("yard_check", "🚛", "yard_check", "yard_check"),
+    ("shift_calendar", "📅", "calendar", "shift_calendar"),
+    ("team", "👥", "team", "team"),
+    ("daily_shift_log", "📋", "daily_log", "daily_shift_log"),
+    ("actions", "✅", "actions", "actions"),
+    ("absence", "🗓️", "absence", "absence"),
+    ("evidence", "📷", "evidence", "evidence"),
+    ("search", "🔎", "search", "global_search"),
+]
+
+def get_favorite_tools(user):
+    raw = row_get(user, "favorite_tools", "morning_brief,mileage,expenses,handover") or "morning_brief,mileage,expenses,handover"
+    selected = [x.strip() for x in raw.split(",") if x.strip()]
+    option_map = {x[0]: x for x in FAVORITE_TOOL_OPTIONS}
+    out = []
+    for key in selected:
+        if key in option_map and key not in [x[0] for x in out]:
+            out.append(option_map[key])
+    for key in ["morning_brief", "mileage", "expenses", "handover"]:
+        if len(out) >= 4:
+            break
+        if key in option_map and key not in [x[0] for x in out]:
+            out.append(option_map[key])
+    return out[:4]
 
 @app.template_filter("days_until")
 def days_until(value):
@@ -617,6 +665,8 @@ def inject_context():
         "shift_trial": shift_calendar_trial_info(user) if user else None,
         "t": tr,
         "available_languages": [("en","English"),("hu","Magyar"),("pl","Polski"),("ro","Română"),("es","Español"),("de","Deutsch")],
+        "current_language": current_language(),
+        "favorite_options": FAVORITE_TOOL_OPTIONS,
         "notifications": get_notifications(user["id"]) if user else []
     }
 
@@ -1926,7 +1976,7 @@ def index():
     recent_mileage = conn.execute("SELECT * FROM mileage WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     recent_yard = conn.execute("SELECT * FROM yard_checks WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     conn.close()
-    return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard, week_shifts=get_current_week_shift_rows(user["id"]), today_shift=today_shift_status(user["id"]), annual_leave=annual_leave_summary(user["id"]))
+    return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard, week_shifts=get_current_week_shift_rows(user["id"]), today_shift=today_shift_status(user["id"]), annual_leave=annual_leave_summary(user["id"]), favorite_tools=get_favorite_tools(user))
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -1942,9 +1992,9 @@ def register():
         conn = get_db()
         try:
             cur = conn.execute("""
-                INSERT INTO users (name, email, password_hash, plan, business_name, created_at)
-                VALUES (?, ?, ?, 'free', ?, ?)
-            """, (name, email, generate_password_hash(password), f"{name}'s Business", datetime.now().isoformat()))
+                INSERT INTO users (name, email, password_hash, plan, business_name, created_at, language, favorite_tools)
+                VALUES (?, ?, ?, 'free', ?, ?, ?, ?)
+            """, (name, email, generate_password_hash(password), f"{name}'s Business", datetime.now().isoformat(), session.get("language", "en"), "morning_brief,mileage,expenses,handover"))
             conn.commit()
             session["user_id"] = cur.lastrowid
             conn.execute("UPDATE users SET last_login_at=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), cur.lastrowid))
@@ -3780,6 +3830,19 @@ def yard_settings():
 
 
 
+@app.route("/set-language", methods=["POST"])
+def set_language():
+    lang = request.form.get("language", "en")
+    if lang not in TRANSLATIONS:
+        lang = "en"
+    session["language"] = lang
+    user = current_user()
+    if user:
+        conn = get_db()
+        conn.execute("UPDATE users SET language=? WHERE id=?", (lang, user["id"]))
+        conn.commit(); conn.close()
+    return redirect(request.form.get("next") or request.referrer or url_for("login"))
+
 @app.route("/more")
 @login_required
 def more_menu():
@@ -3793,7 +3856,7 @@ def settings():
     if request.method == "POST":
         conn = get_db()
         conn.execute("""
-            UPDATE users SET business_name = ?, company_name = ?, name = ?, role = ?, phone = ?, address = ?, mileage_rate = ?, door_count = ?, fence_count = ?, language = ? WHERE id = ?
+            UPDATE users SET business_name = ?, company_name = ?, name = ?, role = ?, phone = ?, address = ?, mileage_rate = ?, door_count = ?, fence_count = ?, language = ?, favorite_tools = ? WHERE id = ?
         """, (
             request.form.get("business_name", "").strip(),
             request.form.get("company_name", "").strip(),
@@ -3805,13 +3868,14 @@ def settings():
             int(request.form.get("door_count") or 100),
             int(request.form.get("fence_count") or 120),
             request.form.get("language", "en"),
+            ",".join([request.form.get(f"favorite_{i}", "") for i in range(1,5) if request.form.get(f"favorite_{i}", "")]),
             user["id"]
         ))
         conn.commit()
         conn.close()
         flash("Settings saved.", "success")
         return redirect(url_for("settings"))
-    return render_template("settings.html", row=user, page="settings")
+    return render_template("settings.html", row=user, page="settings", selected_favorites=[x[0] for x in get_favorite_tools(user)])
 
 
 
