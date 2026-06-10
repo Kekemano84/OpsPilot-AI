@@ -1571,34 +1571,60 @@ def holiday_settings():
     return render_template("holiday_settings.html", page="holiday_settings", user=user, summary=summary)
 
 
+
 @app.route("/holiday-tracker/add", methods=["POST"])
 @login_required
 def add_holiday_record():
     op_ensure_holiday_schema()
     user = current_user()
-    date = request.form.get("holiday_date") or datetime.today().strftime("%Y-%m-%d")
-    hours, days = normalize_holiday_amounts(user, request.form.get("holiday_hours"), request.form.get("holiday_days"))
+
+    start_date = request.form.get("holiday_start_date") or request.form.get("holiday_date") or datetime.today().strftime("%Y-%m-%d")
+    end_date = request.form.get("holiday_end_date") or start_date
+
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except Exception:
+        flash("Please select a valid start and end date.", "error")
+        return redirect(url_for("holiday_tracker"))
+
+    if end_dt < start_dt:
+        start_dt, end_dt = end_dt, start_dt
+
     notes = request.form.get("notes", "Annual leave").strip() or "Annual leave"
+    one_day_hours, one_day_days = normalize_holiday_amounts(
+        user,
+        request.form.get("holiday_hours"),
+        request.form.get("holiday_days")
+    )
 
     conn = get_db()
-    conn.execute("""
-        INSERT INTO shift_calendar
-        (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at, holiday_hours, holiday_days)
-        VALUES (?, ?, 'Holiday', 'Annual Leave', '', '', ?, 'Manual', ?, ?, ?)
-        ON CONFLICT(user_id, date) DO UPDATE SET
-            status = 'Holiday',
-            shift_name = 'Annual Leave',
-            start_time = '',
-            end_time = '',
-            notes = excluded.notes,
-            source = 'Manual',
-            holiday_hours = excluded.holiday_hours,
-            holiday_days = excluded.holiday_days
-    """, (user["id"], date, notes, datetime.now().isoformat(), hours, days))
+    current = start_dt
+    count = 0
+
+    while current <= end_dt:
+        date_str = current.isoformat()
+        conn.execute("""
+            INSERT INTO shift_calendar
+            (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at, holiday_hours, holiday_days)
+            VALUES (?, ?, 'Holiday', 'Annual Leave', '', '', ?, 'Manual', ?, ?, ?)
+            ON CONFLICT(user_id, date) DO UPDATE SET
+                status = 'Holiday',
+                shift_name = 'Annual Leave',
+                start_time = '',
+                end_time = '',
+                notes = excluded.notes,
+                source = 'Manual',
+                holiday_hours = excluded.holiday_hours,
+                holiday_days = excluded.holiday_days
+        """, (user["id"], date_str, notes, datetime.now().isoformat(), one_day_hours, one_day_days))
+        count += 1
+        current += timedelta(days=1)
+
     conn.commit()
     conn.close()
 
-    flash("Holiday added.", "success")
+    flash(f"{count} holiday day(s) added.", "success")
     return redirect(url_for("holiday_tracker"))
 
 @app.route("/")

@@ -1399,3 +1399,9 @@ html.op-loading body {
 .plan-list { list-style:none; padding:0; margin:22px 0; display:grid; gap:12px; font-weight:900; }
 .subscription-info-card { background:#fff; border:1px solid var(--line); border-radius:26px; padding:24px; box-shadow:0 14px 38px rgba(15,23,42,.06); }
 @media (max-width:820px) { .install-app-card { display:grid !important; } .install-app-card .btn { width:100%; } .pricing-two-grid { grid-template-columns:1fr; } }
+
+
+/* Holiday range update */
+.compact-form .wide {
+    grid-column: 1 / -1;
+}
