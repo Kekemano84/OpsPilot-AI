@@ -1,58 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Plans{% endblock %}
 {% block content %}
-
-<section class="mobile-more-hero">
-    <p class="eyebrow">OpsPilot AI</p>
-    <h1>Plans</h1>
-    <p class="muted">Simple pricing. Start free, upgrade when you need full operations tools.</p>
-</section>
-
+<section class="mobile-more-hero"><p class="eyebrow">OpsPilot AI</p><h1>Plans</h1><p class="muted">Simple pricing. Free or Pro.</p></section>
 <section class="pricing-two-grid">
-    <div class="pricing-card simple-plan">
-        <div class="plan-head">
-            <span>Free</span>
-            <strong>£0</strong>
-            <small>For testing and personal use</small>
-        </div>
-
-        <ul class="plan-list">
-            <li>✓ Mileage</li>
-            <li>✓ Expenses</li>
-            <li>✓ Holiday Tracker</li>
-            <li>✓ Shift Calendar 14 day trial</li>
-            <li>✓ Yard Check demo</li>
-            <li class="muted">– Demo data may not be saved</li>
-        </ul>
-
-        <a class="btn ghost full" href="{{ url_for('set_plan', plan='free') }}">Use Free</a>
-    </div>
-
-    <div class="pricing-card simple-plan pro-highlight">
-        <div class="plan-head">
-            <span>Pro</span>
-            <strong>£4.99 / month</strong>
-            <small>Full access for logistics and operations users</small>
-        </div>
-
-        <ul class="plan-list">
-            <li>✓ Full Shift Calendar</li>
-            <li>✓ Holiday Tracker</li>
-            <li>✓ Yard Check</li>
-            <li>✓ Handover</li>
-            <li>✓ Team Management</li>
-            <li>✓ Yard Settings</li>
-            <li>✓ Excel export</li>
-            <li>✓ Voice trailer logging</li>
-        </ul>
-
-        <a class="btn primary full" href="{{ url_for('set_plan', plan='pro') }}">Upgrade to Pro</a>
-    </div>
+<div class="pricing-card simple-plan"><div class="plan-head"><span>Free</span><strong>£0</strong><small>For testing and personal use</small></div><ul class="plan-list"><li>✓ Mileage</li><li>✓ Expenses</li><li>✓ Holiday Tracker</li><li>✓ Shift Calendar 14 day trial</li><li>✓ Yard Check demo</li></ul><a class="btn ghost full" href="{{ url_for('set_plan', plan='free') }}">Use Free</a></div>
+<div class="pricing-card simple-plan pro-highlight"><div class="plan-head"><span>Pro</span><strong>£4.99 / month</strong><small>Full access for logistics and operations users</small></div><ul class="plan-list"><li>✓ Full Shift Calendar</li><li>✓ Holiday Tracker</li><li>✓ Yard Check</li><li>✓ Handover</li><li>✓ Team Management</li><li>✓ Yard Settings</li><li>✓ Excel export</li><li>✓ Voice trailer logging</li></ul><a class="btn primary full" href="{{ url_for('set_plan', plan='pro') }}">Upgrade to Pro</a></div>
 </section>
-
-<section class="subscription-info-card">
-    <h3>Subscription Information</h3>
-    <p>OpsPilot AI Pro is billed monthly. You can cancel or change your plan at any time from your account settings.</p>
-</section>
-
+<section class="subscription-info-card"><h3>Subscription Information</h3><p>OpsPilot AI Pro is billed monthly. You can cancel or change your plan at any time from your account settings.</p></section>
 {% endblock %}

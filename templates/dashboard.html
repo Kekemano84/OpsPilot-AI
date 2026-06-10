@@ -10,6 +10,18 @@
     
 </section>
 
+{% if annual_leave %}
+<section class="holiday-tracker-card">
+    <div>
+        <span>Holiday Remaining</span>
+        <strong>{{ annual_leave.remaining_days }} days / {{ annual_leave.remaining_hours }} hrs</strong>
+        <small>Used: {{ annual_leave.used_days }} days / {{ annual_leave.used_hours }} hrs · Allowance: {{ annual_leave.entitlement_days }} days</small>
+    </div>
+    <a class="small-btn ghost-small" href="{{ url_for('holiday_tracker') }}">Open</a>
+</section>
+{% endif %}
+
+
 <section class="install-app-card" id="installAppCard">
     <div class="install-app-copy">
         <span>Installable App</span>
