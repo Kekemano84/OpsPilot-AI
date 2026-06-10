@@ -159,6 +159,9 @@
 
 
 
+
+
+
 <script>
 let deferredInstallPrompt = null;
 window.addEventListener("beforeinstallprompt", function (event) {
@@ -169,16 +172,17 @@ document.addEventListener("DOMContentLoaded", function () {
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/service-worker.js").catch(function () {});
     }
-    const btn = document.getElementById("installAppBtn");
-    if (!btn) return;
-    btn.addEventListener("click", async function () {
-        if (deferredInstallPrompt) {
-            deferredInstallPrompt.prompt();
-            await deferredInstallPrompt.userChoice;
-            deferredInstallPrompt = null;
-            return;
-        }
-        alert("To install OpsPilot: open your browser menu and choose 'Add to Home screen' or 'Install app'.");
+    const btns = document.querySelectorAll("#installAppBtn");
+    btns.forEach(function(btn) {
+        btn.addEventListener("click", async function () {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+                return;
+            }
+            alert("To install OpsPilot: open your browser menu and choose 'Add to Home screen' or 'Install app'.");
+        });
     });
 });
 </script>

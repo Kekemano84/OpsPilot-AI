@@ -10,6 +10,21 @@
     
 </section>
 
+{% if today_shift %}
+<section class="today-shift-card status-{{ today_shift.status|lower|replace(' ', '-') }}">
+    <div>
+        <span>Today</span>
+        <strong>{{ today_shift.status or 'Not Set' }}</strong>
+        <small>
+            {% if today_shift.shift_name %}{{ today_shift.shift_name }} · {% endif %}
+            {% if today_shift.start_time or today_shift.end_time %}{{ today_shift.start_time }} - {{ today_shift.end_time }}{% else %}No shift time set{% endif %}
+        </small>
+    </div>
+    <a class="small-btn ghost-small" href="{{ url_for('shift_calendar') }}">Calendar</a>
+</section>
+{% endif %}
+
+
 {% if annual_leave %}
 <section class="holiday-tracker-card">
     <div>

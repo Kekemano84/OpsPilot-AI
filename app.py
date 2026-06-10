@@ -1491,6 +1491,66 @@ def op_apply_schema_on_request():
         pass
 
 
+
+def op_shift_status_for_date(user_id, date_str):
+    conn = get_db()
+    try:
+        row = conn.execute("""
+            SELECT status
+            FROM shift_calendar
+            WHERE user_id = ? AND date = ?
+            LIMIT 1
+        """, (user_id, date_str)).fetchone()
+    finally:
+        conn.close()
+    return row["status"] if row else None
+
+
+@app.route("/holiday-tracker/<int:record_id>/delete", methods=["POST"])
+@login_required
+def delete_holiday_record(record_id):
+    user = current_user()
+    conn = get_db()
+    conn.execute("""
+        DELETE FROM shift_calendar
+        WHERE id = ? AND user_id = ? AND status = 'Holiday'
+    """, (record_id, user["id"]))
+    conn.commit()
+    conn.close()
+    flash("Holiday record deleted.", "success")
+    return redirect(url_for("holiday_tracker"))
+
+
+@app.route("/holiday-tracker/<int:record_id>/edit", methods=["POST"])
+@login_required
+def edit_holiday_record(record_id):
+    op_ensure_holiday_schema()
+    user = current_user()
+
+    date = request.form.get("date")
+    notes = request.form.get("notes", "Annual leave").strip() or "Annual leave"
+    hours, days = normalize_holiday_amounts(user, request.form.get("holiday_hours"), request.form.get("holiday_days"))
+
+    conn = get_db()
+    conn.execute("""
+        UPDATE shift_calendar
+        SET date = ?,
+            notes = ?,
+            holiday_hours = ?,
+            holiday_days = ?,
+            status = 'Holiday',
+            shift_name = 'Annual Leave',
+            start_time = '',
+            end_time = '',
+            source = 'Manual'
+        WHERE id = ? AND user_id = ? AND status = 'Holiday'
+    """, (date, notes, hours, days, record_id, user["id"]))
+    conn.commit()
+    conn.close()
+
+    flash("Holiday record updated.", "success")
+    return redirect(url_for("holiday_tracker"))
+
 @app.route("/settings/annual-leave", methods=["POST"])
 @login_required
 def save_annual_leave_settings():
@@ -1572,6 +1632,7 @@ def holiday_settings():
 
 
 
+
 @app.route("/holiday-tracker/add", methods=["POST"])
 @login_required
 def add_holiday_record():
@@ -1580,6 +1641,7 @@ def add_holiday_record():
 
     start_date = request.form.get("holiday_start_date") or request.form.get("holiday_date") or datetime.today().strftime("%Y-%m-%d")
     end_date = request.form.get("holiday_end_date") or start_date
+    include_off_days = request.form.get("include_off_days") == "yes"
 
     try:
         start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
@@ -1601,9 +1663,22 @@ def add_holiday_record():
     conn = get_db()
     current = start_dt
     count = 0
+    skipped = 0
 
     while current <= end_dt:
         date_str = current.isoformat()
+
+        existing = conn.execute("""
+            SELECT status FROM shift_calendar
+            WHERE user_id = ? AND date = ?
+            LIMIT 1
+        """, (user["id"], date_str)).fetchone()
+
+        if existing and existing["status"] == "Off" and not include_off_days:
+            skipped += 1
+            current += timedelta(days=1)
+            continue
+
         conn.execute("""
             INSERT INTO shift_calendar
             (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at, holiday_hours, holiday_days)
@@ -1624,7 +1699,10 @@ def add_holiday_record():
     conn.commit()
     conn.close()
 
-    flash(f"{count} holiday day(s) added.", "success")
+    if skipped:
+        flash(f"{count} holiday day(s) added. {skipped} off day(s) skipped.", "success")
+    else:
+        flash(f"{count} holiday day(s) added.", "success")
     return redirect(url_for("holiday_tracker"))
 
 @app.route("/")
