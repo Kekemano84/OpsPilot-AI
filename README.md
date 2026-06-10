@@ -358,3 +358,12 @@ Added:
 - Holiday manual override supports hours and days.
 - Pricing subscription wording improved.
 - Render deploy checked with Python compile.
+
+## Modern Icon + Holiday Settings Fix
+
+- App icon changed to modern SaaS gradient OP icon.
+- Dedicated /holiday-settings page added.
+- Holiday Tracker settings no longer opens generic Settings.
+- Holiday allowance can be entered in days or hours.
+- Break paid/unpaid and paid hours per day are saved.
+- PWA manifest uses the new icon.

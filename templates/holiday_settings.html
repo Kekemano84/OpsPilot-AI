@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Holiday Settings{% endblock %}
+{% block content %}
+
+<section class="mobile-more-hero">
+    <p class="eyebrow">Annual Leave</p>
+    <h1>Holiday Settings</h1>
+    <p class="muted">Set your yearly holiday allowance and paid working day rules.</p>
+</section>
+
+<section class="holiday-summary-grid">
+    <div class="holiday-summary-card primary">
+        <span>Remaining</span>
+        <strong>{{ summary.remaining_days }} days</strong>
+        <small>{{ summary.remaining_hours }} hours left</small>
+    </div>
+    <div class="holiday-summary-card">
+        <span>Used</span>
+        <strong>{{ summary.used_days }} days</strong>
+        <small>{{ summary.used_hours }} hours used</small>
+    </div>
+    <div class="holiday-summary-card">
+        <span>Entitlement</span>
+        <strong>{{ summary.entitlement_days }} days</strong>
+        <small>{{ summary.entitlement_hours }} hours total</small>
+    </div>
+    <div class="holiday-summary-card">
+        <span>Paid Day</span>
+        <strong>{{ summary.paid_hours_per_day }} hrs</strong>
+        <small>{% if summary.break_paid %}Paid break{% else %}Unpaid break{% endif %}</small>
+    </div>
+</section>
+
+<section class="panel holiday-settings-panel" id="holiday-settings">
+    <div class="panel-head">
+        <div>
+            <h3>Holiday Allowance</h3>
+            <p class="muted">Example: 20 days per year, 12h shift, 45 min unpaid break = 11.25 paid hours per holiday day.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('save_annual_leave_settings') }}" class="form-grid compact-form">
+        <input type="hidden" name="return_to" value="holiday_settings">
+
+        <div>
+            <label>How much holiday do you get per year?</label>
+            <input type="number" step="0.5" name="annual_leave_entitlement" value="{{ user.annual_leave_entitlement or 20 }}">
+        </div>
+
+        <div>
+            <label>Is this in days or hours?</label>
+            <select name="annual_leave_unit">
+                <option value="days" {% if user.annual_leave_unit != 'hours' %}selected{% endif %}>Days</option>
+                <option value="hours" {% if user.annual_leave_unit == 'hours' %}selected{% endif %}>Hours</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Contracted shift length</label>
+            <input type="number" step="0.25" name="contracted_shift_hours" value="{{ user.contracted_shift_hours or 12 }}">
+        </div>
+
+        <div>
+            <label>Break minutes</label>
+            <input type="number" step="1" name="break_minutes" value="{{ user.break_minutes or 45 }}">
+        </div>
+
+        <div class="wide">
+            <label class="remember-line">
+                <input type="checkbox" name="break_paid" value="yes" {% if user.break_paid %}checked{% endif %}>
+                <span>Break is paid</span>
+            </label>
+            <p class="muted">If break is unpaid, OpsPilot deducts it from the paid holiday day.</p>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn primary" type="submit">Save Holiday Settings</button>
+            <a class="btn ghost" href="{{ url_for('holiday_tracker') }}">Back to Holiday Tracker</a>
+        </div>
+    </form>
+</section>
+
+{% endblock %}

@@ -1178,3 +1178,29 @@ html.op-loading body {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Modern App Icon + Dedicated Holiday Settings */
+.brand .logo,
+.auth-brand img,
+.premium-auth-brand img {
+    content: url("/static/icons/opspilot-logo.svg");
+}
+
+.holiday-settings-panel {
+    scroll-margin-top: 24px;
+}
+
+.form-actions .btn.ghost {
+    background: #fff;
+    border: 1px solid var(--line);
+    color: var(--ink);
+}
+
+@media (max-width: 820px) {
+    .form-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}

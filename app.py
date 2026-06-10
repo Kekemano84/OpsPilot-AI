@@ -1369,6 +1369,15 @@ def ensure_holiday_schema_updates():
     safe_add_column("shift_calendar", "holiday_hours", "REAL DEFAULT 0")
     safe_add_column("shift_calendar", "holiday_days", "REAL DEFAULT 0")
 
+
+def ensure_holiday_user_columns():
+    safe_add_column("users", "annual_leave_entitlement", "REAL DEFAULT 20")
+    safe_add_column("users", "annual_leave_unit", "TEXT DEFAULT 'days'")
+    safe_add_column("users", "contracted_shift_hours", "REAL DEFAULT 12")
+    safe_add_column("users", "break_minutes", "REAL DEFAULT 45")
+    safe_add_column("users", "break_paid", "INTEGER DEFAULT 0")
+    safe_add_column("users", "paid_hours_per_day", "REAL DEFAULT 11.25")
+
 @app.before_request
 def load_remembered_user():
     consume_remember_token()
@@ -1378,6 +1387,14 @@ def load_remembered_user():
 def apply_holiday_schema_before_request():
     try:
         ensure_holiday_schema_updates()
+    except Exception:
+        pass
+
+
+@app.before_request
+def ensure_holiday_columns_before_request():
+    try:
+        ensure_holiday_user_columns()
     except Exception:
         pass
 
@@ -2925,7 +2942,9 @@ def save_annual_leave_settings():
     conn.commit()
     conn.close()
 
-    flash("Annual leave entitlement saved.", "success")
+    flash("Holiday settings saved.", "success")
+    if request.form.get("return_to") == "holiday_settings":
+        return redirect(url_for("holiday_settings"))
     return redirect(url_for("settings"))
 
 
@@ -2952,6 +2971,14 @@ def normalize_holiday_amounts(user, holiday_hours, holiday_days):
 
     return round(holiday_hours, 2), round(holiday_days, 2)
 
+
+
+@app.route("/holiday-settings")
+@login_required
+def holiday_settings():
+    user = current_user()
+    summary = annual_leave_summary(user["id"])
+    return render_template("holiday_settings.html", page="holiday_settings", user=user, summary=summary)
 
 @app.route("/holiday-tracker")
 @login_required

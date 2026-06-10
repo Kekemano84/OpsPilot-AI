@@ -1,29 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OpsPilot AI">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OpsPilot">
   <defs>
-    <linearGradient id="bg" x1="72" y1="56" x2="440" y2="456" gradientUnits="userSpaceOnUse">
+    <linearGradient id="appBg" x1="72" y1="60" x2="442" y2="452" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#2563EB"/>
-      <stop offset="0.55" stop-color="#14B8A6"/>
-      <stop offset="1" stop-color="#22C55E"/>
+      <stop offset="0.52" stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#14B8A6"/>
     </linearGradient>
-    <linearGradient id="ring" x1="124" y1="100" x2="390" y2="405" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".85"/>
-      <stop offset=".55" stop-color="#BAE6FD" stop-opacity=".45"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".10"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#020617" flood-opacity=".35"/>
+    <radialGradient id="shine" cx="30%" cy="18%" r="70%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".42"/>
+      <stop offset=".38" stop-color="#FFFFFF" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#020617" flood-opacity=".28"/>
     </filter>
   </defs>
-
-  <rect x="42" y="42" width="428" height="428" rx="116" fill="#0F172A"/>
-  <rect x="86" y="86" width="340" height="340" rx="94" fill="url(#bg)" filter="url(#shadow)"/>
-  <circle cx="256" cy="256" r="104" fill="none" stroke="url(#ring)" stroke-width="14"/>
-  <path d="M159 256c0-54 39-93 93-93 19 0 36 5 51 14" fill="none" stroke="#FFFFFF" stroke-opacity=".30" stroke-width="12" stroke-linecap="round"/>
-  <path d="M356 253c0 54-40 96-94 96-22 0-42-7-58-19" fill="none" stroke="#020617" stroke-opacity=".22" stroke-width="12" stroke-linecap="round"/>
-  <text x="256" y="286" text-anchor="middle"
+  <rect x="34" y="34" width="444" height="444" rx="112" fill="url(#appBg)" filter="url(#softShadow)"/>
+  <rect x="34" y="34" width="444" height="444" rx="112" fill="url(#shine)"/>
+  <path d="M128 256c0-71 57-128 128-128s128 57 128 128-57 128-128 128-128-57-128-128Z"
+        fill="none" stroke="rgba(255,255,255,.38)" stroke-width="16"/>
+  <path d="M155 256c0-56 45-101 101-101 28 0 53 11 71 29"
+        fill="none" stroke="rgba(255,255,255,.58)" stroke-width="13" stroke-linecap="round"/>
+  <text x="256" y="294" text-anchor="middle"
         font-family="Inter, Arial, Helvetica, sans-serif"
-        font-weight="950" font-size="106" letter-spacing="-9"
-        fill="#08111F">OP</text>
-  <circle cx="365" cy="151" r="10" fill="#FFFFFF" opacity=".75"/>
-  <circle cx="137" cy="351" r="8" fill="#FFFFFF" opacity=".45"/>
+        font-size="118" font-weight="950" letter-spacing="-10"
+        fill="#FFFFFF">OP</text>
 </svg>
