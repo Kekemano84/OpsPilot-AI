@@ -1898,3 +1898,32 @@ html.op-loading body {
         width: min(260px, 48vw);
     }
 }
+
+
+/* V2.5 improvements */
+.demo-btn {
+    margin-top: 12px;
+    text-align: center;
+    justify-content: center;
+}
+.demo-copy {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 0.9rem;
+}
+.notifications-panel {
+    border: 1px solid rgba(37, 99, 235, 0.18);
+}
+.notice-row.red { border-left: 5px solid #dc2626; }
+.notice-row.orange { border-left: 5px solid #f59e0b; }
+.notice-row.blue { border-left: 5px solid #2563eb; }
+.notice-row.green { border-left: 5px solid #16a34a; }
+.mini-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+@media (max-width: 720px) {
+    .mini-actions { justify-content: flex-start; }
+}

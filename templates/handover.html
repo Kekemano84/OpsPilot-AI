@@ -72,8 +72,9 @@
         <div class="panel-head">
             <strong>{{ row.date|dateuk }} - {{ row.shift }}</strong>
             <div class="mini-actions">
+                <a class="small-btn" href="{{ url_for('handover_email', item_id=row.id) }}">{{ t("preview_email") }}</a>
                 <a class="small-btn" href="{{ url_for('handover_download', item_id=row.id) }}">TXT</a>
-                <a class="small-btn" href="{{ url_for('handover_pdf', item_id=row.id) }}">PDF</a>
+                <a class="small-btn" href="{{ url_for('handover_pdf', item_id=row.id) }}">{{ t("download_pdf") }}</a>
             </div>
         </div>
         <pre class="report-box">{{ row.generated_report }}</pre>

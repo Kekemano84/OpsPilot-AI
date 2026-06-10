@@ -8,6 +8,7 @@
         <a href="#favorite-settings">{{ t("favorites") if t("favorites") != "favorites" else "Favorites" }}</a>
         <a href="{{ url_for('pricing') }}">{{ t("plans") }}</a>
         <a href="{{ url_for('holiday_settings') }}">{{ t("holiday_settings") if t("holiday_settings") != "holiday_settings" else "Holiday Settings" }}</a>
+        <a href="#backup-settings">{{ t("backup_data") }}</a>
     </div>
 </section>
 
@@ -46,3 +47,13 @@
     </form>
 </section>
 {% endblock %}
+
+<section class="panel compact-panel" id="backup-settings">
+    <div class="panel-head">
+        <div>
+            <h3>{{ t("backup_data") }}</h3>
+            <p class="muted">Download your account data as a ZIP backup.</p>
+        </div>
+        <a class="btn ghost" href="{{ url_for('export_account_data') }}">⬇ {{ t("export_all_data") }}</a>
+    </div>
+</section>

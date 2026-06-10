@@ -6,6 +6,7 @@ import sqlite3
 import uuid
 import smtplib
 import ssl
+import zipfile
 from datetime import datetime, timedelta
 from functools import wraps
 from email.message import EmailMessage
@@ -658,6 +659,10 @@ AUTH_TRANSLATIONS = {
     }
 }
 for _lang, _items in AUTH_TRANSLATIONS.items():
+    EXTRA_TRANSLATIONS.setdefault(_lang, {}).update(_items)
+
+DEMO_EXTRA_TRANSLATIONS = {'en': {'try_demo': 'Try Demo', 'demo_hint': 'Try the Pro features before registering.', 'export_all_data': 'Export all data', 'backup_data': 'Backup data', 'preview_email': 'Preview email', 'download_pdf': 'Download PDF'}, 'hu': {'try_demo': 'Demo kipróbálása', 'demo_hint': 'Próbáld ki a Pro funkciókat regisztráció előtt.', 'export_all_data': 'Összes adat exportálása', 'backup_data': 'Adatmentés', 'preview_email': 'Email előnézet', 'download_pdf': 'PDF letöltés'}, 'pl': {'try_demo': 'Wypróbuj demo', 'demo_hint': 'Wypróbuj funkcje Pro przed rejestracją.', 'export_all_data': 'Eksportuj wszystkie dane', 'backup_data': 'Kopia danych', 'preview_email': 'Podgląd emaila', 'download_pdf': 'Pobierz PDF'}, 'ro': {'try_demo': 'Încearcă demo', 'demo_hint': 'Testează funcțiile Pro înainte de înregistrare.', 'export_all_data': 'Exportă toate datele', 'backup_data': 'Backup date', 'preview_email': 'Previzualizare email', 'download_pdf': 'Descarcă PDF'}, 'es': {'try_demo': 'Probar demo', 'demo_hint': 'Prueba las funciones Pro antes de registrarte.', 'export_all_data': 'Exportar todos los datos', 'backup_data': 'Copia de datos', 'preview_email': 'Vista previa email', 'download_pdf': 'Descargar PDF'}, 'de': {'try_demo': 'Demo testen', 'demo_hint': 'Teste die Pro-Funktionen vor der Registrierung.', 'export_all_data': 'Alle Daten exportieren', 'backup_data': 'Datensicherung', 'preview_email': 'E-Mail-Vorschau', 'download_pdf': 'PDF herunterladen'}}
+for _lang, _items in DEMO_EXTRA_TRANSLATIONS.items():
     EXTRA_TRANSLATIONS.setdefault(_lang, {}).update(_items)
 
 for _lang, _items in EXTRA_TRANSLATIONS.items():
@@ -2057,6 +2062,78 @@ def index():
     return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard, week_shifts=get_current_week_shift_rows(user["id"]), today_shift=today_shift_status(user["id"]), annual_leave=annual_leave_summary(user["id"]), favorite_tools=get_favorite_tools(user))
 
 
+
+@app.route("/demo-login")
+def demo_login():
+    """One-click demo account for buyers to test Pro features."""
+    email = "demo@opspilot.ai"
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    if not user:
+        conn.execute("""
+            INSERT INTO users (name, email, password_hash, plan, business_name, company_name, role, created_at, language, favorite_tools)
+            VALUES (?, ?, ?, 'pro', ?, ?, ?, ?, ?, ?)
+        """, (
+            "Demo Manager",
+            email,
+            generate_password_hash(secrets.token_urlsafe(16)),
+            "OpsPilot Demo",
+            "Demo Warehouse",
+            "Manager",
+            datetime.now().isoformat(),
+            session.get("language", "en"),
+            "morning_brief,mileage,expenses,handover"
+        ))
+        conn.commit()
+        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+
+    # Add a few demo records only once
+    existing_team = conn.execute("SELECT COUNT(*) FROM team_members WHERE user_id=?", (user["id"],)).fetchone()[0]
+    if existing_team == 0:
+        today = datetime.today().date()
+        conn.execute("""INSERT INTO team_members
+            (user_id, name, role, email, phone, notes, status, permissions, probation_start, probation_end, probation_status, licence_expiry, training_type, training_expiry, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user["id"], "Pete Johnson", "Bay Staff", "pete@example.com", "", "Demo probation reminder", "Active", "View only",
+             (today - timedelta(days=60)).isoformat(), (today + timedelta(days=7)).isoformat(), "In progress",
+             (today + timedelta(days=21)).isoformat(), "MHE", (today + timedelta(days=14)).isoformat(), datetime.now().isoformat()))
+        conn.execute("""INSERT INTO action_tracker (user_id,date,title,owner,due_date,status,priority,source,notes,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (user["id"], today.isoformat(), "Check Door 35 damage", "Demo Manager", (today - timedelta(days=1)).isoformat(), "Open", "High", "Demo", "Overdue demo action", datetime.now().isoformat()))
+        conn.commit()
+
+    session["user_id"] = user["id"]
+    conn.close()
+    flash("Demo account opened.", "success")
+    return redirect(url_for("index"))
+
+
+@app.route("/account/export-data")
+@login_required
+def export_account_data():
+    """Download a complete account backup as JSON files inside a ZIP."""
+    user = current_user()
+    tables = [
+        "mileage", "expenses", "yard_checks", "handovers", "team_members",
+        "shift_calendar", "daily_shift_logs", "action_tracker", "absence_records",
+        "evidence_library", "holiday_settings"
+    ]
+    conn = get_db()
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        profile = {k: user[k] for k in user.keys() if k not in ["password_hash"]}
+        zf.writestr("profile.json", json.dumps(profile, indent=2, default=str))
+        for table in tables:
+            try:
+                rows = conn.execute(f"SELECT * FROM {table} WHERE user_id=? ORDER BY id DESC", (user["id"],)).fetchall()
+                data = [{k: row[k] for k in row.keys()} for row in rows]
+                zf.writestr(f"{table}.json", json.dumps(data, indent=2, default=str))
+            except Exception:
+                zf.writestr(f"{table}.json", "[]")
+    conn.close()
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="opspilot-account-backup.zip", mimetype="application/zip")
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -3055,7 +3132,19 @@ def handover_download(item_id):
     output.seek(0)
     return send_file(output, as_attachment=True, download_name=f"handover-{row['date']}.txt", mimetype="text/plain")
 
-
+@app.route("/handover/<int:item_id>/email")
+@login_required
+@plan_required("pro")
+def handover_email(item_id):
+    user = current_user()
+    conn = get_db()
+    row = conn.execute("SELECT * FROM handovers WHERE id = ? AND user_id = ?", (item_id, user["id"])).fetchone()
+    conn.close()
+    if not row:
+        flash("Handover not found.", "error")
+        return redirect(url_for("handover"))
+    body = row["generated_report"] or ""
+    return render_template("email_export.html", title="Handover Email Preview", body=body, page="handover")
 
 
 @app.route("/handover/<int:item_id>/pdf")

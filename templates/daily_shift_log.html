@@ -11,5 +11,5 @@
 <div class="wide"><label>Notes</label><textarea name="notes"></textarea></div>
 <div class="form-actions"><button class="btn primary" type="submit">Save Shift Log</button></div>
 </form></section>
-<section class="panel compact-panel"><div class="panel-head"><h3>History</h3></div><div class="simple-list">{% for r in rows %}<div class="list-row"><div><strong>{{ r.date|dateuk }} · {{ r.shift }}</strong><span>Vol {{ r.volume }} · HC {{ r.actual_hc }}/{{ r.planned_hc }} · Late {{ r.late_trailers }}</span><small>{{ r.issues }}</small></div><a class="small-btn" href="{{ url_for('daily_shift_log_email', item_id=r.id) }}">Email Text</a></div>{% else %}<p class="empty">No daily shift logs yet.</p>{% endfor %}</div></section>
+<section class="panel compact-panel"><div class="panel-head"><h3>History</h3></div><div class="simple-list">{% for r in rows %}<div class="list-row"><div><strong>{{ r.date|dateuk }} · {{ r.shift }}</strong><span>Vol {{ r.volume }} · HC {{ r.actual_hc }}/{{ r.planned_hc }} · Late {{ r.late_trailers }}</span><small>{{ r.issues }}</small></div><a class="small-btn" href="{{ url_for('daily_shift_log_email', item_id=r.id) }}">{{ t("preview_email") }}</a></div>{% else %}<p class="empty">No daily shift logs yet.</p>{% endfor %}</div></section>
 {% endblock %}

@@ -5,6 +5,8 @@
     <p class="eyebrow">OpsPilot AI</p>
     <h1>{{ t("more") }}</h1>
     <p class="muted">{{ t("more_intro") if t("more_intro") != "more_intro" else "Manager Toolkit tools and settings in one place." }}</p>
+
+    <a class="more-tile" href="{{ url_for('export_account_data') }}"><span class="more-icon">⬇️</span><div><strong>{{ t("backup_data") }}</strong><small>{{ t("export_all_data") }}</small></div></a>
 </section>
 
 <section class="more-grid-app">
