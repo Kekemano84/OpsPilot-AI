@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
+<section class="panel compact-panel"><div class="panel-head"><h3>Account Maintenance</h3><a class="small-btn danger-btn" href="{{ url_for('admin_inactivity_check') }}" onclick="return confirm('Run inactivity check? 6 month warning / 12 month delete.')">Run Inactivity Check</a></div><p class="muted">6 months inactive = warning flag. 12 months inactive = automatic deletion during this check.</p></section>
 
 <section class="hero-card pro-hero compact-hero">
     <div>
@@ -41,7 +42,7 @@
 
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Role</th><th>Created</th><th>Pro Until</th><th>Status</th><th>Set Plan</th><th>Set Role</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Role</th><th>Created</th><th>Pro Until</th><th>Status</th><th>Set Plan</th><th>Set Role</th><th>Delete</th></tr></thead>
             <tbody>
                 {% for u in users %}
                 <tr>
@@ -54,6 +55,7 @@
                     <td>{{ u.subscription_status or "-" }}{% if u.pro_reason %}<br><small>{{ u.pro_reason }}</small>{% endif %}</td>
                     <td><div class="mini-actions"><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_plan', user_id=u.id, plan='free') }}">Free</a><a class="small-btn" href="{{ url_for('admin_set_user_plan', user_id=u.id, plan='pro') }}">Manual Pro</a><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_trial_pro30', user_id=u.id) }}">30 Day Pro</a><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_gift_pro', user_id=u.id) }}">Gift Pro</a></div></td>
                     <td><div class="mini-actions"><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_role', user_id=u.id, role='User') }}">User</a><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_role', user_id=u.id, role='FLM') }}">FLM</a><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_role', user_id=u.id, role='Manager') }}">Manager</a></div></td>
+                    <td>{% if u.email != 'admin@opspilot.ai' %}<form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}" onsubmit="return confirm('Delete this account and all data?')"><button class="small-btn danger-btn" type="submit">Delete Account</button></form>{% endif %}</td>
                 </tr>
                 {% else %}<tr><td colspan="9" class="empty">No users yet.</td></tr>{% endfor %}
             </tbody>

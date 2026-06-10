@@ -1,7 +1,7 @@
 {
   "name": "OpsPilot AI",
   "short_name": "OpsPilot",
-  "description": "Operations Simplified",
+  "description": "Manager Toolkit",
   "start_url": "/?source=pwa-v4",
   "scope": "/",
   "display": "standalone",

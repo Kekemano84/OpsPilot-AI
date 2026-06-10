@@ -19,6 +19,9 @@
         <div><label>Status</label><select name="status"><option>Active</option><option>Inactive</option><option>Holiday</option><option>Sick</option><option>Terminated</option></select></div>
         <div><label>Probation Start</label><input type="date" name="probation_start"></div>
         <div><label>Probation End</label><input type="date" name="probation_end"></div>
+        <div><label>Licence Expiry</label><input type="date" name="licence_expiry"></div>
+        <div><label>Training Type</label><input name="training_type" placeholder="MHE / First Aid / Fire Marshal"></div>
+        <div><label>Training Expiry</label><input type="date" name="training_expiry"></div>
         <div><label>Probation Status</label><select name="probation_status"><option>Not set</option><option>In progress</option><option>Passed</option><option>Extended</option><option>Terminated</option></select></div>
         <div class="wide"><label>Notes</label><input name="notes" placeholder="Skills, restrictions, licence expiry, training expiry, comment"></div>
         <input type="hidden" name="permissions" value="View only">
@@ -39,6 +42,9 @@
         </select></div>
         <div><label>Probation Start</label><input type="date" name="probation_start" value="{{ row.probation_start or '' }}"></div>
         <div><label>Probation End</label><input type="date" name="probation_end" value="{{ row.probation_end or '' }}"></div>
+        <div><label>Licence Expiry</label><input type="date" name="licence_expiry" value="{{ row.licence_expiry or '' }}"></div>
+        <div><label>Training Type</label><input name="training_type" value="{{ row.training_type or '' }}"></div>
+        <div><label>Training Expiry</label><input type="date" name="training_expiry" value="{{ row.training_expiry or '' }}"></div>
         <div><label>Probation Status</label><select name="probation_status">
             {% for s in ['Not set','In progress','Passed','Extended','Terminated'] %}<option {% if row.probation_status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
         </select></div>

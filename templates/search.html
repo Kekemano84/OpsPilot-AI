@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<section class="panel compact-panel"><h3>Global Search</h3><form method="GET" class="search-row"><input name="q" value="{{ q }}" placeholder="Search name, date, trailer, issue, note..."><button class="btn primary">Search</button></form></section>
+<section class="panel compact-panel"><div class="simple-list">{% for r in results %}<div class="list-row"><div><strong>{{ r.module }} · {{ r.title }}</strong><span>{{ r.date }}</span><small>{{ r.text }}</small></div><a class="small-btn" href="{{ r.url }}">Open</a></div>{% else %}<p class="empty">No results yet.</p>{% endfor %}</div></section>
+{% endblock %}

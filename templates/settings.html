@@ -13,7 +13,7 @@
         <div><label>Fence Count</label><input type="number" min="1" max="1000" name="fence_count" value="{{ row.fence_count or 120 }}"></div>
         <div class="wide"><label>Address</label><input name="address" value="{{ row.address or '' }}"></div>
         <div class="form-actions"><button class="btn primary" type="submit">Save Settings</button></div>
-    </form>
+    <div><label>Language</label><select name="language">{% for code,label in available_languages %}<option value="{{ code }}" {% if row.language==code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div></form>
 </section>
 {% endblock %}
 

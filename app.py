@@ -327,9 +327,69 @@ def init_db():
         )
     """)
 
+
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS daily_shift_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            shift TEXT,
+            manager TEXT,
+            volume INTEGER DEFAULT 0,
+            planned_hc INTEGER DEFAULT 0,
+            actual_hc INTEGER DEFAULT 0,
+            late_trailers INTEGER DEFAULT 0,
+            safety TEXT,
+            issues TEXT,
+            actions TEXT,
+            notes TEXT,
+            photo_filename TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS action_tracker (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            title TEXT NOT NULL,
+            owner TEXT,
+            due_date TEXT,
+            status TEXT NOT NULL DEFAULT 'Open',
+            priority TEXT DEFAULT 'Medium',
+            source TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS absence_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            team_member_id INTEGER,
+            member_name TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT,
+            absence_type TEXT NOT NULL DEFAULT 'Sick',
+            notes TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+
     conn.commit()
 
     safe_add_column("users", "annual_leave_entitlement", "REAL DEFAULT 28")
+    safe_add_column("users", "language", "TEXT DEFAULT 'en'")
+    safe_add_column("users", "last_login_at", "TEXT")
+    safe_add_column("users", "inactive_warning_at", "TEXT")
+    safe_add_column("team_members", "licence_expiry", "TEXT")
+    safe_add_column("team_members", "training_expiry", "TEXT")
+    safe_add_column("team_members", "training_type", "TEXT")
+    safe_add_column("photo_records", "category", "TEXT DEFAULT 'Evidence'")
+    safe_add_column("photo_records", "comment", "TEXT")
 
     conn.close()
 
@@ -353,7 +413,10 @@ def ensure_schema_updates():
             ("door_start", "INTEGER DEFAULT 1"),
             ("door_end", "INTEGER DEFAULT 100"),
             ("fence_start", "INTEGER DEFAULT 1"),
-            ("fence_end", "INTEGER DEFAULT 120")
+            ("fence_end", "INTEGER DEFAULT 120"),
+            ("language", "TEXT DEFAULT 'en'"),
+            ("last_login_at", "TEXT"),
+            ("inactive_warning_at", "TEXT")
         ],
         "team_members": [
             ("permissions", "TEXT DEFAULT 'View only'"),
@@ -361,7 +424,10 @@ def ensure_schema_updates():
             ("notes", "TEXT"),
             ("probation_start", "TEXT"),
             ("probation_end", "TEXT"),
-            ("probation_status", "TEXT DEFAULT 'Not set'")
+            ("probation_status", "TEXT DEFAULT 'Not set'"),
+            ("licence_expiry", "TEXT"),
+            ("training_expiry", "TEXT"),
+            ("training_type", "TEXT")
         ],
         "invoices": [
             ("email_sent", "INTEGER DEFAULT 0")
@@ -410,6 +476,9 @@ def seed_admin_user():
     add_col("door_end", "INTEGER DEFAULT 100")
     add_col("fence_start", "INTEGER DEFAULT 1")
     add_col("fence_end", "INTEGER DEFAULT 120")
+    add_col("language", "TEXT DEFAULT 'en'")
+    add_col("last_login_at", "TEXT")
+    add_col("inactive_warning_at", "TEXT")
     add_col("pro_expires_at", "TEXT")
     add_col("pro_reason", "TEXT")
     conn.commit()
@@ -463,6 +532,51 @@ def current_user():
     return refresh_user_plan(user)
 
 
+TRANSLATIONS = {
+    "en": {"dashboard":"Dashboard","calendar":"Calendar","team":"Team","more":"More","manager_toolkit":"Manager Toolkit","notifications":"Notifications"},
+    "hu": {"dashboard":"Vezérlőpult","calendar":"Naptár","team":"Csapat","more":"Több","manager_toolkit":"Manager eszköztár","notifications":"Értesítések"},
+    "pl": {"dashboard":"Panel","calendar":"Kalendarz","team":"Zespół","more":"Więcej","manager_toolkit":"Narzędzia managera","notifications":"Powiadomienia"},
+    "ro": {"dashboard":"Panou","calendar":"Calendar","team":"Echipă","more":"Mai mult","manager_toolkit":"Instrumente manager","notifications":"Notificări"},
+    "es": {"dashboard":"Panel","calendar":"Calendario","team":"Equipo","more":"Más","manager_toolkit":"Herramientas de manager","notifications":"Notificaciones"},
+    "de": {"dashboard":"Dashboard","calendar":"Kalender","team":"Team","more":"Mehr","manager_toolkit":"Manager Toolkit","notifications":"Benachrichtigungen"},
+}
+
+def tr(key):
+    user = current_user()
+    lang = row_get(user, "language", "en") if user else "en"
+    return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, TRANSLATIONS["en"].get(key, key))
+
+@app.template_filter("days_until")
+def days_until(value):
+    if not value:
+        return None
+    try:
+        d = datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
+        return (d - datetime.today().date()).days
+    except Exception:
+        return None
+
+def get_notifications(user_id):
+    conn = get_db()
+    today = datetime.today().date()
+    soon = (today + timedelta(days=30)).isoformat()
+    today_s = today.isoformat()
+    items = []
+    for r in conn.execute("SELECT name, probation_end FROM team_members WHERE user_id=? AND probation_end BETWEEN ? AND ? AND COALESCE(probation_status,'') NOT IN ('Passed','Terminated') ORDER BY probation_end", (user_id, today_s, soon)).fetchall():
+        items.append({"level":"red", "text": f"{r['name']} probation ends on {r['probation_end']}", "link":"team"})
+    for r in conn.execute("SELECT name, licence_expiry FROM team_members WHERE user_id=? AND licence_expiry BETWEEN ? AND ? ORDER BY licence_expiry", (user_id, today_s, soon)).fetchall():
+        items.append({"level":"orange", "text": f"{r['name']} licence expires on {r['licence_expiry']}", "link":"team"})
+    for r in conn.execute("SELECT name, training_type, training_expiry FROM team_members WHERE user_id=? AND training_expiry BETWEEN ? AND ? ORDER BY training_expiry", (user_id, today_s, soon)).fetchall():
+        items.append({"level":"orange", "text": f"{r['name']} {r['training_type'] or 'training'} expires on {r['training_expiry']}", "link":"team"})
+    overdue = conn.execute("SELECT COUNT(*) FROM action_tracker WHERE user_id=? AND status!='Closed' AND due_date < ?", (user_id, today_s)).fetchone()[0]
+    if overdue:
+        items.append({"level":"red", "text": f"{overdue} action(s) overdue", "link":"actions"})
+    open_actions = conn.execute("SELECT COUNT(*) FROM action_tracker WHERE user_id=? AND status!='Closed'", (user_id,)).fetchone()[0]
+    if open_actions:
+        items.append({"level":"blue", "text": f"{open_actions} open action(s) require follow-up", "link":"actions"})
+    conn.close()
+    return items[:10]
+
 @app.context_processor
 def inject_context():
     user = current_user()
@@ -470,7 +584,10 @@ def inject_context():
         "current_year": datetime.now().year,
         "user": user,
         "plan_names": PLAN_NAMES,
-        "shift_trial": shift_calendar_trial_info(user) if user else None
+        "shift_trial": shift_calendar_trial_info(user) if user else None,
+        "t": tr,
+        "available_languages": [("en","English"),("hu","Magyar"),("pl","Polski"),("ro","Română"),("es","Español"),("de","Deutsch")],
+        "notifications": get_notifications(user["id"]) if user else []
     }
 
 
@@ -1800,6 +1917,8 @@ def register():
             """, (name, email, generate_password_hash(password), f"{name}'s Business", datetime.now().isoformat()))
             conn.commit()
             session["user_id"] = cur.lastrowid
+            conn.execute("UPDATE users SET last_login_at=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), cur.lastrowid))
+            conn.commit()
         except sqlite3.IntegrityError:
             flash("Email already registered.", "error")
             conn.close()
@@ -1818,6 +1937,9 @@ def login():
         user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
         conn.close()
         if user and check_password_hash(user["password_hash"], password):
+            conn = get_db()
+            conn.execute("UPDATE users SET last_login_at=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), user["id"]))
+            conn.commit(); conn.close()
             session["user_id"] = user["id"]
             response = redirect(url_for("index"))
             if request.form.get("remember_me") == "yes":
@@ -2798,7 +2920,7 @@ def handover_pdf(item_id):
 
 @app.route("/team", methods=["GET", "POST"])
 @login_required
-@plan_required("business")
+@plan_required("pro")
 def team():
     user = current_user()
     if request.method == "POST":
@@ -2814,14 +2936,17 @@ def team():
         probation_start = request.form.get("probation_start", "").strip()
         probation_end = request.form.get("probation_end", "").strip()
         probation_status = request.form.get("probation_status", "Not set")
+        licence_expiry = request.form.get("licence_expiry", "").strip()
+        training_type = request.form.get("training_type", "").strip()
+        training_expiry = request.form.get("training_expiry", "").strip()
         if not name or not role:
             flash("Please enter name and role.", "error")
             return redirect(url_for("team"))
         conn = get_db()
         conn.execute("""INSERT INTO team_members
-                     (user_id, name, role, email, phone, notes, status, permissions, probation_start, probation_end, probation_status, created_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                     (user["id"], name, role, email, phone, notes, status, permissions, probation_start, probation_end, probation_status, datetime.now().isoformat()))
+                     (user_id, name, role, email, phone, notes, status, permissions, probation_start, probation_end, probation_status, licence_expiry, training_type, training_expiry, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     (user["id"], name, role, email, phone, notes, status, permissions, probation_start, probation_end, probation_status, licence_expiry, training_type, training_expiry, datetime.now().isoformat()))
         conn.commit()
         conn.close()
         flash("Team member added.", "success")
@@ -2834,7 +2959,7 @@ def team():
 
 @app.route("/team/<int:member_id>/update", methods=["POST"])
 @login_required
-@plan_required("business")
+@plan_required("pro")
 def update_team_member(member_id):
     user = current_user()
     fields = {
@@ -2847,6 +2972,9 @@ def update_team_member(member_id):
         "probation_start": request.form.get("probation_start", "").strip(),
         "probation_end": request.form.get("probation_end", "").strip(),
         "probation_status": request.form.get("probation_status", "Not set"),
+        "licence_expiry": request.form.get("licence_expiry", "").strip(),
+        "training_type": request.form.get("training_type", "").strip(),
+        "training_expiry": request.form.get("training_expiry", "").strip(),
     }
     if not fields["name"] or not fields["role"]:
         flash("Name and role are required.", "error")
@@ -2854,16 +2982,16 @@ def update_team_member(member_id):
     conn = get_db()
     conn.execute("""
         UPDATE team_members SET name=?, role=?, email=?, phone=?, status=?, notes=?,
-        probation_start=?, probation_end=?, probation_status=?
+        probation_start=?, probation_end=?, probation_status=?, licence_expiry=?, training_type=?, training_expiry=?
         WHERE id=? AND user_id=?
-    """, (fields["name"], fields["role"], fields["email"], fields["phone"], fields["status"], fields["notes"], fields["probation_start"], fields["probation_end"], fields["probation_status"], member_id, user["id"]))
+    """, (fields["name"], fields["role"], fields["email"], fields["phone"], fields["status"], fields["notes"], fields["probation_start"], fields["probation_end"], fields["probation_status"], fields["licence_expiry"], fields["training_type"], fields["training_expiry"], member_id, user["id"]))
     conn.commit(); conn.close()
     flash("Team member updated.", "success")
     return redirect(url_for("team"))
 
 @app.route("/team/<int:member_id>/delete", methods=["POST"])
 @login_required
-@plan_required("business")
+@plan_required("pro")
 def delete_team_member(member_id):
     user = current_user()
     conn = get_db()
@@ -2988,6 +3116,149 @@ def delete_yard_location(location_id):
     conn.commit(); conn.close()
     flash("Custom yard location deleted.", "success")
     return redirect(url_for("yard_settings"))
+
+@app.route("/daily-shift-log", methods=["GET", "POST"])
+@login_required
+@plan_required("pro")
+def daily_shift_log():
+    user = current_user()
+    if request.method == "POST":
+        f = request.form
+        photo = request.files.get("photo")
+        filename = ""
+        if photo and photo.filename:
+            filename = secure_filename(f"{uuid.uuid4().hex}_{photo.filename}")
+            photo.save(os.path.join(UPLOAD_DIR, filename))
+        conn = get_db()
+        conn.execute("""INSERT INTO daily_shift_logs
+            (user_id,date,shift,manager,volume,planned_hc,actual_hc,late_trailers,safety,issues,actions,notes,photo_filename,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (user["id"], f.get("date") or datetime.today().strftime("%Y-%m-%d"), f.get("shift",""), f.get("manager",""), int(f.get("volume") or 0), int(f.get("planned_hc") or 0), int(f.get("actual_hc") or 0), int(f.get("late_trailers") or 0), f.get("safety",""), f.get("issues",""), f.get("actions",""), f.get("notes",""), filename, datetime.now().isoformat()))
+        if f.get("actions","").strip():
+            conn.execute("INSERT INTO action_tracker (user_id,date,title,owner,due_date,status,priority,source,notes,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (user["id"], datetime.today().strftime("%Y-%m-%d"), f.get("actions").strip()[:120], f.get("manager",""), f.get("date"), "Open", "Medium", "Daily Shift Log", f.get("issues",""), datetime.now().isoformat()))
+        conn.commit(); conn.close()
+        flash("Daily shift log saved.", "success")
+        return redirect(url_for("daily_shift_log"))
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM daily_shift_logs WHERE user_id=? ORDER BY date DESC,id DESC LIMIT 100", (user["id"],)).fetchall()
+    conn.close()
+    return render_template("daily_shift_log.html", rows=rows, page="daily_shift_log")
+
+@app.route("/daily-shift-log/export")
+@login_required
+@plan_required("pro")
+def export_daily_shift_log():
+    user=current_user(); conn=get_db(); rows=conn.execute("SELECT * FROM daily_shift_logs WHERE user_id=? ORDER BY date DESC", (user["id"],)).fetchall(); conn.close()
+    wb=Workbook(); ws=wb.active; ws.title="Daily Shift Log"; ws.append(["Date","Shift","Manager","Volume","Planned HC","Actual HC","Late Trailers","Safety","Issues","Actions","Notes"])
+    for r in rows: ws.append([r["date"],r["shift"],r["manager"],r["volume"],r["planned_hc"],r["actual_hc"],r["late_trailers"],r["safety"],r["issues"],r["actions"],r["notes"]])
+    style_excel_header(ws); return excel_response(wb,"daily-shift-log.xlsx")
+
+@app.route("/daily-shift-log/<int:item_id>/email")
+@login_required
+@plan_required("pro")
+def daily_shift_log_email(item_id):
+    user=current_user(); conn=get_db(); r=conn.execute("SELECT * FROM daily_shift_logs WHERE id=? AND user_id=?", (item_id,user["id"])).fetchone(); conn.close()
+    if not r: flash("Log not found.","error"); return redirect(url_for("daily_shift_log"))
+    body=f"Daily Shift Log - {r['date']}\nShift: {r['shift']}\nManager: {r['manager']}\nVolume: {r['volume']}\nPlanned HC: {r['planned_hc']}\nActual HC: {r['actual_hc']}\nLate trailers: {r['late_trailers']}\n\nSafety:\n{r['safety']}\n\nIssues:\n{r['issues']}\n\nActions:\n{r['actions']}\n\nNotes:\n{r['notes']}"
+    return render_template("email_export.html", title="Daily Shift Log Email", body=body, page="daily_shift_log")
+
+@app.route("/actions", methods=["GET","POST"])
+@login_required
+@plan_required("pro")
+def actions():
+    user=current_user()
+    if request.method=="POST":
+        f=request.form; conn=get_db(); conn.execute("INSERT INTO action_tracker (user_id,date,title,owner,due_date,status,priority,source,notes,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)", (user["id"], datetime.today().strftime("%Y-%m-%d"), f.get("title",""), f.get("owner",""), f.get("due_date",""), f.get("status","Open"), f.get("priority","Medium"), f.get("source","Manual"), f.get("notes",""), datetime.now().isoformat())); conn.commit(); conn.close(); flash("Action saved.","success"); return redirect(url_for("actions"))
+    conn=get_db(); rows=conn.execute("SELECT * FROM action_tracker WHERE user_id=? ORDER BY CASE status WHEN 'Open' THEN 0 WHEN 'In Progress' THEN 1 ELSE 2 END, due_date ASC", (user["id"],)).fetchall(); conn.close()
+    return render_template("actions.html", rows=rows, page="actions")
+
+@app.route("/actions/<int:item_id>/update", methods=["POST"])
+@login_required
+@plan_required("pro")
+def update_action(item_id):
+    user=current_user(); f=request.form; conn=get_db(); conn.execute("UPDATE action_tracker SET title=?,owner=?,due_date=?,status=?,priority=?,notes=? WHERE id=? AND user_id=?", (f.get("title",""),f.get("owner",""),f.get("due_date",""),f.get("status","Open"),f.get("priority","Medium"),f.get("notes",""),item_id,user["id"])); conn.commit(); conn.close(); flash("Action updated.","success"); return redirect(url_for("actions"))
+
+@app.route("/actions/<int:item_id>/delete", methods=["POST"])
+@login_required
+@plan_required("pro")
+def delete_action(item_id):
+    user=current_user(); conn=get_db(); conn.execute("DELETE FROM action_tracker WHERE id=? AND user_id=?", (item_id,user["id"])); conn.commit(); conn.close(); flash("Action deleted.","success"); return redirect(url_for("actions"))
+
+@app.route("/actions/export")
+@login_required
+@plan_required("pro")
+def export_actions():
+    user=current_user(); conn=get_db(); rows=conn.execute("SELECT * FROM action_tracker WHERE user_id=? ORDER BY due_date ASC", (user["id"],)).fetchall(); conn.close(); wb=Workbook(); ws=wb.active; ws.title="Actions"; ws.append(["Date","Title","Owner","Due Date","Status","Priority","Source","Notes"])
+    for r in rows: ws.append([r["date"],r["title"],r["owner"],r["due_date"],r["status"],r["priority"],r["source"],r["notes"]])
+    style_excel_header(ws); return excel_response(wb,"actions.xlsx")
+
+@app.route("/absence", methods=["GET","POST"])
+@login_required
+@plan_required("pro")
+def absence():
+    user=current_user(); conn=get_db()
+    if request.method=="POST":
+        f=request.form; conn.execute("INSERT INTO absence_records (user_id,member_name,start_date,end_date,absence_type,notes,created_at) VALUES (?,?,?,?,?,?,?)", (user["id"],f.get("member_name",""),f.get("start_date",""),f.get("end_date",""),f.get("absence_type","Sick"),f.get("notes",""),datetime.now().isoformat())); conn.commit(); flash("Absence saved.","success"); conn.close(); return redirect(url_for("absence"))
+    rows=conn.execute("SELECT * FROM absence_records WHERE user_id=? ORDER BY start_date DESC", (user["id"],)).fetchall(); team=conn.execute("SELECT name FROM team_members WHERE user_id=? ORDER BY name", (user["id"],)).fetchall(); conn.close(); return render_template("absence.html", rows=rows, team=team, page="absence")
+
+@app.route("/absence/export")
+@login_required
+@plan_required("pro")
+def export_absence():
+    user=current_user(); conn=get_db(); rows=conn.execute("SELECT * FROM absence_records WHERE user_id=? ORDER BY start_date DESC", (user["id"],)).fetchall(); conn.close(); wb=Workbook(); ws=wb.active; ws.title="Absence"; ws.append(["Name","Start","End","Type","Notes"]); [ws.append([r["member_name"],r["start_date"],r["end_date"],r["absence_type"],r["notes"]]) for r in rows]; style_excel_header(ws); return excel_response(wb,"absence.xlsx")
+
+@app.route("/evidence", methods=["GET","POST"])
+@login_required
+@plan_required("pro")
+def evidence():
+    user=current_user()
+    if request.method=="POST":
+        photo=request.files.get("photo"); filename=""
+        if photo and photo.filename:
+            filename=secure_filename(f"{uuid.uuid4().hex}_{photo.filename}"); photo.save(os.path.join(UPLOAD_DIR, filename))
+        f=request.form; conn=get_db(); conn.execute("INSERT INTO photo_records (user_id,date,image_filename,trailer_id,location_detail,damage_notes,recognition_notes,confidence,category,comment,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (user["id"], f.get("date") or datetime.today().strftime("%Y-%m-%d"), filename, f.get("trailer_id",""), f.get("location_detail",""), f.get("damage_notes",""), "", "", f.get("category","Evidence"), f.get("comment",""), datetime.now().isoformat())); conn.commit(); conn.close(); flash("Evidence saved.","success"); return redirect(url_for("evidence"))
+    q=request.args.get("q",""); conn=get_db(); rows=conn.execute("SELECT * FROM photo_records WHERE user_id=? AND (?='' OR trailer_id LIKE ? OR location_detail LIKE ? OR damage_notes LIKE ? OR comment LIKE ?) ORDER BY date DESC,id DESC", (user["id"],q,f"%{q}%",f"%{q}%",f"%{q}%",f"%{q}%")).fetchall(); conn.close(); return render_template("evidence.html", rows=rows, q=q, page="evidence")
+
+@app.route("/search")
+@login_required
+def global_search():
+    user=current_user(); q=request.args.get("q","").strip(); results=[]
+    if q:
+        conn=get_db(); like=f"%{q}%"
+        for r in conn.execute("SELECT date, trailer_id AS title, notes AS text FROM yard_checks WHERE user_id=? AND (trailer_id LIKE ? OR notes LIKE ? OR location_detail LIKE ?) LIMIT 20", (user["id"],like,like,like)).fetchall(): results.append({"module":"Yard Check","date":r["date"],"title":r["title"],"text":r["text"],"url":url_for("yard_check")})
+        for r in conn.execute("SELECT date, title, notes AS text FROM action_tracker WHERE user_id=? AND (title LIKE ? OR notes LIKE ? OR owner LIKE ?) LIMIT 20", (user["id"],like,like,like)).fetchall(): results.append({"module":"Actions","date":r["date"],"title":r["title"],"text":r["text"],"url":url_for("actions")})
+        for r in conn.execute("SELECT date, shift AS title, issues AS text FROM daily_shift_logs WHERE user_id=? AND (issues LIKE ? OR actions LIKE ? OR notes LIKE ?) LIMIT 20", (user["id"],like,like,like)).fetchall(): results.append({"module":"Daily Log","date":r["date"],"title":r["title"],"text":r["text"],"url":url_for("daily_shift_log")})
+        for r in conn.execute("SELECT name AS title, role, notes FROM team_members WHERE user_id=? AND (name LIKE ? OR role LIKE ? OR notes LIKE ?) LIMIT 20", (user["id"],like,like,like)).fetchall(): results.append({"module":"Team","date":"","title":r["title"],"text":f"{r['role']} {r['notes'] or ''}","url":url_for("team")})
+        conn.close()
+    return render_template("search.html", q=q, results=results, page="search")
+
+@app.route("/admin/user/<int:user_id>/delete", methods=["POST"])
+@login_required
+def admin_delete_user(user_id):
+    admin=current_user()
+    if not is_admin(admin): flash("Admin access only.","error"); return redirect(url_for("index"))
+    if user_id==admin["id"]: flash("You cannot delete your own admin account.","error"); return redirect(url_for("admin_dashboard"))
+    conn=get_db()
+    for table in ["mileage","expenses","invoices","yard_checks","kpi_records","handovers","team_members","shift_calendar","morning_briefs","photo_records","daily_shift_logs","action_tracker","absence_records","remember_tokens"]:
+        try: conn.execute(f"DELETE FROM {table} WHERE user_id=?", (user_id,))
+        except Exception: pass
+    conn.execute("DELETE FROM users WHERE id=?", (user_id,)); conn.commit(); conn.close(); flash("Account deleted.","success"); return redirect(url_for("admin_dashboard"))
+
+@app.route("/admin/inactivity-check")
+@login_required
+def admin_inactivity_check():
+    admin=current_user()
+    if not is_admin(admin): flash("Admin access only.","error"); return redirect(url_for("index"))
+    now=datetime.now(); warn_before=(now-timedelta(days=180)).isoformat(); delete_before=(now-timedelta(days=365)).isoformat(); conn=get_db()
+    conn.execute("UPDATE users SET inactive_warning_at=? WHERE email!='admin@opspilot.ai' AND COALESCE(last_login_at,created_at) < ? AND inactive_warning_at IS NULL", (now.isoformat(timespec="seconds"), warn_before))
+    stale=conn.execute("SELECT id FROM users WHERE email!='admin@opspilot.ai' AND COALESCE(last_login_at,created_at) < ?", (delete_before,)).fetchall()
+    for u in stale:
+        for table in ["mileage","expenses","invoices","yard_checks","kpi_records","handovers","team_members","shift_calendar","morning_briefs","photo_records","daily_shift_logs","action_tracker","absence_records","remember_tokens"]:
+            try: conn.execute(f"DELETE FROM {table} WHERE user_id=?", (u["id"],))
+            except Exception: pass
+        conn.execute("DELETE FROM users WHERE id=?", (u["id"],))
+    conn.commit(); conn.close(); flash(f"Inactivity check complete. Deleted {len(stale)} inactive account(s).", "success"); return redirect(url_for("admin_dashboard"))
 
 @app.route("/operations")
 @login_required
@@ -3143,6 +3414,9 @@ def admin_dashboard():
         "kpi": conn.execute("SELECT COUNT(*) FROM kpi_records").fetchone()[0],
         "handovers": conn.execute("SELECT COUNT(*) FROM handovers").fetchone()[0],
         "team": conn.execute("SELECT COUNT(*) FROM team_members").fetchone()[0],
+        "daily_logs": conn.execute("SELECT COUNT(*) FROM daily_shift_logs").fetchone()[0],
+        "actions": conn.execute("SELECT COUNT(*) FROM action_tracker").fetchone()[0],
+        "absence": conn.execute("SELECT COUNT(*) FROM absence_records").fetchone()[0],
     }
     conn.close()
 
@@ -3489,7 +3763,7 @@ def settings():
     if request.method == "POST":
         conn = get_db()
         conn.execute("""
-            UPDATE users SET business_name = ?, company_name = ?, name = ?, role = ?, phone = ?, address = ?, mileage_rate = ?, door_count = ?, fence_count = ? WHERE id = ?
+            UPDATE users SET business_name = ?, company_name = ?, name = ?, role = ?, phone = ?, address = ?, mileage_rate = ?, door_count = ?, fence_count = ?, language = ? WHERE id = ?
         """, (
             request.form.get("business_name", "").strip(),
             request.form.get("company_name", "").strip(),
@@ -3500,6 +3774,7 @@ def settings():
             float(request.form.get("mileage_rate") or 0.55),
             int(request.form.get("door_count") or 100),
             int(request.form.get("fence_count") or 120),
+            request.form.get("language", "en"),
             user["id"]
         ))
         conn.commit()

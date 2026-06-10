@@ -29,7 +29,7 @@
             <img class="op-splash-logo" src="{{ url_for('static', filename='icons/opspilot-logo.svg') }}" alt="OpsPilot AI">
         </div>
         <div class="op-splash-title">OpsPilot AI</div>
-        <div class="op-splash-subtitle">Operations Simplified</div>
+        <div class="op-splash-subtitle">Manager Toolkit</div>
         <div class="op-splash-loader">
             <span></span>
             <span></span>
@@ -47,7 +47,7 @@
             <div class="brand-icon">OP</div>
             <div>
                 <h1>OpsPilot AI</h1>
-                <p>Operations hub</p>
+                <p>Manager Toolkit</p>
             </div>
         </div>
 
@@ -60,11 +60,16 @@
             <a class="{{ 'active' if page == 'expenses' else '' }}" href="{{ url_for('expenses') }}">Expenses</a>
             <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">Yard Check <span class="pro-badge">PRO</span></a>
             {% if user and (user.plan in ['pro', 'business'] or (shift_trial and shift_trial.allowed)) %}
-            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">Shift Calendar <span class="pro-badge">{% if user.plan in ['pro','business'] %}PRO{% else %}14 DAY{% endif %}</span></a>
+            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">Calendar <span class="pro-badge">{% if user.plan in ['pro','business'] %}PRO{% else %}14 DAY{% endif %}</span></a>
             {% endif %}
             {% if user and user.plan in ['pro', 'business'] %}<a class="{{ 'active' if page == 'yard_settings' else '' }}" href="{{ url_for('yard_settings') }}">Yard Settings <span class="pro-badge">PRO</span></a>{% endif %}
             <a class="{{ 'active' if page == 'handover' else '' }}" href="{{ url_for('handover') }}">Handover <span class="pro-badge">PRO</span></a>
             <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">Team <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'daily_shift_log' else '' }}" href="{{ url_for('daily_shift_log') }}">Daily Log <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'actions' else '' }}" href="{{ url_for('actions') }}">Actions <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'absence' else '' }}" href="{{ url_for('absence') }}">Absence <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'evidence' else '' }}" href="{{ url_for('evidence') }}">Evidence <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'search' else '' }}" href="{{ url_for('global_search') }}">Search</a>
             {% if user and user.email == "admin@opspilot.ai" %}
             <a class="{{ 'active' if page == 'admin' else '' }}" href="{{ url_for('admin_dashboard') }}">Admin <span class="pro-badge">ADMIN</span></a>
             <a class="{{ 'active' if page == 'admin_billing' else '' }}" href="{{ url_for('admin_billing') }}">Billing <span class="pro-badge">ADMIN</span></a>
@@ -148,7 +153,7 @@
         {% if user %}
         <nav class="mobile-bottom-nav">
             <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('index') }}">⌂<span>Home</span></a>
-            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">📅<span>Shifts</span></a>
+            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">📅<span>Calendar</span></a>
             <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">🚛<span>Checks</span></a>
             <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">👥<span>Team</span></a>
             <a class="{{ 'active' if page in ['more', 'settings', 'pricing', 'admin', 'billing'] else '' }}" href="{{ url_for('more_menu') }}">☰<span>More</span></a>

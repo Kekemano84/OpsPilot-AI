@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="panel compact-panel"><h3>{{ title }}</h3><p class="muted">Copy this into email, WhatsApp or Teams.</p><textarea class="copy-box" readonly>{{ body }}</textarea></section>
+{% endblock %}

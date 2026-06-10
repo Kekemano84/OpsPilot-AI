@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Absence Tracker{% endblock %}
+{% block content %}
+<section class="hero-card pro-hero"><div><p class="eyebrow">People</p><h3>Absence Tracker</h3><p>Sick, holiday, training, unpaid and overtime records.</p></div><a class="btn light export-btn" href="{{ url_for('export_absence') }}">[📊 Export Excel]</a></section>
+<section class="panel compact-panel"><form method="POST" class="form-grid compact-form"><div><label>Name</label><input name="member_name" list="teamnames" required><datalist id="teamnames">{% for m in team %}<option value="{{ m.name }}">{% endfor %}</datalist></div><div><label>Start</label><input type="date" name="start_date" required></div><div><label>End</label><input type="date" name="end_date"></div><div><label>Type</label><select name="absence_type"><option>Sick</option><option>Holiday</option><option>Training</option><option>Unpaid</option><option>Overtime</option><option>Other</option></select></div><div class="wide"><label>Notes</label><input name="notes"></div><button class="btn primary" type="submit">Save Absence</button></form></section>
+<section class="panel compact-panel"><div class="simple-list">{% for r in rows %}<div class="list-row"><div><strong>{{ r.member_name }} · {{ r.absence_type }}</strong><span>{{ r.start_date }}{% if r.end_date %} - {{ r.end_date }}{% endif %}</span><small>{{ r.notes }}</small></div></div>{% else %}<p class="empty">No absence records yet.</p>{% endfor %}</div></section>
+{% endblock %}

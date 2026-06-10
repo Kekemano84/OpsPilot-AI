@@ -9,6 +9,18 @@
     </div>
 </section>
 
+
+{% if notifications %}
+<section class="panel compact-panel notifications-panel">
+  <div class="panel-head"><h3>Notifications</h3><a class="small-btn ghost-small" href="{{ url_for('actions') }}">Open Actions</a></div>
+  <div class="simple-list">
+    {% for n in notifications %}
+    <div class="list-row notice-row {{ n.level }}"><div><strong>{{ n.text }}</strong><span>{{ n.level|title }} priority</span></div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="dashboard-compact-grid">
     {% if today_shift %}
     <a class="dash-mini-card status-{{ today_shift.status|lower|replace(' ', '-') }}" href="{{ url_for('shift_calendar') }}">
@@ -30,6 +42,8 @@
     <a class="dash-mini-card" href="{{ url_for('expenses') }}"><span>Expenses</span><strong>{{ totals.expenses|money }}</strong><small>Business costs</small></a>
     <a class="dash-mini-card" href="{{ url_for('yard_check') }}"><span>Yard Checks</span><strong>{{ recent_yard|length }}</strong><small>Recent records</small></a>
     <a class="dash-mini-card" href="{{ url_for('handover') }}"><span>Handovers</span><strong>Open</strong><small>Shift reports</small></a>
+    <a class="dash-mini-card" href="{{ url_for('daily_shift_log') }}"><span>Daily Log</span><strong>Shift</strong><small>Full daily record</small></a>
+    <a class="dash-mini-card" href="{{ url_for('actions') }}"><span>Actions</span><strong>Follow-up</strong><small>Owner, due date, status</small></a>
 </section>
 
 <section class="mobile-dashboard-tools compact-tools">
