@@ -533,12 +533,42 @@ def current_user():
 
 
 TRANSLATIONS = {
-    "en": {"dashboard":"Dashboard","calendar":"Calendar","team":"Team","more":"More","manager_toolkit":"Manager Toolkit","notifications":"Notifications"},
-    "hu": {"dashboard":"Vezérlőpult","calendar":"Naptár","team":"Csapat","more":"Több","manager_toolkit":"Manager eszköztár","notifications":"Értesítések"},
-    "pl": {"dashboard":"Panel","calendar":"Kalendarz","team":"Zespół","more":"Więcej","manager_toolkit":"Narzędzia managera","notifications":"Powiadomienia"},
-    "ro": {"dashboard":"Panou","calendar":"Calendar","team":"Echipă","more":"Mai mult","manager_toolkit":"Instrumente manager","notifications":"Notificări"},
-    "es": {"dashboard":"Panel","calendar":"Calendario","team":"Equipo","more":"Más","manager_toolkit":"Herramientas de manager","notifications":"Notificaciones"},
-    "de": {"dashboard":"Dashboard","calendar":"Kalender","team":"Team","more":"Mehr","manager_toolkit":"Manager Toolkit","notifications":"Benachrichtigungen"},
+    "en": {
+        "dashboard":"Dashboard","home":"Home","calendar":"Calendar","team":"Team","more":"More","manager_toolkit":"Manager Toolkit","notifications":"Notifications",
+        "morning_brief":"Morning Brief","mileage":"Mileage","expenses":"Expenses","yard_check":"Yard Check","yard_settings":"Yard Settings","handover":"Handover",
+        "daily_log":"Daily Log","actions":"Actions","absence":"Absence","evidence":"Evidence","search":"Search","plans":"Plans","settings":"Settings","logout":"Logout",
+        "checks":"Checks","hmrc_mileage":"HMRC mileage","rate_55p":"55p per business mile","tax_estimates":"Tax calculations are estimates only."
+    },
+    "hu": {
+        "dashboard":"Vezérlőpult","home":"Főoldal","calendar":"Naptár","team":"Csapat","more":"Több","manager_toolkit":"Manager eszköztár","notifications":"Értesítések",
+        "morning_brief":"Reggeli brief","mileage":"Mérföldek","expenses":"Kiadások","yard_check":"Yard ellenőrzés","yard_settings":"Yard beállítások","handover":"Átadás",
+        "daily_log":"Napi műszaknapló","actions":"Feladatok","absence":"Hiányzás","evidence":"Bizonyítékok","search":"Keresés","plans":"Csomagok","settings":"Beállítások","logout":"Kijelentkezés",
+        "checks":"Ellenőrzések","hmrc_mileage":"HMRC mérföld","rate_55p":"55p üzleti mérföldenként","tax_estimates":"Az adószámítások csak becslések."
+    },
+    "pl": {
+        "dashboard":"Panel","home":"Start","calendar":"Kalendarz","team":"Zespół","more":"Więcej","manager_toolkit":"Narzędzia managera","notifications":"Powiadomienia",
+        "morning_brief":"Poranny briefing","mileage":"Kilometrówka","expenses":"Wydatki","yard_check":"Kontrola placu","yard_settings":"Ustawienia placu","handover":"Przekazanie zmiany",
+        "daily_log":"Dziennik zmiany","actions":"Zadania","absence":"Nieobecności","evidence":"Dowody","search":"Szukaj","plans":"Plany","settings":"Ustawienia","logout":"Wyloguj",
+        "checks":"Kontrole","hmrc_mileage":"Stawka HMRC","rate_55p":"55p za milę służbową","tax_estimates":"Wyliczenia podatkowe są szacunkowe."
+    },
+    "ro": {
+        "dashboard":"Panou","home":"Acasă","calendar":"Calendar","team":"Echipă","more":"Mai mult","manager_toolkit":"Instrumente manager","notifications":"Notificări",
+        "morning_brief":"Briefing de dimineață","mileage":"Mileaj","expenses":"Cheltuieli","yard_check":"Verificare curte","yard_settings":"Setări curte","handover":"Predare tură",
+        "daily_log":"Jurnal zilnic tură","actions":"Acțiuni","absence":"Absențe","evidence":"Dovezi","search":"Căutare","plans":"Planuri","settings":"Setări","logout":"Deconectare",
+        "checks":"Verificări","hmrc_mileage":"Mileaj HMRC","rate_55p":"55p pe milă de serviciu","tax_estimates":"Calculele fiscale sunt estimări."
+    },
+    "es": {
+        "dashboard":"Panel","home":"Inicio","calendar":"Calendario","team":"Equipo","more":"Más","manager_toolkit":"Kit de manager","notifications":"Notificaciones",
+        "morning_brief":"Briefing de mañana","mileage":"Millas","expenses":"Gastos","yard_check":"Revisión de patio","yard_settings":"Ajustes de patio","handover":"Traspaso de turno",
+        "daily_log":"Registro diario","actions":"Acciones","absence":"Ausencias","evidence":"Evidencias","search":"Buscar","plans":"Planes","settings":"Ajustes","logout":"Cerrar sesión",
+        "checks":"Revisiones","hmrc_mileage":"Millas HMRC","rate_55p":"55p por milla de negocio","tax_estimates":"Los cálculos fiscales son estimaciones."
+    },
+    "de": {
+        "dashboard":"Dashboard","home":"Home","calendar":"Kalender","team":"Team","more":"Mehr","manager_toolkit":"Manager Toolkit","notifications":"Benachrichtigungen",
+        "morning_brief":"Morgenbriefing","mileage":"Fahrten","expenses":"Ausgaben","yard_check":"Hofprüfung","yard_settings":"Hof-Einstellungen","handover":"Schichtübergabe",
+        "daily_log":"Tägliches Schichtlog","actions":"Aufgaben","absence":"Abwesenheit","evidence":"Nachweise","search":"Suche","plans":"Pläne","settings":"Einstellungen","logout":"Abmelden",
+        "checks":"Prüfungen","hmrc_mileage":"HMRC-Fahrtkosten","rate_55p":"55p pro Geschäftsmeile","tax_estimates":"Steuerberechnungen sind Schätzungen."
+    },
 }
 
 def tr(key):

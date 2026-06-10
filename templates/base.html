@@ -29,7 +29,7 @@
             <img class="op-splash-logo" src="{{ url_for('static', filename='icons/opspilot-logo.svg') }}" alt="OpsPilot AI">
         </div>
         <div class="op-splash-title">OpsPilot AI</div>
-        <div class="op-splash-subtitle">Manager Toolkit</div>
+        <div class="op-splash-subtitle">{{ t("manager_toolkit") }}</div>
         <div class="op-splash-loader">
             <span></span>
             <span></span>
@@ -47,41 +47,41 @@
             <div class="brand-icon">OP</div>
             <div>
                 <h1>OpsPilot AI</h1>
-                <p>Manager Toolkit</p>
+                <p>{{ t("manager_toolkit") }}</p>
             </div>
         </div>
 
         <div class="plan-chip">{{ 'Pro' if user.plan in ['pro','business'] else plan_names[user.plan] }} plan</div>
 
         <nav class="nav">
-            <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('index') }}">Dashboard</a>
-            <a class="{{ 'active' if page == 'morning_brief' else '' }}" href="{{ url_for('morning_brief') }}">Morning Brief</a>
-            <a class="{{ 'active' if page == 'mileage' else '' }}" href="{{ url_for('mileage') }}">Mileage</a>
-            <a class="{{ 'active' if page == 'expenses' else '' }}" href="{{ url_for('expenses') }}">Expenses</a>
-            <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">Yard Check <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('index') }}">{{ t("dashboard") }}</a>
+            <a class="{{ 'active' if page == 'morning_brief' else '' }}" href="{{ url_for('morning_brief') }}">{{ t("morning_brief") }}</a>
+            <a class="{{ 'active' if page == 'mileage' else '' }}" href="{{ url_for('mileage') }}">{{ t("mileage") }}</a>
+            <a class="{{ 'active' if page == 'expenses' else '' }}" href="{{ url_for('expenses') }}">{{ t("expenses") }}</a>
+            <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">{{ t("yard_check") }} <span class="pro-badge">PRO</span></a>
             {% if user and (user.plan in ['pro', 'business'] or (shift_trial and shift_trial.allowed)) %}
-            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">Calendar <span class="pro-badge">{% if user.plan in ['pro','business'] %}PRO{% else %}14 DAY{% endif %}</span></a>
+            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">{{ t("calendar") }} <span class="pro-badge">{% if user.plan in ['pro','business'] %}PRO{% else %}14 DAY{% endif %}</span></a>
             {% endif %}
-            {% if user and user.plan in ['pro', 'business'] %}<a class="{{ 'active' if page == 'yard_settings' else '' }}" href="{{ url_for('yard_settings') }}">Yard Settings <span class="pro-badge">PRO</span></a>{% endif %}
-            <a class="{{ 'active' if page == 'handover' else '' }}" href="{{ url_for('handover') }}">Handover <span class="pro-badge">PRO</span></a>
-            <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">Team <span class="pro-badge">PRO</span></a>
-            <a class="{{ 'active' if page == 'daily_shift_log' else '' }}" href="{{ url_for('daily_shift_log') }}">Daily Log <span class="pro-badge">PRO</span></a>
-            <a class="{{ 'active' if page == 'actions' else '' }}" href="{{ url_for('actions') }}">Actions <span class="pro-badge">PRO</span></a>
-            <a class="{{ 'active' if page == 'absence' else '' }}" href="{{ url_for('absence') }}">Absence <span class="pro-badge">PRO</span></a>
-            <a class="{{ 'active' if page == 'evidence' else '' }}" href="{{ url_for('evidence') }}">Evidence <span class="pro-badge">PRO</span></a>
-            <a class="{{ 'active' if page == 'search' else '' }}" href="{{ url_for('global_search') }}">Search</a>
+            {% if user and user.plan in ['pro', 'business'] %}<a class="{{ 'active' if page == 'yard_settings' else '' }}" href="{{ url_for('yard_settings') }}">{{ t("yard_settings") }} <span class="pro-badge">PRO</span></a>{% endif %}
+            <a class="{{ 'active' if page == 'handover' else '' }}" href="{{ url_for('handover') }}">{{ t("handover") }} <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">{{ t("team") }} <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'daily_shift_log' else '' }}" href="{{ url_for('daily_shift_log') }}">{{ t("daily_log") }} <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'actions' else '' }}" href="{{ url_for('actions') }}">{{ t("actions") }} <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'absence' else '' }}" href="{{ url_for('absence') }}">{{ t("absence") }} <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'evidence' else '' }}" href="{{ url_for('evidence') }}">{{ t("evidence") }} <span class="pro-badge">PRO</span></a>
+            <a class="{{ 'active' if page == 'search' else '' }}" href="{{ url_for('global_search') }}">{{ t("search") }}</a>
             {% if user and user.email == "admin@opspilot.ai" %}
             <a class="{{ 'active' if page == 'admin' else '' }}" href="{{ url_for('admin_dashboard') }}">Admin <span class="pro-badge">ADMIN</span></a>
             <a class="{{ 'active' if page == 'admin_billing' else '' }}" href="{{ url_for('admin_billing') }}">Billing <span class="pro-badge">ADMIN</span></a>
             {% endif %}
-            <a class="{{ 'active' if page == 'pricing' else '' }}" href="{{ url_for('pricing') }}">Plans</a>
-            <a class="{{ 'active' if page == 'settings' else '' }}" href="{{ url_for('settings') }}">Settings</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
+            <a class="{{ 'active' if page == 'pricing' else '' }}" href="{{ url_for('pricing') }}">{{ t("plans") }}</a>
+            <a class="{{ 'active' if page == 'settings' else '' }}" href="{{ url_for('settings') }}">{{ t("settings") }}</a>
+            <a href="{{ url_for('logout') }}">{{ t("logout") }}</a>
         </nav>
 
         <div class="sidebar-note">
-            <strong>HMRC mileage</strong>
-            <span>55p per business mile</span>
+            <strong>{{ t("hmrc_mileage") }}</strong>
+            <span>{{ t("rate_55p") }}</span>
         </div>
     </aside>
     {% endif %}
@@ -94,7 +94,7 @@
             </div>
             {% if page not in ['auth', 'login', 'register', 'dashboard', 'more'] %}
             <div class="top-actions">
-                <a class="btn ghost" href="{{ url_for('pricing') }}">Plans</a>
+                <a class="btn ghost" href="{{ url_for('pricing') }}">{{ t("plans") }}</a>
                 <a class="btn primary" href="{{ url_for('yard_check') }}">+ Yard Check</a>
             </div>
             {% endif %}
@@ -115,7 +115,7 @@
 
         {% if user %}
         <footer class="footer">
-            OpsPilot AI © {{ current_year }} · Tax calculations are estimates only.
+            OpsPilot AI © {{ current_year }} · {{ t("tax_estimates") }}
         </footer>
         {% endif %}
     </main>
@@ -152,11 +152,11 @@
 
         {% if user %}
         <nav class="mobile-bottom-nav">
-            <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('index') }}">⌂<span>Home</span></a>
-            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">📅<span>Calendar</span></a>
-            <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">🚛<span>Checks</span></a>
-            <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">👥<span>Team</span></a>
-            <a class="{{ 'active' if page in ['more', 'settings', 'pricing', 'admin', 'billing'] else '' }}" href="{{ url_for('more_menu') }}">☰<span>More</span></a>
+            <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('index') }}">⌂<span>{{ t("home") }}</span></a>
+            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">📅<span>{{ t("calendar") }}</span></a>
+            <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">🚛<span>{{ t("checks") }}</span></a>
+            <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">👥<span>{{ t("team") }}</span></a>
+            <a class="{{ 'active' if page in ['more', 'settings', 'pricing', 'admin', 'billing'] else '' }}" href="{{ url_for('more_menu') }}">☰<span>{{ t("more") }}</span></a>
         </nav>
         {% endif %}
 
@@ -190,6 +190,53 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 });
+</script>
+
+
+<script>
+(function () {
+  const lang = "{{ (user.language if user and user.language else 'en') }}";
+  if (!lang || lang === "en") return;
+  const I18N = {
+    hu: {
+      "Business Details":"Céges adatok", "Business Name":"Cég neve", "Company / Site Name":"Cég / telephely neve", "Your Name":"Neved", "Email":"Email", "Your Role":"Szerepköröd", "Phone":"Telefon", "Default Mileage Rate (£/mile)":"Alap mérföld díj (£/mile)", "Door Count":"Door darabszám", "Fence Count":"Fence darabszám", "Address":"Cím", "Language":"Nyelv", "Save Settings":"Beállítások mentése",
+      "Morning Brief":"Reggeli brief", "Manager tool":"Manager eszköz", "MANAGER TOOL":"MANAGER ESZKÖZ", "Create Morning Brief":"Reggeli brief készítése", "Use this before the shift starts. Keep it short, clear and practical.":"Használd műszak előtt. Legyen rövid, tiszta és praktikus.", "Date":"Dátum", "Shift":"Műszak", "Manager":"Manager", "Volume":"Volumen", "Available HC":"Elérhető létszám", "Generate Brief":"Brief generálása",
+      "Team Members":"Csapattagok", "Add Team Member":"Csapattag hozzáadása", "Name":"Név", "Role":"Szerepkör", "Custom Role":"Egyedi szerepkör", "Status":"Státusz", "Active":"Aktív", "Notes":"Jegyzetek", "Add Member":"Hozzáadás", "No team members yet.":"Még nincs csapattag.", "Probation Start":"Próbaidő kezdete", "Probation End":"Próbaidő vége", "Probation Status":"Próbaidő státusz", "Not set":"Nincs beállítva", "Licence Expiry":"Licence lejárat", "Training Type":"Training típusa", "Training Expiry":"Training lejárat", "Delete":"Törlés",
+      "Shift Calendar":"Műszaknaptár", "Auto Generate Calendar":"Naptár automatikus generálása", "Choose a standard pattern or create your own.":"Válassz alap mintát vagy hozz létre sajátot.", "Pattern":"Minta", "Start Date":"Kezdés dátuma", "Generate For":"Időtartam", "Shift Name":"Műszak neve", "Generate Calendar":"Naptár generálása", "Calendar View":"Naptár nézet", "Previous":"Előző", "Next":"Következő", "Add Note":"Jegyzet hozzáadása", "Save Day":"Nap mentése",
+      "Mileage History":"Mérföld előzmények", "Expenses":"Kiadások", "Expense History":"Kiadás előzmények", "Purpose":"Cél", "Amount":"Összeg", "Description":"Leírás", "Category":"Kategória", "Add Mileage":"Mérföld hozzáadása", "Add Expense":"Kiadás hozzáadása", "Calculate Miles":"Mérföld számítása", "No mileage yet.":"Még nincs mérföld adat.", "No expenses yet.":"Még nincs kiadás.", "[📊 Export Excel]":"[📊 Excel export]",
+      "Handover":"Átadás", "Generate Handover":"Átadás generálása", "Saved Handovers":"Mentett átadások", "No handovers yet.":"Még nincs átadás.", "[📄 Export PDF]":"[📄 PDF export]", "Issues":"Problémák", "Actions / Follow-up":"Feladatok / utánkövetés", "Take Photo":"Fotó készítése", "Upload Photo":"Fotó feltöltése",
+      "Daily Shift Log":"Napi műszaknapló", "Action Tracker":"Feladatkövető", "Absence Tracker":"Hiányzás követő", "Photo Evidence Library":"Fotó bizonyítékok", "Global Search":"Globális keresés", "Notifications":"Értesítések", "Search":"Keresés", "Open":"Megnyitás", "Save":"Mentés", "Export Excel":"Excel export"
+    },
+    pl: {"Business Details":"Dane firmy","Business Name":"Nazwa firmy","Company / Site Name":"Firma / lokalizacja","Your Name":"Twoje imię","Email":"Email","Your Role":"Rola","Phone":"Telefon","Address":"Adres","Language":"Język","Save Settings":"Zapisz ustawienia","Team Members":"Członkowie zespołu","Add Team Member":"Dodaj członka zespołu","Name":"Imię","Role":"Rola","Status":"Status","Notes":"Notatki","Add Member":"Dodaj","No team members yet.":"Brak członków zespołu.","Probation Start":"Początek okresu próbnego","Probation End":"Koniec okresu próbnego","Probation Status":"Status okresu próbnego","Shift Calendar":"Kalendarz zmian","Calendar View":"Widok kalendarza","Previous":"Poprzedni","Next":"Następny","Add Note":"Dodaj notatkę","Save Day":"Zapisz dzień","Mileage History":"Historia przebiegu","Expense History":"Historia wydatków","[📊 Export Excel]":"[📊 Eksport Excel]","Handover":"Przekazanie zmiany","Generate Handover":"Generuj przekazanie","Saved Handovers":"Zapisane przekazania","[📄 Export PDF]":"[📄 Eksport PDF]","Daily Shift Log":"Dziennik zmiany","Action Tracker":"Śledzenie zadań","Absence Tracker":"Nieobecności","Photo Evidence Library":"Biblioteka zdjęć","Global Search":"Wyszukiwanie","Notifications":"Powiadomienia","Open":"Otwórz","Save":"Zapisz"},
+    ro: {"Business Details":"Detalii firmă","Business Name":"Nume firmă","Company / Site Name":"Companie / locație","Your Name":"Numele tău","Email":"Email","Your Role":"Rolul tău","Phone":"Telefon","Address":"Adresă","Language":"Limbă","Save Settings":"Salvează setările","Team Members":"Membri echipă","Add Team Member":"Adaugă membru","Name":"Nume","Role":"Rol","Status":"Status","Notes":"Notițe","Add Member":"Adaugă","No team members yet.":"Nu există membri încă.","Probation Start":"Început probă","Probation End":"Sfârșit probă","Probation Status":"Status probă","Shift Calendar":"Calendar ture","Calendar View":"Vizualizare calendar","Previous":"Anterior","Next":"Următor","Add Note":"Adaugă notiță","Save Day":"Salvează ziua","Mileage History":"Istoric mileaj","Expense History":"Istoric cheltuieli","[📊 Export Excel]":"[📊 Export Excel]","Handover":"Predare tură","Generate Handover":"Generează predare","Saved Handovers":"Predări salvate","[📄 Export PDF]":"[📄 Export PDF]","Daily Shift Log":"Jurnal tură","Action Tracker":"Urmărire acțiuni","Absence Tracker":"Absențe","Photo Evidence Library":"Bibliotecă foto","Global Search":"Căutare globală","Notifications":"Notificări","Open":"Deschide","Save":"Salvează"},
+    es: {"Business Details":"Datos de empresa","Business Name":"Nombre de empresa","Company / Site Name":"Empresa / sitio","Your Name":"Tu nombre","Email":"Email","Your Role":"Tu rol","Phone":"Teléfono","Address":"Dirección","Language":"Idioma","Save Settings":"Guardar ajustes","Team Members":"Miembros del equipo","Add Team Member":"Añadir miembro","Name":"Nombre","Role":"Rol","Status":"Estado","Notes":"Notas","Add Member":"Añadir","No team members yet.":"Aún no hay miembros.","Probation Start":"Inicio de prueba","Probation End":"Fin de prueba","Probation Status":"Estado de prueba","Shift Calendar":"Calendario de turnos","Calendar View":"Vista calendario","Previous":"Anterior","Next":"Siguiente","Add Note":"Añadir nota","Save Day":"Guardar día","Mileage History":"Historial de millas","Expense History":"Historial de gastos","[📊 Export Excel]":"[📊 Exportar Excel]","Handover":"Traspaso","Generate Handover":"Generar traspaso","Saved Handovers":"Traspasos guardados","[📄 Export PDF]":"[📄 Exportar PDF]","Daily Shift Log":"Registro diario","Action Tracker":"Seguimiento de acciones","Absence Tracker":"Ausencias","Photo Evidence Library":"Biblioteca de fotos","Global Search":"Búsqueda global","Notifications":"Notificaciones","Open":"Abrir","Save":"Guardar"},
+    de: {"Business Details":"Firmendaten","Business Name":"Firmenname","Company / Site Name":"Firma / Standort","Your Name":"Dein Name","Email":"E-Mail","Your Role":"Deine Rolle","Phone":"Telefon","Address":"Adresse","Language":"Sprache","Save Settings":"Einstellungen speichern","Team Members":"Teammitglieder","Add Team Member":"Teammitglied hinzufügen","Name":"Name","Role":"Rolle","Status":"Status","Notes":"Notizen","Add Member":"Hinzufügen","No team members yet.":"Noch keine Teammitglieder.","Probation Start":"Probezeit Start","Probation End":"Probezeit Ende","Probation Status":"Probezeit Status","Shift Calendar":"Schichtkalender","Calendar View":"Kalenderansicht","Previous":"Zurück","Next":"Weiter","Add Note":"Notiz hinzufügen","Save Day":"Tag speichern","Mileage History":"Fahrten-Historie","Expense History":"Ausgaben-Historie","[📊 Export Excel]":"[📊 Excel exportieren]","Handover":"Übergabe","Generate Handover":"Übergabe erstellen","Saved Handovers":"Gespeicherte Übergaben","[📄 Export PDF]":"[📄 PDF exportieren]","Daily Shift Log":"Tägliches Schichtlog","Action Tracker":"Aufgabenverfolgung","Absence Tracker":"Abwesenheiten","Photo Evidence Library":"Fotobibliothek","Global Search":"Globale Suche","Notifications":"Benachrichtigungen","Open":"Öffnen","Save":"Speichern"}
+  };
+  const dict = I18N[lang] || {};
+  const clean = s => (s || "").replace(/\s+/g, " ").trim();
+  function translateNode(node) {
+    const val = clean(node.nodeValue);
+    if (dict[val]) node.nodeValue = node.nodeValue.replace(val, dict[val]);
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(node) {
+        const p = node.parentElement;
+        if (!p || ["SCRIPT","STYLE","TEXTAREA"].includes(p.tagName)) return NodeFilter.FILTER_REJECT;
+        return clean(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(translateNode);
+    document.querySelectorAll("input[placeholder], textarea[placeholder]").forEach(el => {
+      const v = clean(el.getAttribute("placeholder")); if (dict[v]) el.setAttribute("placeholder", dict[v]);
+    });
+    document.querySelectorAll("input[type='submit'][value], button[value]").forEach(el => {
+      const v = clean(el.value); if (dict[v]) el.value = dict[v];
+    });
+  });
+})();
 </script>
 
 </body>
