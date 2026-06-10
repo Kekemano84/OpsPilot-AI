@@ -2012,3 +2012,60 @@ html.op-loading body {
 .demo-copy {
     display: none !important;
 }
+
+
+/* Live weather widget */
+.weather-live-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: linear-gradient(135deg, #eff6ff, #ecfeff);
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.06);
+}
+.weather-live-card strong {
+    display: block;
+    font-size: clamp(1.8rem, 6vw, 3rem);
+    line-height: 1.05;
+    color: #0f172a;
+}
+.weather-live-card small,
+.weather-label,
+.weather-help {
+    color: #64748b;
+    font-weight: 700;
+}
+.weather-label {
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: .78rem;
+}
+.weather-side {
+    min-width: 84px;
+    text-align: center;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+}
+.weather-side span {
+    display: block;
+    font-weight: 900;
+    color: #2563eb;
+    font-size: 1.2rem;
+}
+.weather-help {
+    margin-top: 10px;
+    font-size: .9rem;
+}
+@media (max-width: 640px) {
+    .weather-live-card {
+        padding: 14px;
+    }
+    .weather-side {
+        min-width: 72px;
+    }
+}

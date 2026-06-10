@@ -10,14 +10,92 @@
 </section>
 
 
+
 <section class="panel compact-panel weather-widget-free">
-  <div class="panel-head"><h3>☁️ {{ t("weather") }}</h3><span class="pill">FREE</span></div>
-  <div class="dashboard-compact-grid">
-    <div class="dash-mini-card"><span>Yard Weather</span><strong>Check local forecast</strong><small>Add a weather API later for live temperature/rain.</small></div>
+  <div class="panel-head">
+    <h3>☁️ {{ t("weather") }}</h3>
+    <span class="pill">FREE</span>
   </div>
+
+  <div class="weather-live-card" id="weatherLiveCard">
+    <div>
+      <span class="weather-label">Yard weather</span>
+      <strong id="weatherTemp">Loading…</strong>
+      <small id="weatherDesc">Checking your location and forecast.</small>
+    </div>
+    <div class="weather-side">
+      <span id="weatherRain">--</span>
+      <small>Rain</small>
+    </div>
+  </div>
+
+  <p class="muted weather-help" id="weatherHelp">
+    Allow location permission to show local weather automatically.
+  </p>
 </section>
 
+<script>
+(function () {
+  const tempEl = document.getElementById("weatherTemp");
+  const descEl = document.getElementById("weatherDesc");
+  const rainEl = document.getElementById("weatherRain");
+  const helpEl = document.getElementById("weatherHelp");
+  if (!tempEl || !descEl || !rainEl) return;
 
+  function weatherText(code) {
+    const map = {
+      0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+      45: "Fog", 48: "Fog", 51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle",
+      61: "Light rain", 63: "Rain", 65: "Heavy rain", 71: "Light snow", 73: "Snow",
+      75: "Heavy snow", 80: "Rain showers", 81: "Rain showers", 82: "Heavy showers",
+      95: "Thunderstorm"
+    };
+    return map[code] || "Weather update";
+  }
+
+  function setFallback(message) {
+    tempEl.textContent = "Weather unavailable";
+    descEl.textContent = message || "Please enable location permission.";
+    rainEl.textContent = "--";
+    if (helpEl) helpEl.textContent = "Tip: allow location permission in your browser to show yard weather.";
+  }
+
+  function loadWeather(lat, lon) {
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=" + encodeURIComponent(lat) +
+      "&longitude=" + encodeURIComponent(lon) +
+      "&current=temperature_2m,precipitation,weather_code,wind_speed_10m&timezone=auto";
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.current) throw new Error("No weather data");
+        const c = data.current;
+        tempEl.textContent = Math.round(c.temperature_2m) + "°C";
+        descEl.textContent = weatherText(c.weather_code) + " · Wind " + Math.round(c.wind_speed_10m) + " km/h";
+        rainEl.textContent = (c.precipitation || 0) + " mm";
+        if (helpEl) helpEl.textContent = "Live local weather based on your current location.";
+      })
+      .catch(function () {
+        setFallback("Could not load live weather.");
+      });
+  }
+
+  if (!navigator.geolocation) {
+    setFallback("Your browser does not support location.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      loadWeather(pos.coords.latitude, pos.coords.longitude);
+    },
+    function () {
+      setFallback("Location permission was not allowed.");
+    },
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 900000 }
+  );
+})();
+</script>
 {% if notifications %}
 <section class="panel compact-panel notifications-panel">
   <div class="panel-head"><h3>{{ t("notifications") }}</h3><a class="small-btn ghost-small" href="{{ url_for('actions') }}">{{ t("actions") }}</a></div>
