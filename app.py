@@ -696,7 +696,7 @@ def login_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if "user_id" not in session:
-            flash("Please login first.", "error")
+            flash("Please register or log in first.", "error")
             return redirect(url_for("login"))
         return fn(*args, **kwargs)
     return wrapper
@@ -708,7 +708,7 @@ def plan_required(required_plan):
         def wrapper(*args, **kwargs):
             user = current_user()
             if not user:
-                flash("Please login first.", "error")
+                flash("Please register or log in first.", "error")
                 return redirect(url_for("login"))
             if is_admin(user):
                 return fn(*args, **kwargs)

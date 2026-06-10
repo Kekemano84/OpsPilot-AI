@@ -1,41 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="login-download-app-card install-app-card" id="installAppCard"><div><span>Installable App</span><strong>Download OpsPilot App</strong><small>Install on phone, tablet or desktop.</small></div><button class="btn primary" id="installAppBtn" type="button">Download App</button></section>
-<section class="auth-card">
-    <div class="brand auth-brand">
-        <div class="brand-icon">OP</div>
-        <div>
-            <h1>OpsPilot AI</h1>
-            <p>Finance + logistics + operations</p>
+<div class="auth-desktop-shell">
+    <section class="auth-hero-card">
+        <div class="auth-hero-badge">Operations hub</div>
+        <h1>OpsPilot AI</h1>
+        <p class="auth-hero-subtitle">Mileage, expenses, shift notes, yard checks, handovers and team records in one clean manager tool.</p>
+        <div class="auth-feature-grid">
+            <div><strong>📊 Excel export</strong><span>Download reports fast</span></div>
+            <div><strong>📄 PDF handover</strong><span>Share clean shift reports</span></div>
+            <div><strong>📅 Calendar notes</strong><span>Meetings, probation dates, reminders</span></div>
+            <div><strong>🚚 Yard checks</strong><span>Doors, fences and custom locations</span></div>
         </div>
-    </div>
+        <section class="login-download-app-card install-app-card" id="installAppCard">
+            <div>
+                <span>Installable app</span>
+                <strong>Download OpsPilot App</strong>
+                <small>Install on phone, tablet or desktop.</small>
+            </div>
+            <button class="btn light" id="installAppBtn" type="button">Download App</button>
+        </section>
+    </section>
 
-    {% if mode == "register" %}
-    <h2>Create account</h2>
-    <form method="POST" class="auth-form">
-        <label>Name</label>
-        <input name="name" placeholder="Laszlo Kertesz">
-        <label>Email</label>
-        <input type="email" name="email" placeholder="you@example.com">
-        <label>Password</label>
-        <input type="password" name="password" placeholder="At least 6 characters">
-        <button class="btn primary full" type="submit">Create Account</button>
-    </form>
-    <p class="muted">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
-    {% else %}
-    <h2>Login</h2>
-    <form method="POST" class="auth-form">
-        <label>Email</label>
-        <input type="email" name="email" placeholder="you@example.com">
-        <label>Password</label>
-        <input type="password" name="password">
-        <label class="remember-line">
+    <section class="auth-card auth-card-modern">
+        <div class="brand auth-brand">
+            <div class="brand-icon">OP</div>
+            <div>
+                <h1>OpsPilot AI</h1>
+                <p>Operations simplified</p>
+            </div>
+        </div>
+
+        {% if mode == "register" %}
+        <h2>Create account</h2>
+        <form method="POST" class="auth-form">
+            <label>Name</label>
+            <input name="name" placeholder="Laszlo Kertesz">
+            <label>Email</label>
+            <input type="email" name="email" placeholder="you@example.com">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="At least 6 characters">
+            <button class="btn primary full" type="submit">Create Account</button>
+        </form>
+        <p class="muted auth-switch">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+        {% else %}
+        <h2>Login</h2>
+        <form method="POST" class="auth-form">
+            <label>Email</label>
+            <input type="email" name="email" placeholder="you@example.com">
+            <label>Password</label>
+            <input type="password" name="password">
+            <label class="remember-line">
                 <input type="checkbox" name="remember_me" value="yes">
                 <span>Remember this device for 30 days</span>
             </label>
             <button class="btn primary full" type="submit">Login</button>
-    </form>
-    <p class="muted">No account yet? <a href="{{ url_for('register') }}">Create one</a></p>
-    {% endif %}
-</section>
+        </form>
+        <p class="muted auth-switch">No account yet? <a href="{{ url_for('register') }}">Create one</a></p>
+        {% endif %}
+    </section>
+</div>
 {% endblock %}
