@@ -2,13 +2,18 @@
   "name": "OpsPilot AI",
   "short_name": "OpsPilot",
   "description": "Operations Simplified",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
   "icons": [
-    {"src": "/static/icons/opspilot-logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+    {
+      "src": "/static/icons/opspilot-icon-v2.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }

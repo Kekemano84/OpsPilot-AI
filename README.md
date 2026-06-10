@@ -367,3 +367,11 @@ Added:
 - Holiday allowance can be entered in days or hours.
 - Break paid/unpaid and paid hours per day are saved.
 - PWA manifest uses the new icon.
+
+## PWA Download App + Icon v2
+
+- Modern app icon v2 added.
+- Manifest updated to new icon path.
+- Service worker cache version updated to opspilot-ai-v2.
+- Dashboard includes Download OpsPilot App card.
+- Install prompt uses beforeinstallprompt with fallback instructions.

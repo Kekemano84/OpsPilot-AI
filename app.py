@@ -3080,8 +3080,8 @@ def manifest_json():
         "theme_color": "#2563eb",
         "orientation": "portrait-primary",
         "icons": [
-            {"src": "/static/icons/opspilot-logo.svg", "sizes": "192x192", "type": "image/png"},
-            {"src": "/static/icons/opspilot-logo.svg", "sizes": "512x512", "type": "image/png"}
+            {"src": "/static/icons/opspilot-icon-v2.svg", "sizes": "192x192", "type": "image/png"},
+            {"src": "/static/icons/opspilot-icon-v2.svg", "sizes": "512x512", "type": "image/png"}
         ]
     }
     return app.response_class(json.dumps(manifest), mimetype="application/manifest+json")

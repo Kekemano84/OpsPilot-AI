@@ -1204,3 +1204,56 @@ html.op-loading body {
         gap: 10px;
     }
 }
+
+
+/* PWA Download App + Icon v2 */
+.install-app-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    background: linear-gradient(135deg, #0f172a, #2563eb 55%, #14b8a6);
+    color: #fff;
+    border-radius: 28px;
+    padding: 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 22px 55px rgba(37, 99, 235, .26);
+}
+
+.install-app-card span {
+    display: block;
+    color: #bfdbfe;
+    font-weight: 950;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+.install-app-card strong {
+    display: block;
+    font-size: clamp(25px, 5vw, 38px);
+    line-height: 1.05;
+    margin: 5px 0;
+    letter-spacing: -0.06em;
+}
+
+.install-app-card small {
+    color: #dbeafe;
+    font-weight: 800;
+}
+
+.install-app-card .btn {
+    white-space: nowrap;
+    background: #fff !important;
+    color: #1d4ed8 !important;
+}
+
+@media (max-width: 760px) {
+    .install-app-card {
+        display: grid;
+    }
+
+    .install-app-card .btn {
+        width: 100%;
+    }
+}

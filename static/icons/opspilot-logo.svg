@@ -1,27 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OpsPilot">
   <defs>
-    <linearGradient id="appBg" x1="72" y1="60" x2="442" y2="452" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="64" y1="56" x2="448" y2="456" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#2563EB"/>
-      <stop offset="0.52" stop-color="#0EA5E9"/>
+      <stop offset=".48" stop-color="#0EA5E9"/>
       <stop offset="1" stop-color="#14B8A6"/>
     </linearGradient>
-    <radialGradient id="shine" cx="30%" cy="18%" r="70%">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".42"/>
-      <stop offset=".38" stop-color="#FFFFFF" stop-opacity=".08"/>
+    <radialGradient id="glow" cx="25%" cy="18%" r="72%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".50"/>
+      <stop offset=".38" stop-color="#FFFFFF" stop-opacity=".11"/>
       <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#020617" flood-opacity=".28"/>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="26" stdDeviation="24" flood-color="#020617" flood-opacity=".30"/>
     </filter>
   </defs>
-  <rect x="34" y="34" width="444" height="444" rx="112" fill="url(#appBg)" filter="url(#softShadow)"/>
-  <rect x="34" y="34" width="444" height="444" rx="112" fill="url(#shine)"/>
-  <path d="M128 256c0-71 57-128 128-128s128 57 128 128-57 128-128 128-128-57-128-128Z"
-        fill="none" stroke="rgba(255,255,255,.38)" stroke-width="16"/>
-  <path d="M155 256c0-56 45-101 101-101 28 0 53 11 71 29"
-        fill="none" stroke="rgba(255,255,255,.58)" stroke-width="13" stroke-linecap="round"/>
+  <rect x="34" y="34" width="444" height="444" rx="116" fill="url(#bg)" filter="url(#shadow)"/>
+  <rect x="34" y="34" width="444" height="444" rx="116" fill="url(#glow)"/>
+  <circle cx="256" cy="256" r="126" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="18"/>
+  <path d="M158 256c0-54 44-98 98-98 29 0 55 12 73 32" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="15" stroke-linecap="round"/>
+  <path d="M354 256c0 54-44 98-98 98-30 0-56-13-74-34" fill="none" stroke="rgba(15,23,42,.18)" stroke-width="15" stroke-linecap="round"/>
   <text x="256" y="294" text-anchor="middle"
         font-family="Inter, Arial, Helvetica, sans-serif"
-        font-size="118" font-weight="950" letter-spacing="-10"
+        font-size="120" font-weight="950" letter-spacing="-10"
         fill="#FFFFFF">OP</text>
 </svg>
