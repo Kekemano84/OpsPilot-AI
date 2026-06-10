@@ -8,27 +8,11 @@
     <p class="muted">Set your yearly holiday allowance and paid working day rules.</p>
 </section>
 
-<section class="holiday-summary-grid">
-    <div class="holiday-summary-card primary">
-        <span>Remaining</span>
-        <strong>{{ summary.remaining_days }} days</strong>
-        <small>{{ summary.remaining_hours }} hours left</small>
-    </div>
-    <div class="holiday-summary-card">
-        <span>Used</span>
-        <strong>{{ summary.used_days }} days</strong>
-        <small>{{ summary.used_hours }} hours used</small>
-    </div>
-    <div class="holiday-summary-card">
-        <span>Entitlement</span>
-        <strong>{{ summary.entitlement_days }} days</strong>
-        <small>{{ summary.entitlement_hours }} hours total</small>
-    </div>
-    <div class="holiday-summary-card">
-        <span>Paid Day</span>
-        <strong>{{ summary.paid_hours_per_day }} hrs</strong>
-        <small>{% if summary.break_paid %}Paid break{% else %}Unpaid break{% endif %}</small>
-    </div>
+<section class="holiday-summary-grid holiday-balance-grid">
+    <div class="holiday-summary-card balance-remaining"><span>Remaining</span><strong>{{ summary.remaining_days }} days</strong><small>{{ summary.remaining_hours }} hours left</small></div>
+    <div class="holiday-summary-card balance-used"><span>Used</span><strong>{{ summary.used_days }} days</strong><small>{{ summary.used_hours }} hours used</small></div>
+    <div class="holiday-summary-card balance-entitlement"><span>Annual Allowance</span><strong>{{ summary.entitlement_days }} days</strong><small>{{ summary.entitlement_hours }} hours total</small></div>
+    <div class="holiday-summary-card balance-paidday"><span>Paid Working Day</span><strong>{{ summary.paid_hours_per_day }} hrs</strong><small>{% if summary.break_paid %}Paid break{% else %}Unpaid break{% endif %}</small></div>
 </section>
 
 <section class="panel holiday-settings-panel" id="holiday-settings">

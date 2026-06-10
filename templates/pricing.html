@@ -2,72 +2,57 @@
 {% block title %}Plans{% endblock %}
 {% block content %}
 
-<section class="hero-card">
-    <div>
-        <p class="eyebrow">Simple plans</p>
-        <h3>Free daily tools. Pro unlocks Yard Check saving, editing, search and export.</h3>
-    </div>
-    <span class="btn light">Current: {{ 'Pro' if user.plan in ['pro','business'] else plan_names[user.plan] }}</span>
-    {% if user.pro_expires_at %}<span class="btn light">Pro until: {{ user.pro_expires_at[:10] }}</span>{% endif %}
+<section class="mobile-more-hero">
+    <p class="eyebrow">OpsPilot AI</p>
+    <h1>Plans</h1>
+    <p class="muted">Simple pricing. Start free, upgrade when you need full operations tools.</p>
 </section>
 
-<section class="pricing-grid two-plans">
-    <div class="price-card">
-        <div class="price-head">
-            <span class="plan-name">Free</span>
+<section class="pricing-two-grid">
+    <div class="pricing-card simple-plan">
+        <div class="plan-head">
+            <span>Free</span>
             <strong>£0</strong>
-            <small>For daily manager use</small>
+            <small>For testing and personal use</small>
         </div>
-        <ul>
-            <li>Dashboard</li>
-            <li>Morning Brief Builder</li>
-            <li>Handover</li>
-            <li>Team</li>
-            <li>Mileage</li>
-            <li>Expenses</li>
-            <li>Yard Check demo</li>
-            <li>Shift Calendar 14 day trial</li>
-            <li class="muted-item">Yard Check demo is not saved</li>
+
+        <ul class="plan-list">
+            <li>✓ Mileage</li>
+            <li>✓ Expenses</li>
+            <li>✓ Holiday Tracker</li>
+            <li>✓ Shift Calendar 14 day trial</li>
+            <li>✓ Yard Check demo</li>
+            <li class="muted">– Demo data may not be saved</li>
         </ul>
-        {% if user.plan == "free" %}
-        <span class="btn ghost full">Current Plan</span>
-        {% else %}
-        <a class="btn ghost full" href="{{ url_for('set_plan', plan='free') }}">Switch to Free Demo</a>
-        {% endif %}
+
+        <a class="btn ghost full" href="{{ url_for('set_plan', plan='free') }}">Use Free</a>
     </div>
 
-    <div class="price-card featured">
-        <div class="price-label">Best value</div>
-        <div class="price-head">
-            <span class="plan-name">Pro</span>
-            <strong>£4.99<span>/month</span></strong>
-            <small>Monthly subscription</small>
+    <div class="pricing-card simple-plan pro-highlight">
+        <div class="plan-head">
+            <span>Pro</span>
+            <strong>£4.99 / month</strong>
+            <small>Full access for logistics and operations users</small>
         </div>
-        <ul>
-            <li>Everything in Free</li>
-            <li>Yard Check saving</li>
-            <li>Yard Check edit/delete</li>
-            <li>Yard Check search</li>
-            <li>Excel export</li>
-            <li>Custom Door/Fence capacity</li>
-            <li>Shift Calendar full access</li>
-            <li>Voice trailer logging</li>
+
+        <ul class="plan-list">
+            <li>✓ Full Shift Calendar</li>
+            <li>✓ Holiday Tracker</li>
+            <li>✓ Yard Check</li>
+            <li>✓ Handover</li>
+            <li>✓ Team Management</li>
+            <li>✓ Yard Settings</li>
+            <li>✓ Excel export</li>
+            <li>✓ Voice trailer logging</li>
         </ul>
 
-        {% if user.plan == "pro" %}
-            <span class="btn primary full">Current Pro Plan</span>
-            <a class="btn ghost full" href="{{ url_for('billing_portal') }}">Manage Subscription</a>
-        {% else %}
-            <a class="btn primary full" href="{{ url_for('billing_checkout_pro') }}">Upgrade to Pro - £4.99/month</a>
-        {% endif %}
+        <a class="btn primary full" href="{{ url_for('set_plan', plan='pro') }}">Upgrade to Pro</a>
     </div>
 </section>
 
-<section class="panel">
+<section class="subscription-info-card">
     <h3>Subscription Information</h3>
-    <p class="muted">
-        OpsPilot AI Pro is billed monthly. You can cancel or change your plan at any time from your account settings.
-    </p>
+    <p>OpsPilot AI Pro is billed monthly. You can cancel or change your plan at any time from your account settings.</p>
 </section>
 
 {% endblock %}

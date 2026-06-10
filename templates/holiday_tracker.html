@@ -8,27 +8,77 @@
     <p class="muted">Track your holiday in days and hours.</p>
 </section>
 
-<section class="holiday-summary-grid">
-    <div class="holiday-summary-card primary">
+<section class="holiday-summary-grid holiday-balance-grid">
+    <div class="holiday-summary-card balance-remaining">
         <span>Remaining</span>
         <strong>{{ summary.remaining_days }} days</strong>
         <small>{{ summary.remaining_hours }} hours left</small>
     </div>
-    <div class="holiday-summary-card">
+
+    <div class="holiday-summary-card balance-used">
         <span>Used</span>
         <strong>{{ summary.used_days }} days</strong>
         <small>{{ summary.used_hours }} hours used</small>
     </div>
-    <div class="holiday-summary-card">
-        <span>Entitlement</span>
+
+    <div class="holiday-summary-card balance-entitlement">
+        <span>Annual Allowance</span>
         <strong>{{ summary.entitlement_days }} days</strong>
         <small>{{ summary.entitlement_hours }} hours total</small>
     </div>
-    <div class="holiday-summary-card">
-        <span>Paid Day</span>
+
+    <div class="holiday-summary-card balance-paidday">
+        <span>Paid Working Day</span>
         <strong>{{ summary.paid_hours_per_day }} hrs</strong>
         <small>{% if summary.break_paid %}Paid break{% else %}Unpaid break{% endif %}</small>
     </div>
+</section>
+
+<section class="panel">
+    <div class="panel-head">
+        <div>
+            <h3>Set Holiday Allowance</h3>
+            <p class="muted">Enter how much holiday you get. OpsPilot converts it into days and hours.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('save_annual_leave_settings') }}" class="form-grid compact-form">
+        <input type="hidden" name="return_to" value="holiday_tracker">
+
+        <div>
+            <label>Holiday allowance</label>
+            <input type="number" step="0.5" name="annual_leave_entitlement" value="{{ user.annual_leave_entitlement or 20 }}">
+        </div>
+
+        <div>
+            <label>Unit</label>
+            <select name="annual_leave_unit">
+                <option value="days" {% if user.annual_leave_unit != 'hours' %}selected{% endif %}>Days</option>
+                <option value="hours" {% if user.annual_leave_unit == 'hours' %}selected{% endif %}>Hours</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Contracted shift hours</label>
+            <input type="number" step="0.25" name="contracted_shift_hours" value="{{ user.contracted_shift_hours or 12 }}">
+        </div>
+
+        <div>
+            <label>Break minutes</label>
+            <input type="number" step="1" name="break_minutes" value="{{ user.break_minutes or 45 }}">
+        </div>
+
+        <div class="wide">
+            <label class="remember-line">
+                <input type="checkbox" name="break_paid" value="yes" {% if user.break_paid %}checked{% endif %}>
+                <span>Break is paid</span>
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn primary" type="submit">Save Allowance</button>
+        </div>
+    </form>
 </section>
 
 <section class="panel">
@@ -46,7 +96,7 @@
         </div>
         <div>
             <label>Holiday Hours</label>
-            <input type="number" step="0.25" name="holiday_hours" placeholder="e.g. 11.25">
+            <input type="number" step="0.25" name="holiday_hours" placeholder="e.g. {{ summary.paid_hours_per_day }}">
         </div>
         <div>
             <label>Holiday Days</label>
@@ -65,7 +115,7 @@
 <section class="panel">
     <div class="panel-head">
         <h3>Holiday Records</h3>
-        <a class="small-btn ghost-small" href="{{ url_for('holiday_settings') }}">Holiday Settings</a>
+        <a class="small-btn ghost-small" href="{{ url_for('holiday_settings') }}">Advanced Settings</a>
     </div>
 
     {% if rows %}

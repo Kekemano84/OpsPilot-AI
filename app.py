@@ -570,97 +570,6 @@ def refresh_user_plan(user):
 
 
 
-def get_paid_hours_per_day(user):
-    try:
-        contracted = float(row_get(user, "contracted_shift_hours") or 12)
-    except Exception:
-        contracted = 12
-    try:
-        break_minutes = float(row_get(user, "break_minutes") or 0)
-    except Exception:
-        break_minutes = 0
-    try:
-        break_paid = int(row_get(user, "break_paid") or 0)
-    except Exception:
-        break_paid = 0
-
-    if break_paid:
-        return contracted
-    return max(contracted - (break_minutes / 60), 0)
-
-
-def annual_leave_summary(user_id):
-    user = current_user()
-    try:
-        entitlement = float(row_get(user, "annual_leave_entitlement") or 20)
-    except Exception:
-        entitlement = 20
-
-    unit = row_get(user, "annual_leave_unit") or "days"
-    paid_hours_day = get_paid_hours_per_day(user)
-
-    if unit == "hours":
-        entitlement_hours = entitlement
-        entitlement_days = entitlement_hours / paid_hours_day if paid_hours_day else 0
-    else:
-        entitlement_days = entitlement
-        entitlement_hours = entitlement_days * paid_hours_day
-
-    year = datetime.today().year
-    conn = get_db()
-    rows = conn.execute("""
-        SELECT status, holiday_hours, holiday_days
-        FROM shift_calendar
-        WHERE user_id = ?
-          AND date BETWEEN ? AND ?
-          AND status = 'Holiday'
-    """, (user_id, f"{year}-01-01", f"{year}-12-31")).fetchall()
-    conn.close()
-
-    used_hours = 0
-    used_days = 0
-    for row in rows:
-        h = float(row["holiday_hours"] or 0) if "holiday_hours" in row.keys() else 0
-        d = float(row["holiday_days"] or 0) if "holiday_days" in row.keys() else 0
-        if h <= 0 and d <= 0:
-            d = 1
-            h = paid_hours_day
-        elif h <= 0 and d > 0:
-            h = d * paid_hours_day
-        elif d <= 0 and h > 0:
-            d = h / paid_hours_day if paid_hours_day else 0
-        used_hours += h
-        used_days += d
-
-    return {
-        "year": year,
-        "unit": unit,
-        "paid_hours_per_day": round(paid_hours_day, 2),
-        "contracted_shift_hours": float(row_get(user, "contracted_shift_hours") or 12),
-        "break_minutes": float(row_get(user, "break_minutes") or 0),
-        "break_paid": int(row_get(user, "break_paid") or 0),
-        "entitlement_days": round(entitlement_days, 2),
-        "entitlement_hours": round(entitlement_hours, 2),
-        "used_days": round(used_days, 2),
-        "used_hours": round(used_hours, 2),
-        "remaining_days": round(max(entitlement_days - used_days, 0), 2),
-        "remaining_hours": round(max(entitlement_hours - used_hours, 0), 2),
-    }
-
-
-def today_shift_status(user_id):
-    today = datetime.today().date().isoformat()
-    conn = get_db()
-    row = conn.execute("""
-        SELECT * FROM shift_calendar
-        WHERE user_id = ? AND date = ?
-        LIMIT 1
-    """, (user_id, today)).fetchone()
-    conn.close()
-    if row:
-        return row
-    return {"date": today, "status": "Not Set", "shift_name": "", "start_time": "", "end_time": "", "notes": "", "source": "Empty"}
-
 def shift_calendar_trial_info(user):
     """Free users can use Shift Calendar for 14 days after account creation."""
     if not user:
@@ -729,58 +638,6 @@ def consume_remember_token():
         session["user_id"] = row["user_id"]
     except Exception:
         return
-
-
-def annual_leave_summary(user_id):
-    user = current_user()
-    entitlement = 28
-    try:
-        entitlement = float(row_get(user, "annual_leave_entitlement") or 28)
-    except Exception:
-        entitlement = 28
-
-    year = datetime.today().year
-    conn = get_db()
-    used_rows = conn.execute("""
-        SELECT COUNT(*) AS used
-        FROM shift_calendar
-        WHERE user_id = ?
-          AND status = 'Holiday'
-          AND date BETWEEN ? AND ?
-    """, (user_id, f"{year}-01-01", f"{year}-12-31")).fetchone()
-    conn.close()
-
-    used = float(used_rows["used"] if used_rows else 0)
-    return {
-        "entitlement": entitlement,
-        "used": used,
-        "remaining": max(entitlement - used, 0),
-        "year": year,
-    }
-
-
-def today_shift_status(user_id):
-    today = datetime.today().date().isoformat()
-    conn = get_db()
-    row = conn.execute("""
-        SELECT * FROM shift_calendar
-        WHERE user_id = ? AND date = ?
-        LIMIT 1
-    """, (user_id, today)).fetchone()
-    conn.close()
-
-    if row:
-        return row
-
-    return {
-        "date": today,
-        "status": "Not Set",
-        "shift_name": "",
-        "start_time": "",
-        "end_time": "",
-        "notes": "",
-        "source": "Empty",
-    }
 
 
 def login_required(fn):
@@ -1378,6 +1235,17 @@ def ensure_holiday_user_columns():
     safe_add_column("users", "break_paid", "INTEGER DEFAULT 0")
     safe_add_column("users", "paid_hours_per_day", "REAL DEFAULT 11.25")
 
+
+def ensure_holiday_schema_all():
+    safe_add_column("users", "annual_leave_entitlement", "REAL DEFAULT 20")
+    safe_add_column("users", "annual_leave_unit", "TEXT DEFAULT 'days'")
+    safe_add_column("users", "contracted_shift_hours", "REAL DEFAULT 12")
+    safe_add_column("users", "break_minutes", "REAL DEFAULT 45")
+    safe_add_column("users", "break_paid", "INTEGER DEFAULT 0")
+    safe_add_column("users", "paid_hours_per_day", "REAL DEFAULT 11.25")
+    safe_add_column("shift_calendar", "holiday_hours", "REAL DEFAULT 0")
+    safe_add_column("shift_calendar", "holiday_days", "REAL DEFAULT 0")
+
 @app.before_request
 def load_remembered_user():
     consume_remember_token()
@@ -1397,6 +1265,165 @@ def ensure_holiday_columns_before_request():
         ensure_holiday_user_columns()
     except Exception:
         pass
+
+
+@app.before_request
+def ensure_holiday_schema_all_before_request():
+    try:
+        ensure_holiday_schema_all()
+    except Exception:
+        pass
+
+
+def get_paid_hours_per_day(user):
+    try:
+        stored = row_get(user, "paid_hours_per_day")
+        if stored not in (None, "") and float(stored) > 0:
+            return round(float(stored), 2)
+    except Exception:
+        pass
+
+    try:
+        contracted = float(row_get(user, "contracted_shift_hours") or 12)
+    except Exception:
+        contracted = 12
+
+    try:
+        break_minutes = float(row_get(user, "break_minutes") or 0)
+    except Exception:
+        break_minutes = 0
+
+    try:
+        break_paid = int(row_get(user, "break_paid") or 0)
+    except Exception:
+        break_paid = 0
+
+    paid = contracted if break_paid else max(contracted - (break_minutes / 60), 0)
+    return round(paid, 2)
+
+
+def annual_leave_summary(user_id):
+    ensure_holiday_schema_all()
+    user = current_user()
+
+    try:
+        entitlement = float(row_get(user, "annual_leave_entitlement") or 20)
+    except Exception:
+        entitlement = 20
+
+    unit = (row_get(user, "annual_leave_unit") or "days").strip().lower()
+    if unit not in ["days", "hours"]:
+        unit = "days"
+
+    paid_hours_day = get_paid_hours_per_day(user)
+
+    if unit == "hours":
+        entitlement_hours = entitlement
+        entitlement_days = entitlement_hours / paid_hours_day if paid_hours_day else 0
+    else:
+        entitlement_days = entitlement
+        entitlement_hours = entitlement_days * paid_hours_day
+
+    year = datetime.today().year
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT status, holiday_hours, holiday_days
+        FROM shift_calendar
+        WHERE user_id = ?
+          AND date BETWEEN ? AND ?
+          AND status = 'Holiday'
+    """, (user_id, f"{year}-01-01", f"{year}-12-31")).fetchall()
+    conn.close()
+
+    used_hours = 0.0
+    used_days = 0.0
+
+    for row in rows:
+        try:
+            h = float(row["holiday_hours"] or 0)
+        except Exception:
+            h = 0.0
+        try:
+            d = float(row["holiday_days"] or 0)
+        except Exception:
+            d = 0.0
+
+        if h <= 0 and d <= 0:
+            d = 1.0
+            h = paid_hours_day
+        elif h <= 0 and d > 0:
+            h = d * paid_hours_day
+        elif d <= 0 and h > 0:
+            d = h / paid_hours_day if paid_hours_day else 0
+
+        used_hours += h
+        used_days += d
+
+    try:
+        contracted = float(row_get(user, "contracted_shift_hours") or 12)
+    except Exception:
+        contracted = 12
+    try:
+        break_minutes = float(row_get(user, "break_minutes") or 0)
+    except Exception:
+        break_minutes = 0
+    try:
+        break_paid = int(row_get(user, "break_paid") or 0)
+    except Exception:
+        break_paid = 0
+
+    return {
+        "year": year,
+        "unit": unit,
+        "paid_hours_per_day": round(paid_hours_day, 2),
+        "contracted_shift_hours": round(contracted, 2),
+        "break_minutes": round(break_minutes, 2),
+        "break_paid": break_paid,
+        "entitlement_days": round(entitlement_days, 2),
+        "entitlement_hours": round(entitlement_hours, 2),
+        "used_days": round(used_days, 2),
+        "used_hours": round(used_hours, 2),
+        "remaining_days": round(max(entitlement_days - used_days, 0), 2),
+        "remaining_hours": round(max(entitlement_hours - used_hours, 0), 2),
+    }
+
+
+def normalize_holiday_amounts(user, holiday_hours, holiday_days):
+    try:
+        holiday_hours = float(holiday_hours or 0)
+    except Exception:
+        holiday_hours = 0
+    try:
+        holiday_days = float(holiday_days or 0)
+    except Exception:
+        holiday_days = 0
+
+    paid_hours = get_paid_hours_per_day(user)
+
+    if holiday_hours <= 0 and holiday_days <= 0:
+        holiday_days = 1
+        holiday_hours = paid_hours
+    elif holiday_hours > 0 and holiday_days <= 0:
+        holiday_days = holiday_hours / paid_hours if paid_hours else 0
+    elif holiday_days > 0 and holiday_hours <= 0:
+        holiday_hours = holiday_days * paid_hours
+
+    return round(holiday_hours, 2), round(holiday_days, 2)
+
+
+def today_shift_status(user_id):
+    today = datetime.today().date().isoformat()
+    conn = get_db()
+    row = conn.execute("""
+        SELECT *
+        FROM shift_calendar
+        WHERE user_id = ? AND date = ?
+        LIMIT 1
+    """, (user_id, today)).fetchone()
+    conn.close()
+    if row:
+        return row
+    return {"date": today, "status": "Not Set", "shift_name": "", "start_time": "", "end_time": "", "notes": "", "source": "Empty"}
 
 @app.route("/")
 @login_required
@@ -2927,51 +2954,55 @@ def yard_settings():
 
 
 
+
 @app.route("/settings/annual-leave", methods=["POST"])
 @login_required
 def save_annual_leave_settings():
+    ensure_holiday_schema_all()
     user = current_user()
-    entitlement = request.form.get("annual_leave_entitlement", "28")
+
     try:
-        entitlement = float(entitlement)
+        entitlement = float(request.form.get("annual_leave_entitlement", "20") or 20)
     except Exception:
-        entitlement = 28
+        entitlement = 20
+
+    unit = (request.form.get("annual_leave_unit", "days") or "days").lower()
+    if unit not in ["days", "hours"]:
+        unit = "days"
+
+    try:
+        contracted = float(request.form.get("contracted_shift_hours", "12") or 12)
+    except Exception:
+        contracted = 12
+
+    try:
+        break_minutes = float(request.form.get("break_minutes", "45") or 45)
+    except Exception:
+        break_minutes = 45
+
+    break_paid = 1 if request.form.get("break_paid") == "yes" else 0
+    paid_hours = contracted if break_paid else max(contracted - (break_minutes / 60), 0)
 
     conn = get_db()
-    conn.execute("UPDATE users SET annual_leave_entitlement = ? WHERE id = ?", (entitlement, user["id"]))
+    conn.execute("""
+        UPDATE users
+        SET annual_leave_entitlement = ?,
+            annual_leave_unit = ?,
+            contracted_shift_hours = ?,
+            break_minutes = ?,
+            break_paid = ?,
+            paid_hours_per_day = ?
+        WHERE id = ?
+    """, (entitlement, unit, contracted, break_minutes, break_paid, paid_hours, user["id"]))
     conn.commit()
     conn.close()
 
     flash("Holiday settings saved.", "success")
     if request.form.get("return_to") == "holiday_settings":
         return redirect(url_for("holiday_settings"))
+    if request.form.get("return_to") == "holiday_tracker":
+        return redirect(url_for("holiday_tracker"))
     return redirect(url_for("settings"))
-
-
-
-def normalize_holiday_amounts(user, holiday_hours, holiday_days):
-    try:
-        holiday_hours = float(holiday_hours or 0)
-    except Exception:
-        holiday_hours = 0
-    try:
-        holiday_days = float(holiday_days or 0)
-    except Exception:
-        holiday_days = 0
-
-    paid_hours = get_paid_hours_per_day(user) if "get_paid_hours_per_day" in globals() else 11.25
-
-    if holiday_hours <= 0 and holiday_days <= 0:
-        holiday_days = 1
-        holiday_hours = paid_hours
-    elif holiday_hours > 0 and holiday_days <= 0:
-        holiday_days = holiday_hours / paid_hours if paid_hours else 0
-    elif holiday_days > 0 and holiday_hours <= 0:
-        holiday_hours = holiday_days * paid_hours
-
-    return round(holiday_hours, 2), round(holiday_days, 2)
-
-
 
 @app.route("/holiday-settings")
 @login_required
@@ -2980,9 +3011,11 @@ def holiday_settings():
     summary = annual_leave_summary(user["id"])
     return render_template("holiday_settings.html", page="holiday_settings", user=user, summary=summary)
 
+
 @app.route("/holiday-tracker")
 @login_required
 def holiday_tracker():
+    ensure_holiday_schema_all()
     user = current_user()
     summary = annual_leave_summary(user["id"])
     year = summary["year"]
@@ -3004,13 +3037,10 @@ def holiday_tracker():
 @app.route("/holiday-tracker/add", methods=["POST"])
 @login_required
 def add_holiday_record():
+    ensure_holiday_schema_all()
     user = current_user()
     date = request.form.get("holiday_date") or datetime.today().strftime("%Y-%m-%d")
-    hours, days = normalize_holiday_amounts(
-        user,
-        request.form.get("holiday_hours"),
-        request.form.get("holiday_days")
-    )
+    hours, days = normalize_holiday_amounts(user, request.form.get("holiday_hours"), request.form.get("holiday_days"))
     notes = request.form.get("notes", "Annual leave").strip() or "Annual leave"
 
     conn = get_db()

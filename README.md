@@ -375,3 +375,11 @@ Added:
 - Service worker cache version updated to opspilot-ai-v2.
 - Dashboard includes Download OpsPilot App card.
 - Install prompt uses beforeinstallprompt with fallback instructions.
+
+## Holiday Balance + Free/Pro Fix
+
+- Holiday Settings values now display correctly in Holiday Tracker.
+- Holiday allowance can be saved directly from Holiday Tracker.
+- Holiday Balance redesigned with Remaining, Used, Annual Allowance and Paid Working Day.
+- Dashboard holiday widget now uses days/hours correctly.
+- Pricing simplified to Free and Pro only.
