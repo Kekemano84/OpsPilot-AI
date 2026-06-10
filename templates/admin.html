@@ -26,12 +26,99 @@
 
 <section class="panel compact-panel">
     <div class="panel-head"><h3>Admin Account Details</h3><span class="pill">Change login</span></div>
-    <form method="POST" action="{{ url_for('admin_account_update') }}" class="form-grid">
+    <form method="POST" action="{{ url_for('admin_account_update') }}" class="form-grid password-safe-form" id="adminPasswordForm">
         <div><label>Name</label><input name="name" value="{{ user.name }}"></div>
         <div><label>Email</label><input type="email" name="email" value="{{ user.email }}"></div>
-        <div><label>New Password</label><input type="password" name="password" placeholder="Leave blank to keep current password"></div>
-        <div class="form-actions"><button class="btn primary" type="submit">Update Admin Login</button></div>
+        <div><label>Current Password</label><input type="password" name="current_password" placeholder="Required only if changing password"></div>
+        <div><label>New Password</label><input type="password" id="newAdminPassword" name="password" placeholder="Leave blank to keep current password"></div>
+        <div><label>Confirm New Password</label><input type="password" id="confirmAdminPassword" name="confirm_password" placeholder="Type the new password again"></div>
+        <div class="password-strength-card">
+            <strong id="passwordStrengthLabel">Password strength: Not set</strong>
+            <ul>
+                <li id="ruleLength">Minimum 8 characters</li>
+                <li id="ruleLower">Lowercase letter</li>
+                <li id="ruleUpper">Uppercase letter</li>
+                <li id="ruleNumber">Number</li>
+                <li id="ruleSpecial">Special character</li>
+                <li id="ruleMatch">Passwords match</li>
+            </ul>
+        </div>
+        <div class="wide"><small class="muted">Last password change: {{ user.password_changed_at[:16].replace("T", " ") if user.password_changed_at else "Not recorded yet" }}</small></div>
+        <div class="form-actions"><button class="btn primary" id="updateAdminLoginBtn" type="submit">Update Admin Login</button></div>
     </form>
+
+<script>
+(function () {
+    const password = document.getElementById("newAdminPassword");
+    const confirm = document.getElementById("confirmAdminPassword");
+    const button = document.getElementById("updateAdminLoginBtn");
+    const label = document.getElementById("passwordStrengthLabel");
+    if (!password || !confirm || !button || !label) return;
+
+    const rules = {
+        length: document.getElementById("ruleLength"),
+        lower: document.getElementById("ruleLower"),
+        upper: document.getElementById("ruleUpper"),
+        number: document.getElementById("ruleNumber"),
+        special: document.getElementById("ruleSpecial"),
+        match: document.getElementById("ruleMatch")
+    };
+
+    function setRule(el, ok) {
+        if (!el) return;
+        el.classList.toggle("ok", ok);
+        el.classList.toggle("bad", !ok);
+    }
+
+    function check() {
+        const p = password.value || "";
+        const c = confirm.value || "";
+
+        if (!p && !c) {
+            label.textContent = "Password strength: Not set";
+            label.className = "";
+            Object.values(rules).forEach(function (el) { if (el) { el.classList.remove("ok", "bad"); } });
+            button.disabled = false;
+            return;
+        }
+
+        const checks = {
+            length: p.length >= 8,
+            lower: /[a-z]/.test(p),
+            upper: /[A-Z]/.test(p),
+            number: /[0-9]/.test(p),
+            special: /[^A-Za-z0-9]/.test(p),
+            match: p && c && p === c
+        };
+
+        setRule(rules.length, checks.length);
+        setRule(rules.lower, checks.lower);
+        setRule(rules.upper, checks.upper);
+        setRule(rules.number, checks.number);
+        setRule(rules.special, checks.special);
+        setRule(rules.match, checks.match);
+
+        const score = ["length", "lower", "upper", "number", "special"].filter(function (k) { return checks[k]; }).length;
+
+        if (score <= 2) {
+            label.textContent = "Password strength: Weak";
+            label.className = "strength-weak";
+        } else if (score <= 4) {
+            label.textContent = "Password strength: Medium";
+            label.className = "strength-medium";
+        } else {
+            label.textContent = "Password strength: Strong";
+            label.className = "strength-strong";
+        }
+
+        button.disabled = !(score >= 3 && checks.match);
+    }
+
+    password.addEventListener("input", check);
+    confirm.addEventListener("input", check);
+    check();
+})();
+</script>
 </section>
 
 <section class="panel compact-panel">

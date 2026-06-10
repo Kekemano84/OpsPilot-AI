@@ -525,6 +525,7 @@ def seed_admin_user():
     add_col("favorite_tools", "TEXT DEFAULT 'morning_brief,mileage,expenses,handover'")
     add_col("last_login_at", "TEXT")
     add_col("inactive_warning_at", "TEXT")
+    add_col("password_changed_at", "TEXT")
     add_col("default_site_id", "INTEGER")
     add_col("brand_color", "TEXT DEFAULT '#2563eb'")
     add_col("business_logo_filename", "TEXT")
@@ -3323,13 +3324,36 @@ def admin_account_update():
     if not is_admin(admin):
         flash("Admin access only.", "error")
         return redirect(url_for("index"))
+
     name = request.form.get("name", "").strip() or admin["name"]
     email = request.form.get("email", "").strip().lower() or admin["email"]
+    current_password = request.form.get("current_password", "")
     password = request.form.get("password", "").strip()
+    confirm_password = request.form.get("confirm_password", "").strip()
+
+    if password:
+        if not check_password_hash(admin["password_hash"], current_password):
+            flash("Current password is incorrect.", "error")
+            return redirect(url_for("admin_dashboard"))
+        if password != confirm_password:
+            flash("New passwords do not match.", "error")
+            return redirect(url_for("admin_dashboard"))
+        has_lower = any(c.islower() for c in password)
+        has_upper = any(c.isupper() for c in password)
+        has_number = any(c.isdigit() for c in password)
+        has_special = any(not c.isalnum() for c in password)
+        if len(password) < 8 or not (has_lower and has_upper and has_number and has_special):
+            flash("New password must be at least 8 characters and include lowercase, uppercase, number and special character.", "error")
+            return redirect(url_for("admin_dashboard"))
+
     conn = get_db()
     try:
         if password:
-            conn.execute("UPDATE users SET name = ?, email = ?, role = 'Admin', password_hash = ? WHERE id = ?", (name, email, generate_password_hash(password), admin["id"]))
+            conn.execute("""
+                UPDATE users
+                SET name = ?, email = ?, role = 'Admin', password_hash = ?, password_changed_at = ?
+                WHERE id = ?
+            """, (name, email, generate_password_hash(password), datetime.now().isoformat(), admin["id"]))
         else:
             conn.execute("UPDATE users SET name = ?, email = ?, role = 'Admin' WHERE id = ?", (name, email, admin["id"]))
         conn.commit()
@@ -3339,6 +3363,7 @@ def admin_account_update():
     finally:
         conn.close()
     return redirect(url_for("admin_dashboard"))
+
 
 @app.route("/yard-settings/location/add", methods=["POST"])
 @login_required

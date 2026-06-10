@@ -2069,3 +2069,44 @@ html.op-loading body {
         min-width: 72px;
     }
 }
+
+
+/* Admin password safety */
+.password-strength-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 14px;
+}
+.password-strength-card strong {
+    display: block;
+    margin-bottom: 8px;
+}
+.password-strength-card ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #64748b;
+}
+.password-strength-card li {
+    margin: 4px 0;
+    font-weight: 700;
+}
+.password-strength-card li.ok {
+    color: #16a34a;
+}
+.password-strength-card li.bad {
+    color: #dc2626;
+}
+.strength-weak {
+    color: #dc2626;
+}
+.strength-medium {
+    color: #f59e0b;
+}
+.strength-strong {
+    color: #16a34a;
+}
+button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
