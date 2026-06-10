@@ -1863,3 +1863,38 @@ html.op-loading body {
 .admin-badge { background: linear-gradient(135deg, #f59e0b, #84cc16); }
 .sidebar-note { margin-top: 14px; }
 @media (max-width:760px){ .sidebar{display:none;} }
+
+
+/* V2.4 login language cleanup: one selector only, tidy top placement */
+.auth-page .auth-language-form {
+    display: none !important;
+}
+.auth-page .public-language-form {
+    max-width: 1180px;
+    margin: 24px auto 14px auto;
+    padding: 0 18px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+}
+.auth-page .public-language-form label {
+    margin: 0;
+    font-weight: 800;
+    color: #334155;
+    white-space: nowrap;
+}
+.auth-page .public-language-form select {
+    width: 190px;
+    min-height: 46px;
+}
+@media (max-width: 780px) {
+    .auth-page .public-language-form {
+        justify-content: center;
+        margin: 12px auto 14px auto;
+        padding: 0 16px;
+    }
+    .auth-page .public-language-form select {
+        width: min(260px, 48vw);
+    }
+}
