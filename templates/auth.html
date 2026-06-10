@@ -22,6 +22,12 @@
     </section>
 
     <section class="auth-card auth-card-modern">
+
+        <div class="free-plan-auth-note">
+            <strong>Free plan available</strong>
+            <span>Create a free account and start using OpsPilot AI immediately. Upgrade to Pro (£4.99) or Business (£6.99) any time.</span>
+        </div>
+
 <div class="brand auth-brand">
             <div class="brand-icon">OP</div>
             <div>
@@ -41,8 +47,7 @@
             <input type="password" name="password" placeholder="{{ t('password_placeholder') }}">
             <button class="btn primary full" type="submit">{{ t('create_account') }}</button>
         </form>
-        <a class="btn ghost full demo-btn" href="{{ url_for('demo_login') }}">{{ t('try_demo') }}</a>
-        <p class="muted auth-switch">{{ t('already_have_account') }} <a href="{{ url_for('login') }}">{{ t('login') }}</a></p>
+<p class="muted auth-switch">{{ t('already_have_account') }} <a href="{{ url_for('login') }}">{{ t('login') }}</a></p>
         {% else %}
         <h2>{{ t('login') }}</h2>
         <form method="POST" class="auth-form">
@@ -56,9 +61,7 @@
             </label>
             <button class="btn primary full" type="submit">{{ t('login') }}</button>
         </form>
-        <a class="btn ghost full demo-btn" href="{{ url_for('demo_login') }}">{{ t('try_demo') }}</a>
-        <p class="muted demo-copy">{{ t('demo_hint') }}</p>
-        <p class="muted auth-switch">{{ t('no_account_yet') }} <a href="{{ url_for('register') }}">{{ t('create_one') }}</a></p>
+<p class="muted auth-switch">{{ t('no_account_yet') }} <a href="{{ url_for('register') }}">{{ t('create_one') }}</a></p>
         {% endif %}
     </section>
 </div>

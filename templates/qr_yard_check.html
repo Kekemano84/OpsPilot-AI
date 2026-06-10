@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ t("qr_yard_check") }}{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero"><div><p class="eyebrow">BUSINESS</p><h3>{{ t("qr_yard_check") }}</h3><p class="muted">Print this QR link for yard audit access.</p></div></section>
+<section class="panel compact-panel qr-panel">
+  <div class="qr-box">{{ link }}</div>
+  <p class="muted">Use any external QR generator/print tool with this link, or copy it into a label.</p>
+  <a class="btn primary" href="{{ link }}">Open Yard Check</a>
+</section>
+{% endblock %}

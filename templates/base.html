@@ -66,6 +66,11 @@
                 <a class="{{ 'active' if page == 'handover' else '' }} nav-link" href="{{ url_for('handover') }}"><span>{{ t("handover") }}</span><span class="pro-badge">PRO</span></a>
                 <a class="{{ 'active' if page == 'daily_shift_log' else '' }} nav-link" href="{{ url_for('daily_shift_log') }}"><span>{{ t("daily_log") }}</span><span class="pro-badge">PRO</span></a>
                 <a class="{{ 'active' if page == 'actions' else '' }} nav-link" href="{{ url_for('actions') }}"><span>{{ t("actions") }}</span><span class="pro-badge">PRO</span></a>
+                <a class="{{ 'active' if page == 'performance' else '' }} nav-link" href="{{ url_for('performance_dashboard') }}"><span>{{ t("performance_dashboard") }}</span><span class="pro-badge">PRO</span></a>
+                <a class="{{ 'active' if page == 'weekly_report' else '' }} nav-link" href="{{ url_for('weekly_report') }}"><span>{{ t("weekly_report") }}</span><span class="pro-badge">PRO</span></a>
+                <a class="{{ 'active' if page == 'ai_email' else '' }} nav-link" href="{{ url_for('ai_email_generator') }}"><span>{{ t("ai_email_generator") }}</span><span class="pro-badge">PRO</span></a>
+                <a class="{{ 'active' if page == 'ai_handover' else '' }} nav-link" href="{{ url_for('ai_handover') }}"><span>{{ t("ai_handover") }}</span><span class="pro-badge">PRO</span></a>
+                <a class="{{ 'active' if page == 'actions' else '' }} nav-link" href="{{ url_for('actions_kanban') }}"><span>{{ t("kanban") }}</span><span class="pro-badge">PRO</span></a>
             </details>
 
             <details class="nav-group" open>
@@ -81,6 +86,10 @@
                 <a class="{{ 'active' if page == 'absence' else '' }} nav-link" href="{{ url_for('absence') }}"><span>{{ t("absence") }}</span><span class="pro-badge">PRO</span></a>
                 <a class="{{ 'active' if page == 'evidence' else '' }} nav-link" href="{{ url_for('evidence') }}"><span>{{ t("evidence") }}</span><span class="pro-badge">PRO</span></a>
                 <a class="{{ 'active' if page == 'search' else '' }} nav-link" href="{{ url_for('global_search') }}"><span>{{ t("search") }}</span></a>
+                <a class="{{ 'active' if page == 'sites' else '' }} nav-link" href="{{ url_for('sites') }}"><span>{{ t("multi_site") }}</span><span class="pro-badge">BUSINESS</span></a>
+                <a class="{{ 'active' if page == 'site_scorecard' else '' }} nav-link" href="{{ url_for('site_scorecard') }}"><span>{{ t("site_scorecard") }}</span><span class="pro-badge">BUSINESS</span></a>
+                <a class="{{ 'active' if page == 'probation_review' else '' }} nav-link" href="{{ url_for('probation_review') }}"><span>{{ t("probation_review") }}</span><span class="pro-badge">BUSINESS</span></a>
+                <a class="{{ 'active' if page == 'qr_yard_check' else '' }} nav-link" href="{{ url_for('qr_yard_check') }}"><span>{{ t("qr_yard_check") }}</span><span class="pro-badge">BUSINESS</span></a>
             </details>
 
             <details class="nav-group">
@@ -88,9 +97,11 @@
                 <a class="{{ 'active' if page == 'settings' else '' }} nav-link" href="{{ url_for('settings') }}"><span>{{ t("profile") if t("profile") != "profile" else "Profile" }}</span></a>
                 <a class="nav-link" href="{{ url_for('settings') }}#language-settings"><span>{{ t("language") if t("language") != "language" else "Language" }}</span></a>
                 <a class="{{ 'active' if page == 'pricing' else '' }} nav-link" href="{{ url_for('pricing') }}"><span>{{ t("subscription") if t("subscription") != "subscription" else t("plans") }}</span></a>
+                <a class="{{ 'active' if page == 'branding' else '' }} nav-link" href="{{ url_for('branding') }}"><span>{{ t("business_branding") }}</span><span class="pro-badge">BUSINESS</span></a>
                 {% if user and user.email == "admin@opspilot.ai" %}
                 <a class="{{ 'active' if page == 'admin' else '' }} nav-link" href="{{ url_for('admin_dashboard') }}"><span>Admin</span><span class="admin-badge">ADMIN</span></a>
                 <a class="{{ 'active' if page == 'admin_billing' else '' }} nav-link" href="{{ url_for('admin_billing') }}"><span>{{ t("billing") if t("billing") != "billing" else "Billing" }}</span><span class="admin-badge">ADMIN</span></a>
+                <a class="{{ 'active' if page == 'admin_revenue' else '' }} nav-link" href="{{ url_for('admin_revenue') }}"><span>Revenue</span><span class="admin-badge">ADMIN</span></a>
                 {% endif %}
                 <a class="nav-link" href="{{ url_for('logout') }}"><span>{{ t("logout") }}</span></a>
             </details>

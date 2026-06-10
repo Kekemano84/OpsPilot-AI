@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Revenue Dashboard{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero"><div><p class="eyebrow">ADMIN</p><h3>Revenue Dashboard</h3><p class="muted">Simple SaaS revenue overview based on active plans.</p></div></section>
+<section class="dashboard-compact-grid">
+  <div class="dash-mini-card"><span>Total Users</span><strong>{{ total }}</strong></div>
+  <div class="dash-mini-card"><span>Active Users</span><strong>{{ active }}</strong></div>
+  <div class="dash-mini-card"><span>Pro Users</span><strong>{{ pro }}</strong><small>£4.99</small></div>
+  <div class="dash-mini-card"><span>Business Users</span><strong>{{ business }}</strong><small>£6.99</small></div>
+  <div class="dash-mini-card"><span>Monthly Revenue</span><strong>£{{ monthly }}</strong></div>
+  <div class="dash-mini-card"><span>Annual Revenue</span><strong>£{{ annual }}</strong></div>
+</section>
+{% endblock %}

@@ -75,7 +75,7 @@ CLASS4_NI_BASIC = 0.06
 CLASS4_NI_HIGHER = 0.02
 
 PLAN_ORDER = {"free": 0, "pro": 1, "business": 2}
-PLAN_NAMES = {"free": "Free", "pro": "Pro", "business": "Pro"}
+PLAN_NAMES = {"free": "Free", "pro": "Pro £4.99", "business": "Business £6.99"}
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID")
@@ -380,6 +380,34 @@ def init_db():
         )
     """)
 
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS sites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            address TEXT,
+            target_score REAL DEFAULT 90,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS probation_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            team_member_id INTEGER,
+            member_name TEXT NOT NULL,
+            review_date TEXT NOT NULL,
+            outcome TEXT NOT NULL,
+            manager TEXT,
+            strengths TEXT,
+            concerns TEXT,
+            next_steps TEXT,
+            generated_review TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
     conn.commit()
 
     safe_add_column("users", "annual_leave_entitlement", "REAL DEFAULT 28")
@@ -418,7 +446,10 @@ def ensure_schema_updates():
             ("fence_end", "INTEGER DEFAULT 120"),
             ("language", "TEXT DEFAULT 'en'"),
             ("last_login_at", "TEXT"),
-            ("inactive_warning_at", "TEXT")
+            ("inactive_warning_at", "TEXT"),
+            ("business_logo_filename", "TEXT"),
+            ("brand_color", "TEXT DEFAULT '#2563eb'"),
+            ("default_site_id", "INTEGER")
         ],
         "team_members": [
             ("permissions", "TEXT DEFAULT 'View only'"),
@@ -439,6 +470,18 @@ def ensure_schema_updates():
         ],
         "photo_records": [
             ("ai_result", "TEXT")
+        ],
+        "daily_shift_logs": [
+            ("site_id", "INTEGER")
+        ],
+        "action_tracker": [
+            ("site_id", "INTEGER")
+        ],
+        "yard_checks": [
+            ("site_id", "INTEGER")
+        ],
+        "handovers": [
+            ("site_id", "INTEGER")
         ]
     }
 
@@ -482,6 +525,9 @@ def seed_admin_user():
     add_col("favorite_tools", "TEXT DEFAULT 'morning_brief,mileage,expenses,handover'")
     add_col("last_login_at", "TEXT")
     add_col("inactive_warning_at", "TEXT")
+    add_col("default_site_id", "INTEGER")
+    add_col("brand_color", "TEXT DEFAULT '#2563eb'")
+    add_col("business_logo_filename", "TEXT")
     add_col("pro_expires_at", "TEXT")
     add_col("pro_reason", "TEXT")
     conn.commit()
@@ -661,8 +707,9 @@ AUTH_TRANSLATIONS = {
 for _lang, _items in AUTH_TRANSLATIONS.items():
     EXTRA_TRANSLATIONS.setdefault(_lang, {}).update(_items)
 
-DEMO_EXTRA_TRANSLATIONS = {'en': {'try_demo': 'Try Demo', 'demo_hint': 'Try the Pro features before registering.', 'export_all_data': 'Export all data', 'backup_data': 'Backup data', 'preview_email': 'Preview email', 'download_pdf': 'Download PDF'}, 'hu': {'try_demo': 'Demo kipróbálása', 'demo_hint': 'Próbáld ki a Pro funkciókat regisztráció előtt.', 'export_all_data': 'Összes adat exportálása', 'backup_data': 'Adatmentés', 'preview_email': 'Email előnézet', 'download_pdf': 'PDF letöltés'}, 'pl': {'try_demo': 'Wypróbuj demo', 'demo_hint': 'Wypróbuj funkcje Pro przed rejestracją.', 'export_all_data': 'Eksportuj wszystkie dane', 'backup_data': 'Kopia danych', 'preview_email': 'Podgląd emaila', 'download_pdf': 'Pobierz PDF'}, 'ro': {'try_demo': 'Încearcă demo', 'demo_hint': 'Testează funcțiile Pro înainte de înregistrare.', 'export_all_data': 'Exportă toate datele', 'backup_data': 'Backup date', 'preview_email': 'Previzualizare email', 'download_pdf': 'Descarcă PDF'}, 'es': {'try_demo': 'Probar demo', 'demo_hint': 'Prueba las funciones Pro antes de registrarte.', 'export_all_data': 'Exportar todos los datos', 'backup_data': 'Copia de datos', 'preview_email': 'Vista previa email', 'download_pdf': 'Descargar PDF'}, 'de': {'try_demo': 'Demo testen', 'demo_hint': 'Teste die Pro-Funktionen vor der Registrierung.', 'export_all_data': 'Alle Daten exportieren', 'backup_data': 'Datensicherung', 'preview_email': 'E-Mail-Vorschau', 'download_pdf': 'PDF herunterladen'}}
-for _lang, _items in DEMO_EXTRA_TRANSLATIONS.items():
+
+V3_TRANSLATIONS = {'en': {'performance_dashboard': 'Shift Performance', 'weekly_report': 'Weekly Manager Report', 'ai_email_generator': 'AI Email Generator', 'ai_handover': 'AI Handover', 'probation_review': 'Probation Review', 'qr_yard_check': 'QR Yard Check', 'site_scorecard': 'Site Scorecard', 'multi_site': 'Multi Site', 'business_branding': 'Business Branding', 'weather': 'Weather', 'kanban': 'Kanban', 'generate': 'Generate', 'site': 'Site', 'sites': 'Sites', 'score': 'Score'}, 'hu': {'performance_dashboard': 'Műszak teljesítmény', 'weekly_report': 'Heti manager riport', 'ai_email_generator': 'AI email generátor', 'ai_handover': 'AI átadás', 'probation_review': 'Próbaidő értékelés', 'qr_yard_check': 'QR yard ellenőrzés', 'site_scorecard': 'Telephely scorecard', 'multi_site': 'Multi Site', 'business_branding': 'Business branding', 'weather': 'Időjárás', 'kanban': 'Kanban', 'generate': 'Generálás', 'site': 'Telephely', 'sites': 'Telephelyek', 'score': 'Pontszám'}, 'pl': {'performance_dashboard': 'Wydajność zmiany', 'weekly_report': 'Tygodniowy raport managera', 'ai_email_generator': 'Generator emaili AI', 'ai_handover': 'AI przekazanie', 'probation_review': 'Ocena okresu próbnego', 'qr_yard_check': 'QR kontrola placu', 'site_scorecard': 'Wynik lokalizacji', 'multi_site': 'Multi Site', 'business_branding': 'Branding biznesowy', 'weather': 'Pogoda', 'kanban': 'Kanban', 'generate': 'Generuj', 'site': 'Lokalizacja', 'sites': 'Lokalizacje', 'score': 'Wynik'}, 'ro': {'performance_dashboard': 'Performanță tură', 'weekly_report': 'Raport manager săptămânal', 'ai_email_generator': 'Generator email AI', 'ai_handover': 'Predare AI', 'probation_review': 'Evaluare perioadă probă', 'qr_yard_check': 'Verificare curte QR', 'site_scorecard': 'Scor locație', 'multi_site': 'Multi Site', 'business_branding': 'Branding business', 'weather': 'Vreme', 'kanban': 'Kanban', 'generate': 'Generează', 'site': 'Locație', 'sites': 'Locații', 'score': 'Scor'}, 'es': {'performance_dashboard': 'Rendimiento del turno', 'weekly_report': 'Informe semanal manager', 'ai_email_generator': 'Generador de emails AI', 'ai_handover': 'Traspaso AI', 'probation_review': 'Evaluación de prueba', 'qr_yard_check': 'Revisión QR de patio', 'site_scorecard': 'Scorecard de sitio', 'multi_site': 'Multi Site', 'business_branding': 'Branding empresarial', 'weather': 'Tiempo', 'kanban': 'Kanban', 'generate': 'Generar', 'site': 'Sitio', 'sites': 'Sitios', 'score': 'Puntuación'}, 'de': {'performance_dashboard': 'Schichtleistung', 'weekly_report': 'Wöchentlicher Managerbericht', 'ai_email_generator': 'KI E-Mail Generator', 'ai_handover': 'KI Übergabe', 'probation_review': 'Probezeitbewertung', 'qr_yard_check': 'QR Hofprüfung', 'site_scorecard': 'Standort-Scorecard', 'multi_site': 'Multi Site', 'business_branding': 'Business Branding', 'weather': 'Wetter', 'kanban': 'Kanban', 'generate': 'Generieren', 'site': 'Standort', 'sites': 'Standorte', 'score': 'Score'}}
+for _lang, _items in V3_TRANSLATIONS.items():
     EXTRA_TRANSLATIONS.setdefault(_lang, {}).update(_items)
 
 for _lang, _items in EXTRA_TRANSLATIONS.items():
@@ -2062,50 +2109,6 @@ def index():
     return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard, week_shifts=get_current_week_shift_rows(user["id"]), today_shift=today_shift_status(user["id"]), annual_leave=annual_leave_summary(user["id"]), favorite_tools=get_favorite_tools(user))
 
 
-
-@app.route("/demo-login")
-def demo_login():
-    """One-click demo account for buyers to test Pro features."""
-    email = "demo@opspilot.ai"
-    conn = get_db()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-    if not user:
-        conn.execute("""
-            INSERT INTO users (name, email, password_hash, plan, business_name, company_name, role, created_at, language, favorite_tools)
-            VALUES (?, ?, ?, 'pro', ?, ?, ?, ?, ?, ?)
-        """, (
-            "Demo Manager",
-            email,
-            generate_password_hash(secrets.token_urlsafe(16)),
-            "OpsPilot Demo",
-            "Demo Warehouse",
-            "Manager",
-            datetime.now().isoformat(),
-            session.get("language", "en"),
-            "morning_brief,mileage,expenses,handover"
-        ))
-        conn.commit()
-        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-
-    # Add a few demo records only once
-    existing_team = conn.execute("SELECT COUNT(*) FROM team_members WHERE user_id=?", (user["id"],)).fetchone()[0]
-    if existing_team == 0:
-        today = datetime.today().date()
-        conn.execute("""INSERT INTO team_members
-            (user_id, name, role, email, phone, notes, status, permissions, probation_start, probation_end, probation_status, licence_expiry, training_type, training_expiry, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (user["id"], "Pete Johnson", "Bay Staff", "pete@example.com", "", "Demo probation reminder", "Active", "View only",
-             (today - timedelta(days=60)).isoformat(), (today + timedelta(days=7)).isoformat(), "In progress",
-             (today + timedelta(days=21)).isoformat(), "MHE", (today + timedelta(days=14)).isoformat(), datetime.now().isoformat()))
-        conn.execute("""INSERT INTO action_tracker (user_id,date,title,owner,due_date,status,priority,source,notes,created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            (user["id"], today.isoformat(), "Check Door 35 damage", "Demo Manager", (today - timedelta(days=1)).isoformat(), "Open", "High", "Demo", "Overdue demo action", datetime.now().isoformat()))
-        conn.commit()
-
-    session["user_id"] = user["id"]
-    conn.close()
-    flash("Demo account opened.", "success")
-    return redirect(url_for("index"))
 
 
 @app.route("/account/export-data")
@@ -4009,6 +4012,271 @@ def set_language():
         conn.execute("UPDATE users SET language=? WHERE id=?", (lang, user["id"]))
         conn.commit(); conn.close()
     return redirect(request.form.get("next") or request.referrer or url_for("login"))
+
+
+def user_sites(user_id):
+    conn = get_db()
+    try:
+        rows = conn.execute("SELECT * FROM sites WHERE user_id=? ORDER BY name ASC", (user_id,)).fetchall()
+        if not rows:
+            conn.execute("INSERT INTO sites (user_id, name, address, target_score, created_at) VALUES (?, ?, ?, ?, ?)",
+                         (user_id, "Main Site", "", 90, datetime.now().isoformat()))
+            conn.commit()
+            rows = conn.execute("SELECT * FROM sites WHERE user_id=? ORDER BY name ASC", (user_id,)).fetchall()
+        return rows
+    finally:
+        conn.close()
+
+def selected_site_id(user):
+    raw = request.args.get("site_id") or row_get(user, "default_site_id")
+    try:
+        return int(raw) if raw else None
+    except Exception:
+        return None
+
+def generate_weekly_report_text(user_id, date_from=None, date_to=None):
+    conn = get_db()
+    if not date_to:
+        date_to = datetime.today().date()
+    if not date_from:
+        date_from = date_to - timedelta(days=6)
+    df, dt = date_from.isoformat(), date_to.isoformat()
+    logs = conn.execute("SELECT * FROM daily_shift_logs WHERE user_id=? AND date BETWEEN ? AND ? ORDER BY date ASC", (user_id, df, dt)).fetchall()
+    actions_open = conn.execute("SELECT COUNT(*) FROM action_tracker WHERE user_id=? AND status!='Closed'", (user_id,)).fetchone()[0]
+    overdue = conn.execute("SELECT COUNT(*) FROM action_tracker WHERE user_id=? AND status!='Closed' AND due_date < ?", (user_id, datetime.today().date().isoformat())).fetchone()[0]
+    conn.close()
+    total_volume = sum([int(row_get(x, "volume", 0) or 0) for x in logs])
+    planned_hc = sum([int(row_get(x, "planned_hc", 0) or 0) for x in logs])
+    actual_hc = sum([int(row_get(x, "actual_hc", 0) or 0) for x in logs])
+    late = sum([int(row_get(x, "late_trailers", 0) or 0) for x in logs])
+    lines = [
+        f"Weekly Manager Report ({df} to {dt})",
+        "",
+        f"Total volume: {total_volume}",
+        f"HC vs Plan: {actual_hc}/{planned_hc}",
+        f"Late trailers: {late}",
+        f"Open actions: {actions_open}",
+        f"Overdue actions: {overdue}",
+        "",
+        "Key shift notes:"
+    ]
+    for x in logs[-7:]:
+        note = (row_get(x, "issues", "") or row_get(x, "notes", "") or "").strip()
+        if note:
+            lines.append(f"- {x['date']} {row_get(x,'shift','')}: {note[:180]}")
+    return "\n".join(lines)
+
+@app.route("/performance")
+@login_required
+@plan_required("pro")
+def performance_dashboard():
+    user = current_user()
+    conn = get_db()
+    summary = conn.execute("""
+        SELECT COALESCE(SUM(volume),0) volume,
+               COALESCE(SUM(planned_hc),0) planned_hc,
+               COALESCE(SUM(actual_hc),0) actual_hc,
+               COALESCE(SUM(late_trailers),0) late_trailers,
+               COUNT(*) logs
+        FROM daily_shift_logs WHERE user_id=?
+    """, (user["id"],)).fetchone()
+    open_actions = conn.execute("SELECT COUNT(*) FROM action_tracker WHERE user_id=? AND status!='Closed'", (user["id"],)).fetchone()[0]
+    overdue = conn.execute("SELECT COUNT(*) FROM action_tracker WHERE user_id=? AND status!='Closed' AND due_date < ?", (user["id"], datetime.today().date().isoformat())).fetchone()[0]
+    conn.close()
+    hc_percent = round((float(summary["actual_hc"] or 0) / float(summary["planned_hc"] or 1)) * 100, 1)
+    volume_per_hc = round(float(summary["volume"] or 0) / float(summary["actual_hc"] or 1), 1)
+    return render_template("performance.html", page="performance", summary=summary, hc_percent=hc_percent, volume_per_hc=volume_per_hc, open_actions=open_actions, overdue=overdue)
+
+@app.route("/weekly-report")
+@login_required
+@plan_required("pro")
+def weekly_report():
+    user = current_user()
+    body = generate_weekly_report_text(user["id"])
+    return render_template("email_export.html", title="Weekly Manager Report", body=body, page="weekly_report")
+
+@app.route("/weekly-report/pdf")
+@login_required
+@plan_required("pro")
+def weekly_report_pdf():
+    user = current_user()
+    body = generate_weekly_report_text(user["id"])
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    story = [Paragraph("Weekly Manager Report", styles["Title"]), Spacer(1, 8)]
+    for line in body.split("\n"):
+        story.append(Paragraph(line or "&nbsp;", styles["Normal"]))
+        story.append(Spacer(1, 4))
+    doc.build(story)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="weekly-manager-report.pdf", mimetype="application/pdf")
+
+@app.route("/ai-email", methods=["GET","POST"])
+@login_required
+@plan_required("pro")
+def ai_email_generator():
+    user=current_user()
+    body=""
+    if request.method=="POST":
+        topic=request.form.get("topic","").strip()
+        tone=request.form.get("tone","professional").strip()
+        detail=request.form.get("details","").strip()
+        body = f"Subject: {topic or 'Operations update'}\n\nHi team,\n\nI wanted to share a {tone} update regarding {topic or 'today’s operation'}.\n\n{detail}\n\nPlease make sure this is followed up and any further issues are raised as soon as possible.\n\nKind regards,\n{user['name']}"
+    return render_template("ai_email.html", page="ai_email", body=body)
+
+@app.route("/ai-handover", methods=["GET","POST"])
+@login_required
+@plan_required("pro")
+def ai_handover():
+    user=current_user()
+    body=""
+    if request.method=="POST":
+        safety=request.form.get("safety","").strip()
+        operations=request.form.get("operations","").strip()
+        dispatch=request.form.get("dispatch","").strip()
+        aob=request.form.get("aob","").strip()
+        body=f"Shift Handover\n\nSafety:\n{safety or 'No safety issues reported.'}\n\nOperations:\n{operations or 'Operation completed as planned.'}\n\nDispatch:\n{dispatch or 'Dispatch update not provided.'}\n\nAOB:\n{aob or 'No further updates.'}\n\nKind regards,\n{user['name']}"
+    return render_template("ai_handover.html", page="ai_handover", body=body)
+
+@app.route("/actions/kanban")
+@login_required
+@plan_required("pro")
+def actions_kanban():
+    user=current_user()
+    conn=get_db()
+    rows=conn.execute("SELECT * FROM action_tracker WHERE user_id=? ORDER BY due_date ASC", (user["id"],)).fetchall()
+    conn.close()
+    columns={"Open":[], "In Progress":[], "Closed":[]}
+    for r in rows:
+        columns.setdefault(row_get(r,"status","Open") or "Open", []).append(r)
+    return render_template("actions_kanban.html", page="actions", columns=columns)
+
+@app.route("/sites", methods=["GET","POST"])
+@login_required
+@plan_required("business")
+def sites():
+    user=current_user()
+    if request.method=="POST":
+        conn=get_db()
+        conn.execute("INSERT INTO sites (user_id,name,address,target_score,created_at) VALUES (?,?,?,?,?)",
+                     (user["id"], request.form.get("name","").strip() or "New Site", request.form.get("address","").strip(), float(request.form.get("target_score") or 90), datetime.now().isoformat()))
+        conn.commit(); conn.close()
+        flash("Site added.", "success")
+        return redirect(url_for("sites"))
+    return render_template("sites.html", page="sites", rows=user_sites(user["id"]))
+
+@app.route("/site-scorecard")
+@login_required
+@plan_required("business")
+def site_scorecard():
+    user=current_user()
+    sites_rows=user_sites(user["id"])
+    score_rows=[]
+    conn=get_db()
+    for s in sites_rows:
+        logs=conn.execute("SELECT COALESCE(SUM(planned_hc),0) planned, COALESCE(SUM(actual_hc),0) actual, COALESCE(SUM(late_trailers),0) late, COALESCE(SUM(volume),0) volume FROM daily_shift_logs WHERE user_id=? AND COALESCE(site_id,0)=?", (user["id"], s["id"])).fetchone()
+        actions=conn.execute("SELECT COUNT(*) FROM action_tracker WHERE user_id=? AND status!='Closed' AND COALESCE(site_id,0)=?", (user["id"], s["id"])).fetchone()[0]
+        planned=float(logs["planned"] or 0); actual=float(logs["actual"] or 0); late=float(logs["late"] or 0)
+        hc_score = 100 if planned == 0 else min(100, (actual/planned)*100)
+        score = max(0, min(100, round(hc_score - (late*2) - actions, 1)))
+        score_rows.append({"site":s, "score":score, "volume":logs["volume"], "late":late, "actions":actions})
+    conn.close()
+    score_rows=sorted(score_rows, key=lambda x:x["score"], reverse=True)
+    return render_template("site_scorecard.html", page="site_scorecard", rows=score_rows)
+
+@app.route("/branding", methods=["GET","POST"])
+@login_required
+@plan_required("business")
+def branding():
+    user=current_user()
+    if request.method=="POST":
+        logo=request.files.get("logo")
+        filename=row_get(user,"business_logo_filename","")
+        if logo and logo.filename:
+            filename=secure_filename(f"{user['id']}_{uuid.uuid4().hex}_{logo.filename}")
+            logo.save(os.path.join(UPLOAD_DIR, filename))
+        conn=get_db()
+        conn.execute("UPDATE users SET business_name=?, company_name=?, brand_color=?, business_logo_filename=? WHERE id=?",
+                     (request.form.get("business_name","").strip(), request.form.get("company_name","").strip(), request.form.get("brand_color","#2563eb").strip(), filename, user["id"]))
+        conn.commit(); conn.close()
+        flash("Branding saved.", "success")
+        return redirect(url_for("branding"))
+    return render_template("branding.html", page="branding", row=user)
+
+@app.route("/probation-review", methods=["GET","POST"])
+@login_required
+@plan_required("business")
+def probation_review():
+    user=current_user()
+    conn=get_db()
+    if request.method=="POST":
+        member_id=request.form.get("team_member_id")
+        member=conn.execute("SELECT * FROM team_members WHERE id=? AND user_id=?", (member_id,user["id"])).fetchone()
+        member_name=row_get(member,"name", request.form.get("member_name",""))
+        outcome=request.form.get("outcome","Pass")
+        strengths=request.form.get("strengths","")
+        concerns=request.form.get("concerns","")
+        next_steps=request.form.get("next_steps","")
+        generated=f"Probation Review\n\nEmployee: {member_name}\nDate: {request.form.get('review_date')}\nOutcome: {outcome}\nManager: {user['name']}\n\nStrengths:\n{strengths}\n\nConcerns:\n{concerns}\n\nNext steps:\n{next_steps}\n\nManager signature: ____________________\nEmployee signature: ____________________"
+        conn.execute("INSERT INTO probation_reviews (user_id,team_member_id,member_name,review_date,outcome,manager,strengths,concerns,next_steps,generated_review,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                     (user["id"], member_id, member_name, request.form.get("review_date") or datetime.today().date().isoformat(), outcome, user["name"], strengths, concerns, next_steps, generated, datetime.now().isoformat()))
+        if member:
+            conn.execute("UPDATE team_members SET probation_status=? WHERE id=? AND user_id=?", (outcome, member_id, user["id"]))
+        conn.commit(); conn.close()
+        flash("Probation review generated.", "success")
+        return redirect(url_for("probation_review"))
+    members=conn.execute("SELECT * FROM team_members WHERE user_id=? ORDER BY name", (user["id"],)).fetchall()
+    rows=conn.execute("SELECT * FROM probation_reviews WHERE user_id=? ORDER BY review_date DESC,id DESC", (user["id"],)).fetchall()
+    conn.close()
+    return render_template("probation_review.html", page="probation_review", members=members, rows=rows)
+
+@app.route("/probation-review/<int:item_id>/pdf")
+@login_required
+@plan_required("business")
+def probation_review_pdf(item_id):
+    user=current_user()
+    conn=get_db()
+    row=conn.execute("SELECT * FROM probation_reviews WHERE id=? AND user_id=?", (item_id,user["id"])).fetchone()
+    conn.close()
+    if not row:
+        flash("Review not found.","error")
+        return redirect(url_for("probation_review"))
+    buffer=BytesIO()
+    doc=SimpleDocTemplate(buffer,pagesize=A4)
+    styles=getSampleStyleSheet()
+    story=[Paragraph("Probation Review",styles["Title"]),Spacer(1,8)]
+    for line in row["generated_review"].split("\n"):
+        story.append(Paragraph(line or "&nbsp;",styles["Normal"]))
+        story.append(Spacer(1,4))
+    doc.build(story); buffer.seek(0)
+    return send_file(buffer,as_attachment=True,download_name=f"probation-review-{row['member_name']}.pdf",mimetype="application/pdf")
+
+@app.route("/qr-yard-check")
+@login_required
+@plan_required("business")
+def qr_yard_check():
+    user=current_user()
+    base=APP_BASE_URL.rstrip("/")
+    link=f"{base}{url_for('yard_check')}"
+    return render_template("qr_yard_check.html", page="qr_yard_check", link=link)
+
+@app.route("/admin/revenue")
+@login_required
+def admin_revenue():
+    admin=current_user()
+    if not is_admin(admin):
+        flash("Admin access only.","error")
+        return redirect(url_for("index"))
+    conn=get_db()
+    total=conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    pro=conn.execute("SELECT COUNT(*) FROM users WHERE plan='pro'").fetchone()[0]
+    business=conn.execute("SELECT COUNT(*) FROM users WHERE plan='business'").fetchone()[0]
+    active=conn.execute("SELECT COUNT(*) FROM users WHERE last_login_at IS NOT NULL").fetchone()[0]
+    conn.close()
+    monthly=round(pro*4.99 + business*6.99, 2)
+    annual=round(monthly*12, 2)
+    return render_template("admin_revenue.html", page="admin_revenue", total=total, pro=pro, business=business, active=active, monthly=monthly, annual=annual)
 
 @app.route("/more")
 @login_required

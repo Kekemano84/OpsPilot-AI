@@ -7,6 +7,18 @@
     <p class="muted">{{ t("more_intro") if t("more_intro") != "more_intro" else "Manager Toolkit tools and settings in one place." }}</p>
 
     <a class="more-tile" href="{{ url_for('export_account_data') }}"><span class="more-icon">⬇️</span><div><strong>{{ t("backup_data") }}</strong><small>{{ t("export_all_data") }}</small></div></a>
+
+    <a class="more-tile" href="{{ url_for('performance_dashboard') }}"><span class="more-icon">📈</span><div><strong>{{ t("performance_dashboard") }}</strong><small>PRO KPI overview</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('weekly_report') }}"><span class="more-icon">📄</span><div><strong>{{ t("weekly_report") }}</strong><small>Generate weekly PDF</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('ai_email_generator') }}"><span class="more-icon">✉️</span><div><strong>{{ t("ai_email_generator") }}</strong><small>Professional emails</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('ai_handover') }}"><span class="more-icon">🤖</span><div><strong>{{ t("ai_handover") }}</strong><small>Clean shift handover</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('actions_kanban') }}"><span class="more-icon">🧩</span><div><strong>{{ t("kanban") }}</strong><small>Action board</small></div><em>PRO</em></a>
+    <a class="more-tile" href="{{ url_for('sites') }}"><span class="more-icon">🏢</span><div><strong>{{ t("multi_site") }}</strong><small>Business sites</small></div><em>BUSINESS</em></a>
+    <a class="more-tile" href="{{ url_for('site_scorecard') }}"><span class="more-icon">🏆</span><div><strong>{{ t("site_scorecard") }}</strong><small>Site ranking</small></div><em>BUSINESS</em></a>
+    <a class="more-tile" href="{{ url_for('probation_review') }}"><span class="more-icon">📝</span><div><strong>{{ t("probation_review") }}</strong><small>Pass / Extend / Fail</small></div><em>BUSINESS</em></a>
+    <a class="more-tile" href="{{ url_for('qr_yard_check') }}"><span class="more-icon">▣</span><div><strong>{{ t("qr_yard_check") }}</strong><small>Yard scan link</small></div><em>BUSINESS</em></a>
+    <a class="more-tile" href="{{ url_for('branding') }}"><span class="more-icon">🎨</span><div><strong>{{ t("business_branding") }}</strong><small>Logo and colour</small></div><em>BUSINESS</em></a>
+
 </section>
 
 <section class="more-grid-app">

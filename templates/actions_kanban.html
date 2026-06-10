@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ t("kanban") }}{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero"><div><p class="eyebrow">PRO</p><h3>{{ t("kanban") }} Action Tracker</h3><p class="muted">Open / In Progress / Closed overview with escalation colours.</p></div><a class="btn light" href="{{ url_for('actions') }}">List View</a></section>
+<section class="kanban-board">
+{% for status, items in columns.items() %}
+  <div class="kanban-column">
+    <h3>{{ status }}</h3>
+    {% for row in items %}
+      {% set days = row.due_date|days_until %}
+      <div class="kanban-card {{ 'risk-red' if days is not none and days < -14 else 'risk-orange' if days is not none and days < -7 else '' }}">
+        <strong>{{ row.title }}</strong>
+        <small>{{ row.owner }} · Due {{ row.due_date }}</small>
+        <span>{{ row.priority }}</span>
+      </div>
+    {% else %}<p class="empty">No actions</p>{% endfor %}
+  </div>
+{% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ t("site_scorecard") }}{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero"><div><p class="eyebrow">BUSINESS</p><h3>{{ t("site_scorecard") }}</h3><p class="muted">Compare sites by HC, late trailers and open actions.</p></div></section>
+<section class="panel compact-panel">
+<div class="simple-list">
+{% for r in rows %}
+  <div class="list-row notice-row {{ 'green' if r.score >= 90 else 'orange' if r.score >= 75 else 'red' }}">
+    <div><strong>{{ r.site.name }}</strong><span>Volume {{ r.volume }} · Late {{ r.late }} · Actions {{ r.actions }}</span></div>
+    <b>{{ r.score }}%</b>
+  </div>
+{% else %}<p class="empty">No site data yet.</p>{% endfor %}
+</div>
+</section>
+{% endblock %}

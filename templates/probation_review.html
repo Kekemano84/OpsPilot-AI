@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ t("probation_review") }}{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero"><div><p class="eyebrow">BUSINESS</p><h3>{{ t("probation_review") }}</h3><p class="muted">Generate Pass / Extend / Fail probation review records.</p></div></section>
+<section class="panel compact-panel">
+<form method="POST" class="form-grid">
+  <div><label>Team Member</label><select name="team_member_id">{% for m in members %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}</select></div>
+  <div><label>Review Date</label><input type="date" name="review_date"></div>
+  <div><label>Outcome</label><select name="outcome"><option>Pass</option><option>Extend</option><option>Fail</option></select></div>
+  <div class="wide"><label>Strengths</label><textarea name="strengths"></textarea></div>
+  <div class="wide"><label>Concerns</label><textarea name="concerns"></textarea></div>
+  <div class="wide"><label>Next Steps</label><textarea name="next_steps"></textarea></div>
+  <div class="form-actions"><button class="btn primary" type="submit">{{ t("generate") }}</button></div>
+</form>
+</section>
+<section class="panel compact-panel"><div class="panel-head"><h3>Generated Reviews</h3></div>
+{% for r in rows %}<div class="handover-card"><div class="panel-head"><strong>{{ r.member_name }} · {{ r.outcome }}</strong><a class="small-btn" href="{{ url_for('probation_review_pdf', item_id=r.id) }}">PDF</a></div><pre class="report-box">{{ r.generated_review }}</pre></div>{% else %}<p class="empty">No reviews yet.</p>{% endfor %}
+</section>
+{% endblock %}

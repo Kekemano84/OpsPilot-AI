@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ t("business_branding") }}{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero"><div><p class="eyebrow">BUSINESS</p><h3>{{ t("business_branding") }}</h3><p class="muted">Add your company/site name, brand colour and logo.</p></div></section>
+<section class="panel compact-panel">
+<form method="POST" enctype="multipart/form-data" class="form-grid">
+  <div><label>Business Name</label><input name="business_name" value="{{ row.business_name or '' }}"></div>
+  <div><label>Company / Site Name</label><input name="company_name" value="{{ row.company_name or '' }}"></div>
+  <div><label>Brand Colour</label><input type="color" name="brand_color" value="{{ row.brand_color or '#2563eb' }}"></div>
+  <div><label>Logo</label><input type="file" name="logo" accept="image/*"></div>
+  <div class="form-actions"><button class="btn primary" type="submit">Save Branding</button></div>
+</form>
+</section>
+{% endblock %}

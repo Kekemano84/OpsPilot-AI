@@ -10,6 +10,14 @@
 </section>
 
 
+<section class="panel compact-panel weather-widget-free">
+  <div class="panel-head"><h3>☁️ {{ t("weather") }}</h3><span class="pill">FREE</span></div>
+  <div class="dashboard-compact-grid">
+    <div class="dash-mini-card"><span>Yard Weather</span><strong>Check local forecast</strong><small>Add a weather API later for live temperature/rain.</small></div>
+  </div>
+</section>
+
+
 {% if notifications %}
 <section class="panel compact-panel notifications-panel">
   <div class="panel-head"><h3>{{ t("notifications") }}</h3><a class="small-btn ghost-small" href="{{ url_for('actions') }}">{{ t("actions") }}</a></div>

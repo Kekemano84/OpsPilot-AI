@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ t("ai_handover") }}{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero"><div><p class="eyebrow">PRO</p><h3>{{ t("ai_handover") }}</h3><p class="muted">Turn rough notes into a clean shift handover.</p></div></section>
+<section class="panel compact-panel">
+<form method="POST" class="form-grid">
+  <div class="wide"><label>Safety</label><textarea name="safety" rows="3"></textarea></div>
+  <div class="wide"><label>Operations</label><textarea name="operations" rows="3"></textarea></div>
+  <div class="wide"><label>Dispatch</label><textarea name="dispatch" rows="3"></textarea></div>
+  <div class="wide"><label>AOB</label><textarea name="aob" rows="3"></textarea></div>
+  <div class="form-actions"><button class="btn primary" type="submit">{{ t("generate") }}</button></div>
+</form>
+</section>
+{% if body %}
+<section class="panel compact-panel"><div class="panel-head"><h3>Handover Preview</h3></div><textarea class="report-box" rows="16">{{ body }}</textarea></section>
+{% endif %}
+{% endblock %}

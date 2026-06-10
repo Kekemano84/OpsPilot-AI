@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ t("ai_email_generator") }}{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero"><div><p class="eyebrow">PRO</p><h3>{{ t("ai_email_generator") }}</h3><p class="muted">Create a professional manager email quickly.</p></div></section>
+<section class="panel compact-panel">
+<form method="POST" class="form-grid">
+  <div><label>Topic</label><input name="topic" placeholder="Missing safety pins / attendance / damage"></div>
+  <div><label>Tone</label><select name="tone"><option>professional</option><option>firm but fair</option><option>friendly</option></select></div>
+  <div class="wide"><label>Details</label><textarea name="details" rows="5" placeholder="Write the facts here..."></textarea></div>
+  <div class="form-actions"><button class="btn primary" type="submit">{{ t("generate") }}</button></div>
+</form>
+</section>
+{% if body %}
+<section class="panel compact-panel"><div class="panel-head"><h3>Email Preview</h3></div><textarea class="report-box" rows="14">{{ body }}</textarea></section>
+{% endif %}
+{% endblock %}

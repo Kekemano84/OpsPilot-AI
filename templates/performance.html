@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ t("performance_dashboard") }}{% endblock %}
+{% block content %}
+<section class="hero-card compact-hero">
+  <div><p class="eyebrow">PRO</p><h3>{{ t("performance_dashboard") }}</h3><p class="muted">HC vs Plan, volume per HC, late trailers and action risk.</p></div>
+  <a class="btn light" href="{{ url_for('weekly_report') }}">📄 {{ t("weekly_report") }}</a>
+</section>
+<section class="dashboard-compact-grid">
+  <div class="dash-mini-card"><span>Total Volume</span><strong>{{ summary.volume }}</strong><small>{{ summary.logs }} logs</small></div>
+  <div class="dash-mini-card"><span>HC vs Plan</span><strong>{{ hc_percent }}%</strong><small>{{ summary.actual_hc }}/{{ summary.planned_hc }}</small></div>
+  <div class="dash-mini-card"><span>Volume / HC</span><strong>{{ volume_per_hc }}</strong><small>Productivity indicator</small></div>
+  <div class="dash-mini-card"><span>Late Trailers</span><strong>{{ summary.late_trailers }}</strong><small>From Daily Logs</small></div>
+  <div class="dash-mini-card"><span>Open Actions</span><strong>{{ open_actions }}</strong><small>Follow-up required</small></div>
+  <div class="dash-mini-card"><span>Overdue</span><strong>{{ overdue }}</strong><small>Escalation risk</small></div>
+</section>
+<section class="panel compact-panel">
+  <div class="panel-head"><h3>Traffic Light</h3></div>
+  <div class="simple-list">
+    <div class="list-row notice-row {{ 'red' if hc_percent < 85 else 'orange' if hc_percent < 95 else 'green' }}"><strong>HC Status</strong><span>{{ hc_percent }}%</span></div>
+    <div class="list-row notice-row {{ 'red' if overdue > 3 else 'orange' if overdue > 0 else 'green' }}"><strong>Action Escalation</strong><span>{{ overdue }} overdue</span></div>
+    <div class="list-row notice-row {{ 'red' if summary.late_trailers > 5 else 'orange' if summary.late_trailers > 0 else 'green' }}"><strong>Late Trailer Trend</strong><span>{{ summary.late_trailers }}</span></div>
+  </div>
+</section>
+{% endblock %}
