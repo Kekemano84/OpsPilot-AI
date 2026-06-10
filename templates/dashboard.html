@@ -2,96 +2,47 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 
-<section class="hero-card">
+<section class="hero-card dashboard-hero-compact">
     <div>
         <p class="eyebrow">Welcome back</p>
-        <h3>Track mileage, expenses, yard checks, handovers and teams in one simple platform.</h3>
+        <h3>Operations dashboard for shifts, checks, mileage, expenses and handovers.</h3>
     </div>
-    
 </section>
 
-{% if today_shift %}
-<section class="today-shift-card status-{{ today_shift.status|lower|replace(' ', '-') }}">
-    <div>
+<section class="dashboard-compact-grid">
+    {% if today_shift %}
+    <a class="dash-mini-card status-{{ today_shift.status|lower|replace(' ', '-') }}" href="{{ url_for('shift_calendar') }}">
         <span>Today</span>
         <strong>{{ today_shift.status or 'Not Set' }}</strong>
-        <small>
-            {% if today_shift.shift_name %}{{ today_shift.shift_name }} · {% endif %}
-            {% if today_shift.start_time or today_shift.end_time %}{{ today_shift.start_time }} - {{ today_shift.end_time }}{% else %}No shift time set{% endif %}
-        </small>
-    </div>
-    <a class="small-btn ghost-small" href="{{ url_for('shift_calendar') }}">Calendar</a>
-</section>
-{% endif %}
+        <small>{% if today_shift.shift_name %}{{ today_shift.shift_name }} · {% endif %}{% if today_shift.start_time or today_shift.end_time %}{{ today_shift.start_time }} - {{ today_shift.end_time }}{% else %}No shift time set{% endif %}</small>
+    </a>
+    {% endif %}
 
-
-{% if annual_leave %}
-<section class="holiday-tracker-card">
-    <div>
-        <span>Holiday Remaining</span>
-        <strong>{{ annual_leave.remaining_days }} days / {{ annual_leave.remaining_hours }} hrs</strong>
-        <small>Used: {{ annual_leave.used_days }} days / {{ annual_leave.used_hours }} hrs · Allowance: {{ annual_leave.entitlement_days }} days</small>
-    </div>
-    <a class="small-btn ghost-small" href="{{ url_for('holiday_tracker') }}">Open</a>
-</section>
-{% endif %}
-
-
-<section class="install-app-card" id="installAppCard">
-    <div class="install-app-copy">
-        <span>Installable App</span>
-        <strong>Download OpsPilot App</strong>
-        <small>Install OpsPilot on your phone, tablet or desktop for the best experience.</small>
-    </div>
-    <button class="btn primary" id="installAppBtn" type="button">Download App</button>
-</section>
-
-
-{% if annual_leave %}
-<section class="holiday-tracker-card">
-    <div>
+    {% if annual_leave %}
+    <a class="dash-mini-card blue" href="{{ url_for('holiday_tracker') }}">
         <span>Holiday Tracker {{ annual_leave.year }}</span>
-        <strong>{{ annual_leave.remaining_days }} days / {{ annual_leave.remaining_hours }} hrs left</strong>
-        <small>Used: {{ annual_leave.used_days }} days / {{ annual_leave.used_hours }} hrs · Paid day: {{ annual_leave.paid_hours_per_day }} hrs</small>
-    </div>
-    <a class="small-btn ghost-small" href="{{ url_for('holiday_tracker') }}">Open</a>
+        <strong>{{ annual_leave.remaining_days }} days</strong>
+        <small>{{ annual_leave.remaining_hours }} hrs left · {{ annual_leave.used_days }} used</small>
+    </a>
+    {% endif %}
+
+    <a class="dash-mini-card" href="{{ url_for('mileage') }}"><span>Mileage Claim</span><strong>{{ totals.mileage_claim|money }}</strong><small>{{ "%.1f"|format(totals.miles) }} miles</small></a>
+    <a class="dash-mini-card" href="{{ url_for('expenses') }}"><span>Expenses</span><strong>{{ totals.expenses|money }}</strong><small>Business costs</small></a>
+    <a class="dash-mini-card" href="{{ url_for('yard_check') }}"><span>Yard Checks</span><strong>{{ recent_yard|length }}</strong><small>Recent records</small></a>
+    <a class="dash-mini-card" href="{{ url_for('handover') }}"><span>Handovers</span><strong>Open</strong><small>Shift reports</small></a>
 </section>
-{% endif %}
 
-
-<section class="mobile-dashboard-tools">
+<section class="mobile-dashboard-tools compact-tools">
     <a href="{{ url_for('morning_brief') }}">📢<span>Brief</span></a>
     <a href="{{ url_for('mileage') }}">🚗<span>Mileage</span></a>
     <a href="{{ url_for('expenses') }}">💷<span>Expenses</span></a>
     <a href="{{ url_for('handover') }}">📝<span>Handover</span></a>
 </section>
 
-
-<section class="today-status-grid">
-    <div class="today-status-card status-{{ today_shift.status|lower|replace(' ', '-') }}">
-        <span>Today</span>
-        <strong>{{ today_shift.status }}</strong>
-        {% if today_shift.shift_name %}<small>{{ today_shift.shift_name }}</small>{% endif %}
-        {% if today_shift.start_time or today_shift.end_time %}
-        <small>{{ today_shift.start_time }} - {{ today_shift.end_time }}</small>
-        {% endif %}
-    </div>
-
-    <div class="today-status-card leave-card">
-        <span>Annual Leave {{ annual_leave.year }}</span>
-        <strong>{{ annual_leave.remaining_days }} days</strong>
-        <small>{{ annual_leave.used_days }} used / {{ annual_leave.entitlement_days }} total</small>
-    </div>
-</section>
-
-
 {% if week_shifts %}
-<section class="panel week-strip-panel">
+<section class="panel week-strip-panel compact-panel">
     <div class="panel-head">
-        <div>
-            <h3>This Week</h3>
-            <p class="muted">Your current shift calendar</p>
-        </div>
+        <div><h3>This Week</h3><p class="muted">Your current shift calendar</p></div>
         <a class="small-btn ghost-small" href="{{ url_for('shift_calendar') }}">Open Calendar</a>
     </div>
     <div class="week-strip">
@@ -99,33 +50,23 @@
         <div class="week-day status-{{ day.status|lower|replace(' ', '-') }}">
             <span>{{ day.date|dateuk }}</span>
             <strong>{{ day.status }}</strong>
-            {% if day.start_time or day.end_time %}
-            <small>{{ day.start_time }} - {{ day.end_time }}</small>
-            {% endif %}
+            {% if day.notes %}<small>{{ day.notes }}</small>{% endif %}
         </div>
         {% endfor %}
     </div>
 </section>
 {% endif %}
 
-
-<section class="stats-grid">
-    <div class="stat-card"><span>Total Expenses</span><strong>{{ totals.expenses|money }}</strong><small>Business costs</small></div>
-    <div class="stat-card"><span>Mileage Claim</span><strong>{{ totals.mileage_claim|money }}</strong><small>{{ "%.1f"|format(totals.miles) }} miles</small></div>
-    <div class="stat-card"><span>Yard Checks</span><strong>{{ recent_yard|length }}</strong><small>Recent trailer records</small></div>
-    <div class="stat-card highlight"><span>Current Plan</span><strong>{{ plan_names[user.plan] }}</strong><small>Upgrade anytime</small></div>
-</section>
-
 <section class="two-col">
-    <div class="panel">
+    <div class="panel compact-panel">
         <div class="panel-head"><h3>Quick Actions</h3></div>
         <div class="simple-list">
-            <div class="list-row"><div><strong>Yard Check</strong><span>Record trailers at doors, fence or yard</span></div><a class="small-btn" href="{{ url_for('yard_check') }}">Open</a></div>
-            <div class="list-row"><div><strong>Morning Brief</strong><span>Build a clear daily shift message</span></div><a class="small-btn" href="{{ url_for('morning_brief') }}">Open</a></div>
+            <div class="list-row"><div><strong>Yard Check</strong><span>Record trailers and locations</span></div><a class="small-btn" href="{{ url_for('yard_check') }}">Open</a></div>
+            <div class="list-row"><div><strong>Morning Brief</strong><span>Build a clear daily message</span></div><a class="small-btn" href="{{ url_for('morning_brief') }}">Open</a></div>
             <div class="list-row"><div><strong>Daily Handover</strong><span>Generate shift handover reports</span></div><a class="small-btn" href="{{ url_for('handover') }}">Open</a></div>
         </div>
     </div>
-    <div class="panel">
+    <div class="panel compact-panel">
         <div class="panel-head"><h3>Recent Yard Checks</h3><a href="{{ url_for('yard_check') }}">Open</a></div>
         <div class="simple-list">
             {% for row in recent_yard %}
@@ -133,18 +74,6 @@
             {% else %}<p class="empty">No yard checks yet.</p>{% endfor %}
         </div>
     </div>
-</section>
-
-<section class="panel">
-    <div class="panel-head"><h3>Recent Mileage</h3><a href="{{ url_for('mileage') }}">View all</a></div>
-    <div class="table-wrap"><table>
-        <thead><tr><th>Date</th><th>Route</th><th>Purpose</th><th>Miles</th><th>Claim</th></tr></thead>
-        <tbody>
-        {% for row in recent_mileage %}
-        <tr><td>{{ row.date|dateuk }}</td><td>{{ row.start_location }} → {{ row.end_location }}</td><td>{{ row.purpose or "-" }}</td><td>{{ "%.1f"|format(row.miles) }}</td><td>{{ (row.miles * 0.55)|money }}</td></tr>
-        {% else %}<tr><td colspan="5" class="empty">No mileage yet.</td></tr>{% endfor %}
-        </tbody>
-    </table></div>
 </section>
 
 {% endblock %}

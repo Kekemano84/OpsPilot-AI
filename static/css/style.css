@@ -1543,3 +1543,67 @@ html.op-loading body {
     .install-app-card strong,
     .today-shift-card strong { font-size: 22px !important; }
 }
+
+/* ===== OpsPilot compact mobile/business polish v3 ===== */
+.export-btn,
+.panel-head .small-btn,
+.hero-card .btn.light {
+    color: #fff !important;
+    background: #2563eb !important;
+    min-width: max-content;
+    white-space: nowrap;
+}
+.danger-btn { background: #dc2626 !important; color: #fff !important; }
+.dashboard-hero-compact { padding: 18px 22px; margin-bottom: 14px; }
+.dashboard-hero-compact h3 { font-size: 22px; line-height: 1.15; }
+.dashboard-compact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.dash-mini-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 16px; box-shadow: 0 10px 26px rgba(15,23,42,.06); display: grid; gap: 4px; }
+.dash-mini-card span { color: var(--muted); font-weight: 900; text-transform: uppercase; font-size: 12px; letter-spacing: .06em; }
+.dash-mini-card strong { font-size: 24px; letter-spacing: -.04em; }
+.dash-mini-card small { color: var(--muted); font-weight: 700; }
+.dash-mini-card.blue { background: linear-gradient(135deg, #0f172a, #2563eb); color: #fff; }
+.dash-mini-card.blue span,
+.dash-mini-card.blue small { color: #dbeafe; }
+.compact-panel { padding: 16px !important; margin-bottom: 14px !important; }
+.compact-form { gap: 10px !important; }
+.team-edit-card { border: 1px solid var(--line); border-radius: 18px; background: #f8fafc; padding: 14px; margin-bottom: 12px; }
+.day-note-form { margin-top: 10px; display: grid; gap: 8px; }
+.day-note-form input { min-height: 38px; font-size: 14px; }
+.day-note-form .small-btn { min-height: 38px; padding: 8px 10px; border-radius: 12px; }
+.op-splash-screen { transition: opacity .25s ease, visibility .25s ease !important; }
+.op-splash-logo { animation-duration: 1s !important; }
+.footer { display: none; }
+
+@media (max-width: 980px) {
+    .main { padding-bottom: 94px !important; }
+    .dashboard-compact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .dash-mini-card { padding: 14px; border-radius: 18px; }
+    .dash-mini-card strong { font-size: 22px; }
+    .hero-card { padding: 16px !important; margin-bottom: 14px !important; border-radius: 22px !important; }
+    .hero-card h3 { font-size: 22px !important; }
+    .panel { padding: 16px !important; margin-bottom: 14px !important; border-radius: 20px !important; }
+    .panel h3 { font-size: 22px !important; margin-bottom: 10px !important; }
+    .panel-head { flex-direction: row !important; align-items: center !important; gap: 10px !important; }
+    .panel-head h3 { margin: 0 !important; }
+    .panel-head .small-btn { min-height: 44px; padding: 10px 12px; font-size: 14px; border-radius: 14px; }
+    label { margin-bottom: 5px; font-size: 15px; }
+    input, select, textarea { min-height: 44px !important; border-radius: 14px !important; font-size: 16px; }
+    .btn, .small-btn { min-height: 44px; border-radius: 14px; }
+    .calendar-day { padding: 12px !important; border-radius: 16px !important; }
+    .mobile-dashboard-tools { gap: 10px !important; margin-bottom: 14px; }
+    .mobile-dashboard-tools a { min-height: 74px !important; border-radius: 18px !important; }
+    .op-splash-logo-wrap { width: 94px !important; height: 94px !important; border-radius: 28px !important; }
+    .op-splash-logo { width: 80px !important; height: 80px !important; }
+    .op-splash-title { font-size: 36px !important; }
+    .op-splash-subtitle { font-size: 18px !important; }
+}
+@media (max-width: 560px) {
+    .main { padding-left: 10px !important; padding-right: 10px !important; }
+    .dashboard-compact-grid { grid-template-columns: 1fr 1fr; }
+    .dash-mini-card { padding: 12px; }
+    .dash-mini-card strong { font-size: 20px; }
+    .dash-mini-card small { font-size: 12px; }
+    .panel-head .small-btn.export-btn, .panel-head .small-btn { font-size: 13px; padding: 9px 10px; }
+    .team-edit-card { padding: 12px; }
+    .footer { display: none !important; }
+}

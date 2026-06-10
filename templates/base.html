@@ -137,10 +137,10 @@
     }
 
     window.addEventListener("load", function () {
-        setTimeout(hideSplash, 3000);
+        setTimeout(hideSplash, 700);
     });
 
-    setTimeout(hideSplash, 4300);
+    setTimeout(hideSplash, 1000);
 })();
 </script>
 
@@ -149,7 +149,7 @@
         <nav class="mobile-bottom-nav">
             <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('index') }}">⌂<span>Home</span></a>
             <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">📅<span>Shifts</span></a>
-            <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">🚛<span>Yard</span></a>
+            <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">🚛<span>Checks</span></a>
             <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">👥<span>Team</span></a>
             <a class="{{ 'active' if page in ['more', 'settings', 'pricing', 'admin', 'billing'] else '' }}" href="{{ url_for('more_menu') }}">☰<span>More</span></a>
         </nav>

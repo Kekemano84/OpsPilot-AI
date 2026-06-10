@@ -358,7 +358,10 @@ def ensure_schema_updates():
         "team_members": [
             ("permissions", "TEXT DEFAULT 'View only'"),
             ("phone", "TEXT"),
-            ("notes", "TEXT")
+            ("notes", "TEXT"),
+            ("probation_start", "TEXT"),
+            ("probation_end", "TEXT"),
+            ("probation_status", "TEXT DEFAULT 'Not set'")
         ],
         "invoices": [
             ("email_sent", "INTEGER DEFAULT 0")
@@ -2808,12 +2811,17 @@ def team():
         notes = request.form.get("notes", "").strip()
         status = request.form.get("status", "Active")
         permissions = request.form.get("permissions", "View only")
+        probation_start = request.form.get("probation_start", "").strip()
+        probation_end = request.form.get("probation_end", "").strip()
+        probation_status = request.form.get("probation_status", "Not set")
         if not name or not role:
             flash("Please enter name and role.", "error")
             return redirect(url_for("team"))
         conn = get_db()
-        conn.execute("INSERT INTO team_members (user_id, name, role, email, phone, notes, status, permissions, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                     (user["id"], name, role, email, phone, notes, status, permissions, datetime.now().isoformat()))
+        conn.execute("""INSERT INTO team_members
+                     (user_id, name, role, email, phone, notes, status, permissions, probation_start, probation_end, probation_status, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     (user["id"], name, role, email, phone, notes, status, permissions, probation_start, probation_end, probation_status, datetime.now().isoformat()))
         conn.commit()
         conn.close()
         flash("Team member added.", "success")
@@ -2823,6 +2831,64 @@ def team():
     conn.close()
     return render_template("team.html", rows=rows, page="team")
 
+
+@app.route("/team/<int:member_id>/update", methods=["POST"])
+@login_required
+@plan_required("business")
+def update_team_member(member_id):
+    user = current_user()
+    fields = {
+        "name": request.form.get("name", "").strip(),
+        "role": request.form.get("role", "").strip(),
+        "email": request.form.get("email", "").strip(),
+        "phone": request.form.get("phone", "").strip(),
+        "status": request.form.get("status", "Active"),
+        "notes": request.form.get("notes", "").strip(),
+        "probation_start": request.form.get("probation_start", "").strip(),
+        "probation_end": request.form.get("probation_end", "").strip(),
+        "probation_status": request.form.get("probation_status", "Not set"),
+    }
+    if not fields["name"] or not fields["role"]:
+        flash("Name and role are required.", "error")
+        return redirect(url_for("team"))
+    conn = get_db()
+    conn.execute("""
+        UPDATE team_members SET name=?, role=?, email=?, phone=?, status=?, notes=?,
+        probation_start=?, probation_end=?, probation_status=?
+        WHERE id=? AND user_id=?
+    """, (fields["name"], fields["role"], fields["email"], fields["phone"], fields["status"], fields["notes"], fields["probation_start"], fields["probation_end"], fields["probation_status"], member_id, user["id"]))
+    conn.commit(); conn.close()
+    flash("Team member updated.", "success")
+    return redirect(url_for("team"))
+
+@app.route("/team/<int:member_id>/delete", methods=["POST"])
+@login_required
+@plan_required("business")
+def delete_team_member(member_id):
+    user = current_user()
+    conn = get_db()
+    conn.execute("DELETE FROM team_members WHERE id=? AND user_id=?", (member_id, user["id"]))
+    conn.commit(); conn.close()
+    flash("Team member deleted.", "success")
+    return redirect(url_for("team"))
+
+@app.route("/shift-calendar/note", methods=["POST"])
+@login_required
+def save_calendar_note():
+    user = current_user()
+    date = request.form.get("date") or datetime.today().strftime("%Y-%m-%d")
+    notes = request.form.get("notes", "").strip()
+    return_to = request.form.get("return_to") or url_for("shift_calendar")
+    conn = get_db()
+    existing = conn.execute("SELECT * FROM shift_calendar WHERE user_id=? AND date=?", (user["id"], date)).fetchone()
+    if existing:
+        conn.execute("UPDATE shift_calendar SET notes=?, source='Manual' WHERE user_id=? AND date=?", (notes, user["id"], date))
+    else:
+        conn.execute("""INSERT INTO shift_calendar (user_id, date, status, shift_name, start_time, end_time, notes, source, created_at)
+                      VALUES (?, ?, 'Not Set', '', '', '', ?, 'Manual', ?)""", (user["id"], date, notes, datetime.now().isoformat()))
+    conn.commit(); conn.close()
+    flash("Calendar note saved.", "success")
+    return redirect(return_to)
 
 
 @app.route("/team/export")
@@ -2834,9 +2900,9 @@ def export_team():
     rows = conn.execute("SELECT * FROM team_members WHERE user_id = ? ORDER BY name ASC", (user["id"],)).fetchall()
     conn.close()
     wb = Workbook(); ws = wb.active; ws.title = "Team Members"
-    ws.append(["Name", "Role", "Email", "Phone", "Status", "Notes", "Created At"])
+    ws.append(["Name", "Role", "Email", "Phone", "Status", "Probation Start", "Probation End", "Probation Status", "Notes", "Created At"])
     for row in rows:
-        ws.append([row["name"], row["role"], row["email"], row_get(row,"phone",""), row["status"], row_get(row,"notes",""), row["created_at"]])
+        ws.append([row["name"], row["role"], row["email"], row_get(row,"phone",""), row["status"], row_get(row,"probation_start",""), row_get(row,"probation_end",""), row_get(row,"probation_status",""), row_get(row,"notes",""), row["created_at"]])
     style_excel_header(ws)
     return excel_response(wb, "team-members.xlsx")
 
