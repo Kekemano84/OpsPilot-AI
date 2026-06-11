@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from email.message import EmailMessage
 from io import BytesIO
+from xml.sax.saxutils import escape
 
 from flask import (
     Flask, render_template, request, redirect, url_for, send_file, flash, session
@@ -18,10 +19,11 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 
 from openpyxl import Workbook
@@ -75,7 +77,7 @@ CLASS4_NI_BASIC = 0.06
 CLASS4_NI_HIGHER = 0.02
 
 PLAN_ORDER = {"free": 0, "pro": 1, "business": 2}
-PLAN_NAMES = {"free": "Free", "pro": "Pro £4.99", "business": "Business £6.99"}
+PLAN_NAMES = {"free": "Free", "pro": "Pro £5.99", "business": "Business £9.99"}
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID")
@@ -1367,21 +1369,193 @@ Return:
 
 
 def create_handover_pdf(row):
+    """Create a robust DHL-style bordered PDF from saved handover data."""
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
+
+    def safe(value):
+        if value is None:
+            return ""
+        return escape(str(value))
+
+    def get_extra():
+        try:
+            data = json.loads(row_get(row, "extra_json", "{}") or "{}")
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    extra = get_extra()
+    section_names = default_handover_section_names()
+    if isinstance(extra.get("section_names"), dict):
+        section_names.update(extra.get("section_names"))
+
+    absence_rows = extra.get("absence_rows", []) or []
+    absence_text = " / ".join([
+        f"{safe(x.get('count',''))} {safe(x.get('type',''))}"
+        for x in absence_rows if x.get("type") or x.get("count")
+    ])
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=8 * mm,
+        leftMargin=8 * mm,
+        topMargin=8 * mm,
+        bottomMargin=8 * mm
+    )
+
     styles = getSampleStyleSheet()
+    body_style = styles["BodyText"]
+    body_style.fontSize = 8
+    body_style.leading = 10
+
+    def p(text, bold=False):
+        text = safe(text).replace("\n", "<br/>")
+        if bold:
+            text = f"<b>{text}</b>"
+        return Paragraph(text, body_style)
+
     story = []
-    story.append(Paragraph("OpsPilot AI - Daily Handover Report", styles["Title"]))
-    story.append(Spacer(1, 8))
-    for line in row["generated_report"].splitlines():
-        if line.strip():
-            story.append(Paragraph(line.replace("&", "&amp;"), styles["BodyText"]))
-        else:
-            story.append(Spacer(1, 6))
+
+    table_data = []
+    table_data.append([p(f"{row['shift'] or 'Day Shift'} Handover", True), "", "", "", "", "", "", "", "", ""])
+    table_data.append([p(f"Date - {row['date']}"), "", p(f"Shift - {row['shift']}"), "", p(f"Attendance - {row['actual_hc']}/{row['planned_hc']}<br/>{absence_text}"), "", "", "", "", ""])
+    table_data.append([p(f"{section_names.get('safety','Safety Metrics')} - {extra.get('safe_shift','')}"), "", "", "", "", "", "", "", "", ""])
+    table_data.append([
+        p(section_names.get("safety", "Safety Metrics"), True),
+        p("SLAMS"), p(extra.get("slams", "")),
+        p("Safety Cons"), p(extra.get("safety_cons", "")),
+        p("LOADS"), p(extra.get("loads", "")),
+        p("Safety Rules"), p(extra.get("safety_rules", "")),
+        ""
+    ])
+
+    # Operations Pick
+    table_data.append([p(section_names.get("operations", "Operations Pick"), True), "", "", "", "", "", "", "", "", ""])
+    ops_lines = [
+        ("Pick Audits Completed", extra.get("pick_audits", "")),
+        ("Slam Plan", extra.get("slam_plan", "")),
+        (f"Picked since {extra.get('picked_since_time','06:00')} hrs", extra.get("picked_since_value", "")),
+        ("Full Well at start & end of Shift", f"{extra.get('full_well_start','')}/{extra.get('full_well_end','')}"),
+        ("Well to cover EMC's at start & end of Shift", f"{extra.get('emc_start','')}/{extra.get('emc_end','')}")
+    ]
+    for label, value in ops_lines:
+        table_data.append([p(f"{label} - {value}"), "", "", "", "", "", "", "", "", ""])
+    table_data.append([p(f"Additional Comments - {extra.get('ops_comments','')}"), "", "", "", "", "", "", "", "", ""])
+    table_data.append(["", "", "", "", "", "", "", "", "", ""])
+
+    # Sort Centre
+    table_data.append([p(section_names.get("sort", "CUK8 Sort Centre"), True), "", "", "", "", "", "", "", "", ""])
+    for label, value in [
+        ("Deliveries Planned", extra.get("deliveries_planned", "")),
+        ("Deliveries Arrived", extra.get("deliveries_arrived", "")),
+        ("Planned Same Day Sortation", extra.get("same_day_sortation", "")),
+        ("Planned Next Day Sortation", extra.get("next_day_sortation", ""))
+    ]:
+        table_data.append([p(f"{label} - {value}"), "", "", "", "", "", "", "", "", ""])
+    table_data.append([p(f"Additional Comments - {extra.get('sort_comments','')}"), "", "", "", "", "", "", "", "", ""])
+    table_data.append(["", "", "", "", "", "", "", "", "", ""])
+
+    # Dispatch
+    table_data.append([p(section_names.get("dispatch", "Dispatch"), True), "", "", "", "", "", "", "", "", ""])
+    table_data.append([p("Collections Arrived"), "", p(extra.get("collections_arrived", "")), "", p("LATE ARRIVALS"), "", p(extra.get("late_arrivals", "")), "", "", ""])
+    table_data.append([p("Trailers On Doors"), "", p(extra.get("trailers_on_doors", "")), "", p("Trailers needed cover today CPT's"), "", "", p(extra.get("trailers_needed_cover", "")), "", ""])
+
+    dispatch_rows = extra.get("dispatch_rows", []) or []
+    if dispatch_rows:
+        table_data.append([p("Carrier / Dispatch", True), "", p("VRID", True), "", p("Completed", True), "", p("On Time", True), "", p("Issue", True), ""])
+        for d in dispatch_rows:
+            table_data.append([
+                p(d.get("carrier", "")), "",
+                p(d.get("vrid", "")), "",
+                p(d.get("completed", "")), "",
+                p(d.get("on_time", "")), "",
+                p(d.get("issue", "")), ""
+            ])
+
+    table_data.append([p(f"Additional Comments - {extra.get('dispatch_comments','')}"), "", "", "", "", "", "", "", "", ""])
+    table_data.append(["", "", "", "", "", "", "", "", "", ""])
+
+    # Suntory
+    table_data.append([p(section_names.get("suntory", "Suntory"), True), "", "", "", "", "", "", "", "", ""])
+    table_data.append([p("Trailers on site to complete"), "", p(extra.get("suntory_trailers_on_site","")), "", p("Completed on shift"), "", p(extra.get("suntory_completed","")), "", p("Left to complete"), p(extra.get("suntory_left",""))])
+    table_data.append([p(f"Additional Comments - {extra.get('suntory_comments','')}"), "", "", "", "", "", "", "", "", ""])
+
+    # AOB
+    table_data.append([p(section_names.get("aob", "AOB"), True), "", "", "", "", "", "", "", "", ""])
+    table_data.append([p(extra.get("aob", "")), "", "", "", "", "", "", "", "", ""])
+
+    col_widths = [31*mm, 10*mm, 31*mm, 10*mm, 31*mm, 10*mm, 31*mm, 10*mm, 31*mm, 10*mm]
+    t = Table(table_data, colWidths=col_widths, repeatRows=0)
+
+    spans = [
+        ("SPAN", (0,0), (9,0)),
+        ("SPAN", (0,1), (1,1)), ("SPAN", (2,1), (3,1)), ("SPAN", (4,1), (9,1)),
+        ("SPAN", (0,2), (9,2)),
+        ("SPAN", (0,4), (9,4)),
+        ("SPAN", (0,5), (9,5)), ("SPAN", (0,6), (9,6)), ("SPAN", (0,7), (9,7)), ("SPAN", (0,8), (9,8)), ("SPAN", (0,9), (9,9)),
+        ("SPAN", (0,10), (9,10)), ("SPAN", (0,11), (9,11)),
+        ("SPAN", (0,12), (9,12)),
+        ("SPAN", (0,13), (9,13)), ("SPAN", (0,14), (9,14)), ("SPAN", (0,15), (9,15)), ("SPAN", (0,16), (9,16)),
+        ("SPAN", (0,17), (9,17)), ("SPAN", (0,18), (9,18)),
+        ("SPAN", (0,19), (9,19)),
+        ("SPAN", (0,20), (1,20)), ("SPAN", (2,20), (3,20)), ("SPAN", (4,20), (5,20)), ("SPAN", (6,20), (9,20)),
+        ("SPAN", (0,21), (1,21)), ("SPAN", (2,21), (3,21)), ("SPAN", (4,21), (6,21)), ("SPAN", (7,21), (9,21)),
+    ]
+
+    # Dispatch activity rows begin at 22 if present.
+    if dispatch_rows:
+        header_row = 22
+        spans += [
+            ("SPAN", (0,header_row), (1,header_row)),
+            ("SPAN", (2,header_row), (3,header_row)),
+            ("SPAN", (4,header_row), (5,header_row)),
+            ("SPAN", (6,header_row), (7,header_row)),
+            ("SPAN", (8,header_row), (9,header_row)),
+        ]
+        for r in range(header_row + 1, header_row + 1 + len(dispatch_rows)):
+            spans += [
+                ("SPAN", (0,r), (1,r)),
+                ("SPAN", (2,r), (3,r)),
+                ("SPAN", (4,r), (5,r)),
+                ("SPAN", (6,r), (7,r)),
+                ("SPAN", (8,r), (9,r)),
+            ]
+        after_dispatch = header_row + 1 + len(dispatch_rows)
+    else:
+        after_dispatch = 22
+
+    spans += [
+        ("SPAN", (0,after_dispatch), (9,after_dispatch)),
+        ("SPAN", (0,after_dispatch+1), (9,after_dispatch+1)),
+        ("SPAN", (0,after_dispatch+2), (9,after_dispatch+2)),
+        ("SPAN", (0,after_dispatch+4), (9,after_dispatch+4)),
+        ("SPAN", (0,after_dispatch+5), (9,after_dispatch+5)),
+        ("SPAN", (0,after_dispatch+6), (9,after_dispatch+6)),
+    ]
+
+    style_commands = [
+        ("GRID", (0,0), (-1,-1), 0.8, colors.black),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("ALIGN", (0,0), (-1,0), "CENTER"),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("BACKGROUND", (0,4), (-1,4), colors.HexColor("#EAF3FF")),
+        ("BACKGROUND", (0,12), (-1,12), colors.HexColor("#EAF3FF")),
+        ("BACKGROUND", (0,19), (-1,19), colors.HexColor("#EAF3FF")),
+        ("BACKGROUND", (0,after_dispatch+2), (-1,after_dispatch+2), colors.HexColor("#EAF3FF")),
+        ("BACKGROUND", (0,after_dispatch+5), (-1,after_dispatch+5), colors.HexColor("#EAF3FF")),
+        ("LEFTPADDING", (0,0), (-1,-1), 4),
+        ("RIGHTPADDING", (0,0), (-1,-1), 4),
+        ("TOPPADDING", (0,0), (-1,-1), 3),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 3),
+    ] + spans
+
+    t.setStyle(TableStyle(style_commands))
+    story.append(t)
+
     doc.build(story)
     buffer.seek(0)
     return buffer
-
 
 def invoice_pdf_buffer(user, invoice):
     buffer = BytesIO()

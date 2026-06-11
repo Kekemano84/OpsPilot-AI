@@ -2281,3 +2281,7 @@ button:disabled {
         justify-content: flex-start;
     }
 }
+
+.vrid-input.force-uppercase {
+    text-transform: uppercase;
+}

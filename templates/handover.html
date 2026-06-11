@@ -167,23 +167,30 @@ function addAbsenceRow() {
         <button type="button" class="small-btn danger-btn" onclick="removeRow(this)">Delete</button>
     `;
     wrap.appendChild(div);
-    applyVridUppercase();
+   
+    applyVridUppercase(); applyVridUppercase();
 }
 
 function applyVridUppercase() {
     const toggle = document.getElementById('vridUppercaseToggle');
     const force = toggle ? toggle.checked : false;
     document.querySelectorAll('.vrid-input').forEach(function(input) {
-        if (!input.dataset.vridBound) {
-            input.addEventListener('input', function() {
-                const t = document.getElementById('vridUppercaseToggle');
-                if (t && t.checked) this.value = this.value.toUpperCase();
-            });
-            input.dataset.vridBound = '1';
-        }
-        if (force) input.value = input.value.toUpperCase();
+        input.classList.toggle('force-uppercase', force);
+        if (force) input.value = (input.value || '').toUpperCase();
     });
 }
+
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.classList && e.target.classList.contains('vrid-input')) {
+        const toggle = document.getElementById('vridUppercaseToggle');
+        if (toggle && toggle.checked) {
+            const pos = e.target.selectionStart;
+            e.target.value = (e.target.value || '').toUpperCase();
+            try { e.target.setSelectionRange(pos, pos); } catch(err) {}
+        }
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     applyVridUppercase();
     const toggle = document.getElementById('vridUppercaseToggle');
@@ -203,6 +210,7 @@ function addDispatchRow() {
         <button type="button" class="small-btn danger-btn" onclick="removeRow(this)">Delete</button>
     `;
     wrap.appendChild(div);
-}
+
+    applyVridUppercase();}
 </script>
 {% endblock %}
