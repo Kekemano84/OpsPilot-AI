@@ -2842,3 +2842,130 @@ button:disabled {
         flex: 1 1 auto;
     }
 }
+
+/* V5.7 Yard board 20-row table */
+.yard-matrix-head {
+    align-items: flex-start;
+    gap: 14px;
+}
+.yard-matrix-scroll {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #dbe7f5;
+    border-radius: 18px;
+    background: #fff;
+}
+.yard-matrix-table {
+    width: 100%;
+    min-width: 1150px;
+    border-collapse: collapse;
+}
+.yard-matrix-table th,
+.yard-matrix-table td {
+    border: 1px solid #dbe7f5;
+    padding: 8px;
+    vertical-align: middle;
+}
+.yard-matrix-table th {
+    background: #eef6ff;
+    text-align: left;
+    color: #53657d;
+    font-weight: 900;
+    font-size: .85rem;
+}
+.yard-matrix-table input,
+.yard-matrix-table select {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 12px;
+    font-size: .95rem;
+}
+.danger-mini {
+    color: #b91c1c !important;
+}
+@media (max-width: 760px) {
+    .yard-matrix-table {
+        min-width: 980px;
+    }
+    .yard-matrix-head {
+        display: block;
+    }
+    .yard-matrix-head .small-btn {
+        margin-top: 12px;
+        width: 100%;
+    }
+}
+
+/* V5.8 Yard editable Door/Fence rows */
+.yard-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+.yard-matrix-table th:nth-child(1),
+.yard-matrix-table td:nth-child(1) {
+    min-width: 150px;
+}
+.yard-matrix-table th:nth-child(2),
+.yard-matrix-table td:nth-child(2) {
+    min-width: 170px;
+}
+.yard-matrix-table th:nth-child(3),
+.yard-matrix-table td:nth-child(3) {
+    min-width: 170px;
+}
+@media (max-width: 760px) {
+    .yard-row-actions .small-btn {
+        flex: 1 1 100%;
+    }
+}
+
+/* V5.9 Yard Board clean 25-row editable table */
+.yard-matrix-head { align-items: flex-start; gap: 14px; }
+.yard-row-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.yard-row-actions.top-actions { margin-top: 0; justify-content: flex-end; }
+.yard-matrix-scroll {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #dbe7f5;
+    border-radius: 18px;
+    background: #fff;
+}
+.yard-matrix-table {
+    width: 100%;
+    min-width: 1050px;
+    border-collapse: collapse;
+}
+.yard-matrix-table th,
+.yard-matrix-table td {
+    border: 1px solid #dbe7f5;
+    padding: 8px;
+    vertical-align: middle;
+}
+.yard-matrix-table th {
+    background: #eef6ff;
+    text-align: left;
+    color: #53657d;
+    font-weight: 900;
+    font-size: .85rem;
+}
+.yard-matrix-table input,
+.yard-matrix-table select {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 12px;
+    font-size: .95rem;
+}
+.yard-matrix-table th:nth-child(1), .yard-matrix-table td:nth-child(1) { min-width: 150px; }
+.yard-matrix-table th:nth-child(2), .yard-matrix-table td:nth-child(2) { min-width: 140px; }
+.yard-matrix-table th:nth-child(3), .yard-matrix-table td:nth-child(3) { min-width: 170px; }
+.yard-matrix-table th:nth-child(4), .yard-matrix-table td:nth-child(4) { min-width: 220px; }
+.yard-matrix-table th:nth-child(6), .yard-matrix-table td:nth-child(6) { min-width: 220px; }
+.danger-mini { color: #b91c1c !important; }
+@media (max-width: 760px) {
+    .yard-matrix-head { display: block; }
+    .yard-row-actions.top-actions { justify-content: flex-start; margin-top: 12px; }
+    .yard-row-actions .small-btn { flex: 1 1 100%; }
+    .yard-matrix-table { min-width: 920px; }
+}

@@ -2973,7 +2973,48 @@ def yard_check():
         saved_count = 0
         conn = get_db()
 
-        if entry_mode == "batch":
+        if entry_mode == "matrix":
+            row_dates = request.form.getlist("row_date[]")
+            trailer_ids = request.form.getlist("row_trailer_id[]")
+            location_types = request.form.getlist("row_location_type[]")
+            location_numbers = request.form.getlist("row_location_number[]")
+            markers = request.form.getlist("row_marker[]")
+            row_statuses = request.form.getlist("row_status[]")
+            row_sources = request.form.getlist("row_source[]")
+            row_notes = request.form.getlist("row_notes[]")
+
+            max_rows = max(
+                len(trailer_ids), len(location_types), len(location_numbers),
+                len(markers), len(row_statuses), len(row_sources), len(row_notes), 0
+            )
+
+            for i in range(max_rows):
+                trailer_id = (trailer_ids[i] if i < len(trailer_ids) else "").strip().upper()
+                location_type = (location_types[i] if i < len(location_types) else "Door").strip() or "Door"
+                location_detail = (location_numbers[i] if i < len(location_numbers) else "").strip()
+                marker = (markers[i] if i < len(markers) else "").strip()
+                row_status = (row_statuses[i] if i < len(row_statuses) else status).strip() or status
+                row_source = (row_sources[i] if i < len(row_sources) else source).strip() or source
+                note_value = (row_notes[i] if i < len(row_notes) else "").strip()
+                row_date = (row_dates[i] if i < len(row_dates) else date).strip() or date
+
+                if not trailer_id and not location_detail and not marker and not note_value:
+                    continue
+
+                if marker and note_value:
+                    combined_notes = f"{marker} - {note_value}"
+                else:
+                    combined_notes = marker or note_value or notes
+
+                if trailer_id:
+                    conn.execute("""
+                        INSERT INTO yard_checks
+                        (user_id, date, trailer_id, location_type, location_detail, status, notes, source, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (user["id"], row_date, trailer_id, location_type, location_detail, row_status, combined_notes, row_source, datetime.now().isoformat()))
+                    saved_count += 1
+
+        elif entry_mode == "batch":
             batch_text = request.form.get("batch_text", "").strip()
             lines = [line.strip() for line in batch_text.splitlines() if line.strip()]
 
@@ -3124,7 +3165,8 @@ def yard_check():
         search=search,
         location_filter=location_filter,
         status_filter=status_filter,
-        page="yard_check"
+        page="yard_check",
+        today_iso=datetime.today().strftime("%Y-%m-%d")
     )
 
 

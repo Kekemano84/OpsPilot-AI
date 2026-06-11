@@ -1,5 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Yard Check{% endblock %}
+{% block title %}Yard Check<script>
+function removeYardMatrixRow(btn) {
+    const body = document.getElementById("yardMatrixBody");
+    if (!body) return;
+    if (body.querySelectorAll("tr").length <= 1) return;
+    btn.closest("tr").remove();
+}
+
+function addYardMatrixRow(typeValue) {
+    const body = document.getElementById("yardMatrixBody");
+    if (!body) return;
+    const base = body.querySelector("tr");
+    const clone = base.cloneNode(true);
+
+    clone.querySelectorAll("input").forEach(input => input.value = "");
+    clone.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+
+    const typeInput = clone.querySelector('[name="row_location_type[]"]');
+    const numberInput = clone.querySelector('[name="row_location_number[]"]');
+
+    if (typeInput) typeInput.value = typeValue || "Other";
+    if (numberInput) {
+        const sameTypeCount = Array.from(body.querySelectorAll('[name="row_location_type[]"]'))
+            .filter(el => (el.value || "").toLowerCase() === (typeValue || "").toLowerCase()).length + 1;
+        numberInput.value = sameTypeCount;
+    }
+
+    body.appendChild(clone);
+}
+</script>
+{% endblock %}
 {% block content %}
 <section class="hero-card pro-hero">
     <div>
@@ -73,158 +103,92 @@
     </form>
 </section>
 
-<section class="two-col">
-    <section class="panel">
-        <div class="panel-head">
-            <div>
-                <h3>Quick Add One Trailer</h3>
-                <p class="muted">Free plan: demo only. Pro/Admin: save one trailer, then continue adding.</p>
-            </div>
-            <span class="pill">PRO</span>
+<section class="panel">
+    <div class="panel-head yard-matrix-head">
+        <div>
+            <h3>Yard Board Entry</h3>
+            <p class="muted">20 Fence rows first and 5 Door rows at the end. Location Type can be Door, Fence or anything else you type.</p>
+        </div>
+        <div class="yard-row-actions top-actions">
+            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Fence')">+ Add Fence Row</button>
+            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Door')">+ Add Door Row</button>
+            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Other')">+ Add Custom Row</button>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="yard-matrix-form">
+        <input type="hidden" name="entry_mode" value="matrix">
+        <input type="hidden" name="date" value="{{ today_iso }}">
+        <input type="hidden" name="source" value="Manual">
+
+        <div class="yard-matrix-scroll">
+            <table class="yard-matrix-table" id="yardMatrixTable">
+                <thead>
+                    <tr>
+                        <th>Location Type</th>
+                        <th>Number / Location</th>
+                        <th>Trailer ID</th>
+                        <th>Custom Marker</th>
+                        <th>Source</th>
+                        <th>Notes</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="yardMatrixBody">
+                    {% for i in range(1, 21) %}
+                    <tr>
+                        <td><input name="row_location_type[]" list="locationTypeList" value="Fence" placeholder="Door / Fence / Other"></td>
+                        <td><input name="row_location_number[]" value="{{ i }}" inputmode="numeric" placeholder="Number or location"></td>
+                        <td><input name="row_trailer_id[]" placeholder="LG072" oninput="this.value=this.value.toUpperCase()"></td>
+                        <td><input name="row_marker[]" placeholder="Loaded / Empty / Seal / Bay note"></td>
+                        <td>
+                            <select name="row_source[]">
+                                <option>Manual</option>
+                                <option>Voice</option>
+                                <option>Photo</option>
+                            </select>
+                        </td>
+                        <td><input name="row_notes[]" placeholder="Optional notes"></td>
+                        <td><button class="small-btn ghost-small danger-mini" type="button" onclick="removeYardMatrixRow(this)">Delete</button></td>
+                    </tr>
+                    {% endfor %}
+                    {% for i in range(1, 6) %}
+                    <tr>
+                        <td><input name="row_location_type[]" list="locationTypeList" value="Door" placeholder="Door / Fence / Other"></td>
+                        <td><input name="row_location_number[]" value="{{ i }}" inputmode="numeric" placeholder="Number or location"></td>
+                        <td><input name="row_trailer_id[]" placeholder="LG072" oninput="this.value=this.value.toUpperCase()"></td>
+                        <td><input name="row_marker[]" placeholder="Loaded / Empty / Seal / Bay note"></td>
+                        <td>
+                            <select name="row_source[]">
+                                <option>Manual</option>
+                                <option>Voice</option>
+                                <option>Photo</option>
+                            </select>
+                        </td>
+                        <td><input name="row_notes[]" placeholder="Optional notes"></td>
+                        <td><button class="small-btn ghost-small danger-mini" type="button" onclick="removeYardMatrixRow(this)">Delete</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="form-grid compact-form">
-            <input type="hidden" name="entry_mode" value="single">
+        <datalist id="locationTypeList">
+            <option value="Door">
+            <option value="Fence">
+            <option value="Other">
+        </datalist>
 
-            <div>
-                <label>Date</label>
-                <input type="date" name="date">
-            </div>
-
-            <div>
-                <label>Trailer ID</label>
-                <input id="voiceTrailer" name="trailer_id" placeholder="LG072" autofocus>
-            </div>
-
-            <div>
-                <label>Location Type</label>
-                <select id="voiceLocationType" name="location_type" onchange="toggleYardLocationFields()">
-                    {% for loc in locations %}
-                    <option>{{ loc }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div id="doorField">
-                <label>Door Number</label>
-                <select id="doorNumber" name="door_number">
-                    {% for door in door_options %}
-                    <option>{{ door }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div id="fenceField" style="display:none;">
-                <label>Fence Number</label>
-                <select id="fenceNumber" name="fence_number">
-                    {% for fence in fence_options %}
-                    <option>{{ fence }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div id="detailField">
-                <label>Location Detail</label>
-                <input id="voiceLocationDetail" name="location_detail" placeholder="Yard 3 / Bay 5">
-            </div>
-
-            <div id="customField" style="display:none;">
-                <label>Custom Location</label>
-                <input name="custom_location" placeholder="Gatehouse / Workshop / Other">
-            </div>
-
-            <div>
-                <label>Status</label>
-                <select name="status">
-                    {% for status in statuses %}
-                    <option>{{ status }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div>
-                <label>Source</label>
-                <select id="voiceSource" name="source">
-                    <option>Manual</option>
-                    <option>Voice</option>
-                    <option>Photo</option>
-                </select>
-            </div>
-
-            <div>
-                <label>Take Photo</label>
-                <input type="file" name="camera_photo" accept="image/*" capture="environment">
-            </div>
-
-            <div>
-                <label>Upload Photo</label>
-                <input type="file" name="photo" accept="image/*">
-            </div>
-
-            <div class="wide">
-                <label>Notes</label>
-                <input id="voiceNotes" name="notes" placeholder="Empty, loaded, seal missing, damage, no issue">
-            </div>
-
-            <div class="wide voice-box">
-                <button class="btn ghost" type="button" onclick="startTrailerVoice()">🎤 Voice Trailer Logging</button>
-                <span id="voiceStatus" class="muted">Say: “LG072 at Door 12 loaded” or “DMC26020 at Fence 18 empty”.</span>
-            </div>
-
-            <div class="form-actions">
-                <button class="btn primary" type="submit">Save & Add Next / Demo</button>
-            </div>
-        </form>
-    </section>
-
-    <section class="panel">
-        <div class="panel-head">
-            <div>
-                <h3>Batch Add Multiple Trailers</h3>
-                <p class="muted">Paste 5, 10, 20+ trailers at once.</p>
-            </div>
-            <span class="pill">FAST</span>
+        <div class="yard-row-actions">
+            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Fence')">+ Add Fence Row</button>
+            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Door')">+ Add Door Row</button>
+            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Other')">+ Add Custom Row</button>
         </div>
 
-        <form method="POST" class="batch-form">
-            <input type="hidden" name="entry_mode" value="batch">
-
-            <div class="form-grid">
-                <div>
-                    <label>Date</label>
-                    <input type="date" name="date">
-                </div>
-                <div>
-                    <label>Status</label>
-                    <select name="status">
-                        {% for status in statuses %}
-                        <option>{{ status }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label>Source</label>
-                    <select name="source">
-                        <option>Manual</option>
-                        <option>Voice</option>
-                        <option>Photo</option>
-                    </select>
-                </div>
-            </div>
-
-            <label>Batch List</label>
-            <div class="voice-box batch-voice-box">
-                <button class="btn ghost" type="button" onclick="startBatchTrailerVoice()">🎤 Bulk Voice Logging</button>
-                <span id="batchVoiceStatus" class="muted">Say multiple trailers in one go: “LG072 Door 12 loaded, DMC26020 Fence 18 empty”.</span>
-            </div>
-            <textarea id="batchText" name="batch_text" rows="12" placeholder="LG072, Door 12, Loaded&#10;DMC26020, Fence 18, Empty&#10;ABC123, Door 44, Seal missing&#10;XYZ999 at Fence 120 no damage"></textarea>
-
-            <label>Default Notes</label>
-            <input name="notes" placeholder="Optional default note">
-
-            <button class="btn primary full" type="submit">Save Batch</button>
-        </form>
-    </section>
+        <div class="form-actions">
+            <button class="btn primary" type="submit">Save Yard Board</button>
+        </div>
+    </form>
 </section>
 
 <section class="panel">
@@ -274,15 +238,35 @@
     </div>
 </section>
 
+
 <script>
-function toggleYardLocationFields() {
-    const type = document.getElementById("voiceLocationType").value;
-    document.getElementById("doorField").style.display = type === "Door" ? "block" : "none";
-    document.getElementById("fenceField").style.display = type === "Fence" ? "block" : "none";
-    const standardDetail = ["Yard", "Loading Bay", "Workshop"].includes(type) || !["Door", "Fence", "Other"].includes(type);
-    document.getElementById("detailField").style.display = standardDetail ? "block" : "none";
-    document.getElementById("customField").style.display = type === "Other" ? "block" : "none";
+function removeYardMatrixRow(btn) {
+    const body = document.getElementById("yardMatrixBody");
+    if (!body) return;
+    if (body.querySelectorAll("tr").length <= 1) return;
+    btn.closest("tr").remove();
 }
-toggleYardLocationFields();
+
+function addYardMatrixRow(typeValue) {
+    const body = document.getElementById("yardMatrixBody");
+    if (!body) return;
+    const base = body.querySelector("tr");
+    const clone = base.cloneNode(true);
+
+    clone.querySelectorAll("input").forEach(input => input.value = "");
+    clone.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+
+    const typeInput = clone.querySelector('[name="row_location_type[]"]');
+    const numberInput = clone.querySelector('[name="row_location_number[]"]');
+
+    if (typeInput) typeInput.value = typeValue || "Other";
+    if (numberInput) {
+        const sameTypeCount = Array.from(body.querySelectorAll('[name="row_location_type[]"]'))
+            .filter(el => (el.value || "").toLowerCase() === (typeValue || "").toLowerCase()).length + 1;
+        numberInput.value = sameTypeCount;
+    }
+
+    body.appendChild(clone);
+}
 </script>
 {% endblock %}
