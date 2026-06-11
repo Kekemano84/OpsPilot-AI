@@ -40,6 +40,14 @@
     </div>
   </div>
 
+  <div class="weather-sun-row">
+    <div><span>🌅 Sunrise</span><strong id="weatherSunrise">--</strong></div>
+    <div><span>🌇 Sunset</span><strong id="weatherSunset">--</strong></div>
+  </div>
+
+  <details class="weather-more-details">
+    <summary>More Details ▼</summary>
+
   <div class="weather-grid-cards">
     <div class="weather-mini-card"><span>💨 Wind</span><strong id="weatherWind">--</strong></div>
     <div class="weather-mini-card"><span>💧 Humidity</span><strong id="weatherHumidity">--</strong></div>
@@ -60,10 +68,7 @@
     <div class="hourly-strip" id="weatherHourly"></div>
   </div>
 
-  <div class="weather-forecast-block">
-    <div class="weather-block-head"><strong>7 day forecast</strong><small>High / low and rain chance</small></div>
-    <div class="daily-list" id="weatherDaily"></div>
-  </div>
+  </details>
 
   <p class="muted weather-help" id="weatherHelp">
     Uses browser location first. If that fails, it uses your saved site/address.
@@ -77,6 +82,7 @@
     temp: $("weatherTemp"), desc: $("weatherDesc"), range: $("weatherRange"),
     rain: $("weatherRain"), source: $("weatherSource"), wind: $("weatherWind"),
     humidity: $("weatherHumidity"), visibility: $("weatherVisibility"), pressure: $("weatherPressure"),
+    sunrise: $("weatherSunrise"), sunset: $("weatherSunset"),
     risk: $("weatherRisk"), riskNote: $("weatherRiskNote"), riskCard: $("weatherRiskCard"),
     hourly: $("weatherHourly"), daily: $("weatherDaily"), help: $("weatherHelp"), btn: $("weatherRefreshBtn")
   };
@@ -104,11 +110,16 @@
     if (value === null || value === undefined) return "--";
     return (Number(value) / 1000).toFixed(1) + " km";
   }
+  function sunTime(value) {
+    if (!value) return "--";
+    return new Date(value).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+  }
   function setLoading() {
     els.temp.textContent = "--°C"; els.desc.textContent = "Loading weather…";
     els.range.textContent = "Checking live forecast"; els.rain.textContent = "--";
     els.source.textContent = "Checking location…"; els.wind.textContent = "--";
     els.humidity.textContent = "--"; els.visibility.textContent = "--"; els.pressure.textContent = "--";
+    if (els.sunrise) els.sunrise.textContent = "--"; if (els.sunset) els.sunset.textContent = "--";
     els.risk.textContent = "Checking…"; els.riskNote.textContent = "Loading yard conditions.";
     els.hourly.innerHTML = ""; els.daily.innerHTML = "";
     if (els.help) els.help.textContent = "Loading weather. Please wait...";
@@ -131,6 +142,8 @@
     els.humidity.textContent = (data.humidity ?? "--") + "%";
     els.visibility.textContent = km(data.visibility);
     els.pressure.textContent = data.pressure ? Math.round(Number(data.pressure)) + " mb" : "--";
+    if (els.sunrise) els.sunrise.textContent = sunTime(today.sunrise);
+    if (els.sunset) els.sunset.textContent = sunTime(today.sunset);
 
     const level = data.risk && data.risk.level ? data.risk.level : "Low";
     els.risk.textContent = level;
@@ -142,11 +155,7 @@
       const wh = weatherText(h.weather_code);
       return `<div class="hourly-card"><span>${hourLabel(h.time)}</span><b>${wh[1]}</b><strong>${Math.round(Number(h.temperature || 0))}°</strong><small>💧 ${h.rain_probability ?? 0}%</small></div>`;
     }).join("");
-
-    els.daily.innerHTML = (data.daily || []).map(function (d, idx) {
-      const wh = weatherText(d.weather_code);
-      return `<div class="daily-row"><strong>${dayLabel(d.date, idx)}</strong><span>${wh[1]} ${wh[0]}</span><small>💧 ${d.rain_probability ?? 0}%</small><b>${Math.round(Number(d.max || 0))}° / ${Math.round(Number(d.min || 0))}°</b></div>`;
-    }).join("");
+    if (els.daily) els.daily.innerHTML = "";
 
     if (els.help) els.help.textContent = "Live weather · " + (data.source || "site location");
   }
@@ -173,17 +182,6 @@
   loadWeather(true);
 })();
 </script>
-{% if notifications %}
-<section class="panel compact-panel notifications-panel">
-  <div class="panel-head"><h3>{{ t("notifications") }}</h3><a class="small-btn ghost-small" href="{{ url_for('actions') }}">{{ t("actions") }}</a></div>
-  <div class="simple-list">
-    {% for n in notifications %}
-    <div class="list-row notice-row {{ n.level }}"><div><strong>{{ n.text }}</strong><span>{{ n.level|title }} priority</span></div></div>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
 <section class="dashboard-compact-grid">
     {% if today_shift %}
     <a class="dash-mini-card status-{{ today_shift.status|lower|replace(' ', '-') }}" href="{{ url_for('shift_calendar') }}">
@@ -205,8 +203,6 @@
     <a class="dash-mini-card" href="{{ url_for('expenses') }}"><span>{{ t("expenses") }}</span><strong>{{ totals.expenses|money }}</strong><small>Business costs</small></a>
     <a class="dash-mini-card" href="{{ url_for('yard_check') }}"><span>Yard Checks</span><strong>{{ recent_yard|length }}</strong><small>Recent records</small></a>
     <a class="dash-mini-card" href="{{ url_for('handover') }}"><span>{{ t("handover") }}</span><strong>Open</strong><small>Shift reports</small></a>
-    <a class="dash-mini-card" href="{{ url_for('daily_shift_log') }}"><span>{{ t("daily_log") }}</span><strong>Shift</strong><small>Full daily record</small></a>
-    <a class="dash-mini-card" href="{{ url_for('actions') }}"><span>{{ t("actions") }}</span><strong>Follow-up</strong><small>Owner, due date, status</small></a>
 </section>
 
 <section class="mobile-dashboard-tools compact-tools">

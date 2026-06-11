@@ -4,7 +4,7 @@
 <section class="mobile-more-hero">
   <p class="eyebrow">OpsPilot AI</p>
   <h1>{{ t("plans") }}</h1>
-  <p class="muted">Free, Pro and Business plans for operations managers.</p>
+  <p class="muted">Simple plans for shift handovers, yard checks and multi-site operations.</p>
 </section>
 
 <section class="pricing-two-grid pricing-three-grid">
@@ -12,54 +12,51 @@
     <div class="plan-head">
       <span>FREE</span>
       <strong>£0</strong>
-      <small>For testing and personal use</small>
+      <small>Start using OpsPilot immediately</small>
     </div>
     <ul class="plan-list">
       <li>✓ Morning Brief</li>
-      <li>✓ Mileage</li>
-      <li>✓ Expenses</li>
-      <li>✓ Basic Calendar</li>
-      <li>✓ Weather Widget</li>
+      <li>✓ Weather</li>
+      <li>✓ Handover trial - 14 days</li>
+      <li>✓ Yard Check trial - 14 days</li>
+      <li>✓ 1 Site</li>
     </ul>
     <a class="btn ghost full" href="{{ url_for('set_plan', plan='free') }}">Use Free</a>
   </div>
 
   <div class="pricing-card simple-plan pro-highlight">
     <div class="plan-head">
-      <span>PRO</span>
+      <span>🔒 PRO</span>
       <strong>£5.99 / month</strong>
-      <small>Full manager toolkit</small>
+      <small>For one site managers</small>
     </div>
     <ul class="plan-list">
-      <li>✓ Handover</li>
-      <li>✓ Daily Shift Log</li>
-      <li>✓ Actions Tracker + Escalation</li>
-      <li>✓ Notifications</li>
-      <li>✓ Kanban Board</li>
-      <li>✓ Shift Performance Dashboard</li>
-      <li>✓ Weekly Manager Report</li>
-      <li>✓ AI Email Generator</li>
-      <li>✓ AI Handover Assistant</li>
-      
+      <li>✓ Everything in Free</li>
+      <li>✓ Unlimited Handover</li>
+      <li>✓ Unlimited Yard Check</li>
+      <li>✓ Yard Settings</li>
+      <li>✓ Team</li>
+      <li>✓ Photo Upload</li>
+      <li>✓ Excel Export</li>
+      <li>✓ 1 Site</li>
     </ul>
     <a class="btn primary full" href="{{ url_for('set_plan', plan='pro') }}">Upgrade to Pro</a>
   </div>
 
   <div class="pricing-card simple-plan business-highlight">
     <div class="plan-head">
-      <span>BUSINESS</span>
+      <span>🔒🔒 BUSINESS</span>
       <strong>£9.99 / month</strong>
-      <small>Multi-site and business controls</small>
+      <small>For multi-site operations</small>
     </div>
     <ul class="plan-list">
-      <li>✓ Multi Site</li>
-      <li>✓ Site Scorecard</li>
-      <li>✓ QR Yard Check</li>
-      <li>✓ Probation Review Generator</li>
-      <li>✓ Business Branding</li>
-      <li>✓ Admin Revenue Dashboard</li>
-      <li>✓ Excel Export</li>
-      
+      <li>✓ Everything in Pro</li>
+      <li>✓ Unlimited Sites</li>
+      <li>✓ Multi-Site Dashboard</li>
+      <li>✓ Site Switching</li>
+      <li>✓ Site-specific Data</li>
+      <li>✓ Shared Teams</li>
+      <li>✓ Business Reporting</li>
     </ul>
     <a class="btn primary full" href="{{ url_for('set_plan', plan='business') }}">Upgrade to Business</a>
   </div>
@@ -67,6 +64,6 @@
 
 <section class="subscription-info-card">
   <h3>Subscription Information</h3>
-  <p>Pro is £5.99/month. Business is £9.99/month. Stripe price IDs can be configured later in Admin Billing.</p>
+  <p>Free stays free. Handover and Yard Check are available for 14 days on Free, then require Pro. Pro is £5.99/month. Business is £9.99/month.</p>
 </section>
 {% endblock %}

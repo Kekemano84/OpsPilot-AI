@@ -822,6 +822,8 @@ def inject_context():
         "user": user,
         "plan_names": PLAN_NAMES,
         "shift_trial": shift_calendar_trial_info(user) if user else None,
+        "handover_trial": feature_trial_info(user, "handover") if user else None,
+        "yard_trial": feature_trial_info(user, "yard_check") if user else None,
         "t": tr,
         "available_languages": [("en","English"),("hu","Magyar"),("pl","Polski"),("ro","Română"),("es","Español"),("de","Deutsch")],
         "current_language": current_language(),
@@ -1069,12 +1071,37 @@ def plan_required(required_plan):
             if is_admin(user):
                 return fn(*args, **kwargs)
             if PLAN_ORDER.get(user["plan"], 0) < PLAN_ORDER.get(required_plan, 0):
+                if required_plan == "pro" and fn.__name__ in ["handover", "yard_check"] and free_trial_allowed(user, fn.__name__):
+                    return fn(*args, **kwargs)
                 flash(f"This feature requires {PLAN_NAMES[required_plan]} plan.", "error")
                 return redirect(url_for("pricing"))
             return fn(*args, **kwargs)
         return wrapper
     return decorator
 
+
+
+
+def feature_trial_info(user, feature_key, days=14):
+    """14 day free trial for selected features, based on account creation date."""
+    if not user:
+        return {"allowed": False, "days_left": 0, "expired": True}
+    if is_admin(user) or PLAN_ORDER.get(row_get(user, "plan", "free"), 0) >= PLAN_ORDER["pro"]:
+        return {"allowed": True, "days_left": None, "expired": False}
+    created_raw = row_get(user, "created_at", None)
+    try:
+        created = datetime.fromisoformat(str(created_raw).replace("Z", ""))
+    except Exception:
+        created = datetime.now()
+    expires = created + timedelta(days=days)
+    now = datetime.now()
+    days_left = max((expires.date() - now.date()).days, 0)
+    allowed = now <= expires
+    return {"allowed": allowed, "days_left": days_left, "expired": not allowed, "expires_at": expires.isoformat(timespec="seconds"), "feature": feature_key}
+
+
+def free_trial_allowed(user, feature_key):
+    return feature_trial_info(user, feature_key).get("allowed", False)
 
 def money(value):
     return f"£{float(value or 0):,.2f}"
@@ -2858,9 +2885,9 @@ def yard_check():
     statuses = ["Recorded", "Checked", "Issue Found", "Missing", "Moved", "Loaded", "Empty"]
 
     if request.method == "POST":
-        if PLAN_ORDER[user["plan"]] < PLAN_ORDER["pro"] and not is_admin(user):
-            flash("Free Yard Check demo: form works, but records are not saved. Upgrade to Pro to save and export.", "error")
-            return redirect(url_for("yard_check"))
+        if PLAN_ORDER[user["plan"]] < PLAN_ORDER["pro"] and not is_admin(user) and not free_trial_allowed(user, "yard_check"):
+            flash("Your 14-day Yard Check trial has ended. Upgrade to Pro to continue saving Yard Checks.", "error")
+            return redirect(url_for("pricing"))
 
         date = request.form.get("date") or datetime.today().strftime("%Y-%m-%d")
         entry_mode = request.form.get("entry_mode", "single")

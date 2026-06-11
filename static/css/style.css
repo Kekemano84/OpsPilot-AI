@@ -2499,3 +2499,16 @@ button:disabled {
 .daily-row b{text-align:right}
 @media(max-width:900px){.weather-hero-card,.weather-main-row{flex-direction:column}.weather-grid-cards{grid-template-columns:repeat(2,1fr)}.daily-row{grid-template-columns:1fr 1fr}.daily-row b{text-align:left}}
 @media(max-width:520px){.weather-grid-cards{grid-template-columns:1fr}.weather-main-row>strong{font-size:4rem}}
+
+/* V4.4 simplified weather + sidebar */
+.weather-sun-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px}
+.weather-sun-row>div{padding:16px;border-radius:22px;background:linear-gradient(135deg,#eff6ff,#ecfeff);border:1px solid #dbeafe}
+.weather-sun-row span{display:block;color:#64748b;font-weight:900;margin-bottom:6px}
+.weather-sun-row strong{font-size:1.4rem;color:#0f172a}
+.weather-more-details{margin-top:14px}
+.weather-more-details>summary{cursor:pointer;font-weight:1000;padding:14px 16px;border-radius:18px;background:#f8fafc;border:1px solid #e2e8f0;color:#2563eb;list-style:none}
+.weather-more-details>summary::-webkit-details-marker{display:none}
+.weather-more-details[open]>summary{margin-bottom:12px}
+.lock-chip{font-size:.85rem;font-weight:1000;border-radius:999px;padding:2px 7px;background:#eef2ff;color:#1e3a8a;white-space:nowrap}
+.final-sidebar .business-chip{display:none!important}
+@media(max-width:700px){.weather-sun-row{grid-template-columns:1fr}}

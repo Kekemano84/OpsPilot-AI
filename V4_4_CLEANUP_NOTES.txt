@@ -1,0 +1,10 @@
+OpsPilot V4.4 Clean SaaS Update
+
+Implemented:
+- Weather simplified: 7 day forecast removed. Sunrise/Sunset added. Details hidden under More Details.
+- Sidebar simplified: removed AI Tools, Daily Log, Actions, Shift Performance, Weekly Report, Absence, Evidence, Site Scorecard, Probation Review, QR Yard Check.
+- Plans updated: Free, Pro £5.99, Business £9.99.
+- Free: Morning Brief, Weather, Handover 14-day trial, Yard Check 14-day trial.
+- Pro: Unlimited Handover/Yard Check, Yard Settings, Team, Photo Upload, Excel Export.
+- Business: Multi Site, site-specific data, shared teams, reporting.
+- Handover and Yard Check trial helper added for Free users.
