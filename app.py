@@ -2182,7 +2182,46 @@ def index():
     recent_mileage = conn.execute("SELECT * FROM mileage WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     recent_yard = conn.execute("SELECT * FROM yard_checks WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5", (user["id"],)).fetchall()
     conn.close()
-    return render_template("dashboard.html", page="dashboard", totals=totals(user["id"]), recent_mileage=recent_mileage, recent_yard=recent_yard, week_shifts=get_current_week_shift_rows(user["id"]), today_shift=today_shift_status(user["id"]), annual_leave=annual_leave_summary(user["id"]), favorite_tools=get_favorite_tools(user))
+    today = datetime.today().date()
+    wanted_days = [today - timedelta(days=1), today, today + timedelta(days=1)]
+    day_start = wanted_days[0].isoformat()
+    day_end = wanted_days[-1].isoformat()
+    conn = get_db()
+    day_rows = conn.execute("""
+        SELECT * FROM shift_calendar
+        WHERE user_id = ? AND date BETWEEN ? AND ?
+        ORDER BY date ASC
+    """, (user["id"], day_start, day_end)).fetchall()
+    conn.close()
+    by_date = {row["date"]: row for row in day_rows}
+    dashboard_days = []
+    for label, day in [("Yesterday", wanted_days[0]), ("Today", wanted_days[1]), ("Tomorrow", wanted_days[2])]:
+        key = day.isoformat()
+        row = by_date.get(key)
+        dashboard_days.append(row if row else {
+            "date": key,
+            "label": label,
+            "status": "Not Set",
+            "shift_name": "",
+            "start_time": "",
+            "end_time": "",
+            "notes": "",
+        })
+        if row:
+            dashboard_days[-1] = dict(row)
+            dashboard_days[-1]["label"] = label
+
+    return render_template(
+        "dashboard.html",
+        page="dashboard",
+        totals=totals(user["id"]),
+        recent_mileage=recent_mileage,
+        recent_yard=recent_yard,
+        dashboard_days=dashboard_days,
+        today_shift=today_shift_status(user["id"]),
+        annual_leave=annual_leave_summary(user["id"]),
+        favorite_tools=get_favorite_tools(user)
+    )
 
 
 

@@ -84,6 +84,7 @@
             <details class="nav-group" open>
                 <summary><span class="nav-ico">📋</span><span>{{ t("manager_toolkit") }}</span></summary>
                 <a class="{{ 'active' if page == 'morning_brief' else '' }} nav-link" href="{{ url_for('morning_brief') }}"><span class="nav-ico">☀️</span><span>{{ t("morning_brief") }}</span></a>
+                <a class="{{ 'active' if page == 'shift_calendar' else '' }} nav-link" href="{{ url_for('shift_calendar') }}"><span class="nav-ico">📅</span><span>{{ t("calendar") }}</span><span class="trial-chip">14 DAY</span></a>
                 <a class="{{ 'active' if page == 'handover' else '' }} nav-link" href="{{ url_for('handover') }}"><span class="nav-ico">📋</span><span>{{ t("handover") }}</span>{% if user.plan == 'free' and handover_trial and handover_trial.allowed %}<span class="trial-chip">{{ handover_trial.days_left }}d</span>{% elif user.plan == 'free' %}<span class="lock-chip">🔒</span>{% endif %}</a>
             </details>
 
@@ -107,7 +108,6 @@
 
             <details class="nav-group">
                 <summary><span class="nav-ico">⚙️</span><span>{{ t("account") if t("account") != "account" else "Account" }}</span></summary>
-                <a class="{{ 'active' if page == 'shift_calendar' else '' }} nav-link" href="{{ url_for('shift_calendar') }}"><span class="nav-ico">📅</span><span>{{ t("calendar") }}</span><span class="trial-chip">14 DAY</span></a>
                 <a class="{{ 'active' if page == 'mileage' else '' }} nav-link" href="{{ url_for('mileage') }}"><span class="nav-ico">🚗</span><span>{{ t("mileage") }}</span></a>
                 <a class="{{ 'active' if page == 'expenses' else '' }} nav-link" href="{{ url_for('expenses') }}"><span class="nav-ico">💷</span><span>{{ t("expenses") }}</span></a>
                 <a class="{{ 'active' if page == 'settings' else '' }} nav-link" href="{{ url_for('settings') }}"><span class="nav-ico">👤</span><span>{{ t("profile") if t("profile") != "profile" else "Profile" }}</span></a>

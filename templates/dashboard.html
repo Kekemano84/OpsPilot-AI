@@ -203,14 +203,14 @@
   window.addEventListener("load", function(){ loadWeather(true); });
 })();
 </script>
-<section class="dashboard-compact-grid">
-    {% if today_shift %}
-    <a class="dash-mini-card status-{{ today_shift.status|lower|replace(' ', '-') }}" href="{{ url_for('shift_calendar') }}">
-        <span>{{ t("today") if t("today") != "today" else "Today" }}</span>
-        <strong>{{ today_shift.status or 'Not Set' }}</strong>
-        <small>{% if today_shift.shift_name %}{{ today_shift.shift_name }} · {% endif %}{% if today_shift.start_time or today_shift.end_time %}{{ today_shift.start_time }} - {{ today_shift.end_time }}{% else %}{{ t("no_shift_time") if t("no_shift_time") != "no_shift_time" else "No shift time set" }}{% endif %}</small>
+<section class="dashboard-focus-grid">
+    {% for day in dashboard_days %}
+    <a class="dash-mini-card status-{{ day.status|lower|replace(' ', '-') }}" href="{{ url_for('shift_calendar') }}">
+        <span>{{ day.label }} · {{ day.date|dateuk }}</span>
+        <strong>{{ day.status or 'Not Set' }}</strong>
+        <small>{% if day.shift_name %}{{ day.shift_name }} · {% endif %}{% if day.start_time or day.end_time %}{{ day.start_time }} - {{ day.end_time }}{% else %}No shift time set{% endif %}</small>
     </a>
-    {% endif %}
+    {% endfor %}
 
     {% if annual_leave %}
     <a class="dash-mini-card blue" href="{{ url_for('holiday_tracker') }}">
@@ -220,53 +220,11 @@
     </a>
     {% endif %}
 
-    <a class="dash-mini-card" href="{{ url_for('mileage') }}"><span>{{ t("mileage") }}</span><strong>{{ totals.mileage_claim|money }}</strong><small>{{ "%.1f"|format(totals.miles) }} miles</small></a>
-    <a class="dash-mini-card" href="{{ url_for('expenses') }}"><span>{{ t("expenses") }}</span><strong>{{ totals.expenses|money }}</strong><small>Business costs</small></a>
-    <a class="dash-mini-card" href="{{ url_for('yard_check') }}"><span>Yard Checks</span><strong>{{ recent_yard|length }}</strong><small>Recent records</small></a>
-    <a class="dash-mini-card" href="{{ url_for('handover') }}"><span>{{ t("handover") }}</span><strong>Open</strong><small>Shift reports</small></a>
-</section>
-
-<section class="mobile-dashboard-tools compact-tools">
-    {% for key, icon, label_key, endpoint in favorite_tools %}
-    <a href="{{ url_for(endpoint) }}">{{ icon }}<span>{{ t(label_key) }}</span></a>
-    {% endfor %}
-</section>
-
-{% if week_shifts %}
-<section class="panel week-strip-panel compact-panel">
-    <div class="panel-head">
-        <div><h3>This Week</h3><p class="muted">Your current shift calendar</p></div>
-        <a class="small-btn ghost-small" href="{{ url_for('shift_calendar') }}">Open Calendar</a>
-    </div>
-    <div class="week-strip">
-        {% for day in week_shifts %}
-        <div class="week-day status-{{ day.status|lower|replace(' ', '-') }}">
-            <span>{{ day.date|dateuk }}</span>
-            <strong>{{ day.status }}</strong>
-            {% if day.notes %}<small>{{ day.notes }}</small>{% endif %}
-        </div>
-        {% endfor %}
-    </div>
-</section>
-{% endif %}
-
-<section class="two-col">
-    <div class="panel compact-panel">
-        <div class="panel-head"><h3>Quick Actions</h3></div>
-        <div class="simple-list">
-            <div class="list-row"><div><strong>Yard Check</strong><span>Record trailers and locations</span></div><a class="small-btn" href="{{ url_for('yard_check') }}">Open</a></div>
-            <div class="list-row"><div><strong>Morning Brief</strong><span>Build a clear daily message</span></div><a class="small-btn" href="{{ url_for('morning_brief') }}">Open</a></div>
-            <div class="list-row"><div><strong>Daily Handover</strong><span>Generate shift handover reports</span></div><a class="small-btn" href="{{ url_for('handover') }}">Open</a></div>
-        </div>
-    </div>
-    <div class="panel compact-panel">
-        <div class="panel-head"><h3>Recent Yard Checks</h3><a href="{{ url_for('yard_check') }}">Open</a></div>
-        <div class="simple-list">
-            {% for row in recent_yard %}
-            <div class="list-row"><div><strong>{{ row.trailer_id }}</strong><span>{{ row.location_type }} {{ row.location_detail or "" }} · {{ row.source }}</span></div><b>{{ row.status }}</b></div>
-            {% else %}<p class="empty">No yard checks yet.</p>{% endfor %}
-        </div>
-    </div>
+    <a class="dash-mini-card" href="{{ url_for('handover') }}">
+        <span>{{ t("handover") }}</span>
+        <strong>Open</strong>
+        <small>Shift reports</small>
+    </a>
 </section>
 
 {% endblock %}
