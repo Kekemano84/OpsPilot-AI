@@ -5010,7 +5010,6 @@ def api_weather():
     source = "browser location"
 
     try:
-        # Use saved site/address if browser location is not supplied.
         if lat is None or lon is None:
             query = (row_get(user, "address", "") or row_get(user, "company_name", "") or "Warrington, UK").strip()
             source = query
@@ -5025,35 +5024,118 @@ def api_weather():
             lon = result.get("longitude") or -2.5969
             source = result.get("name") or source
 
-        resp = requests.get(
+        weather_resp = requests.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
                 "latitude": lat,
                 "longitude": lon,
-                "current": "temperature_2m,precipitation,weather_code,wind_speed_10m",
-                "timezone": "auto"
+                "current": "temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,pressure_msl,visibility",
+                "hourly": "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,visibility",
+                "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset",
+                "timezone": "auto",
+                "forecast_days": 7
             },
-            timeout=8
+            timeout=10
         )
-        if not resp.ok:
+        if not weather_resp.ok:
             return jsonify({"ok": False, "error": "Weather service unavailable"}), 502
 
-        data = resp.json()
+        data = weather_resp.json()
         current = data.get("current") or {}
+        hourly = data.get("hourly") or {}
+        daily = data.get("daily") or {}
         if not current:
             return jsonify({"ok": False, "error": "No weather data returned"}), 502
+
+        times = hourly.get("time") or []
+        now_index = 0
+        current_time = current.get("time")
+        if current_time and current_time in times:
+            now_index = times.index(current_time)
+
+        def list_get(values, i):
+            try:
+                return values[i]
+            except Exception:
+                return None
+
+        hourly_items = []
+        for i in range(now_index, min(now_index + 8, len(times))):
+            hourly_items.append({
+                "time": times[i],
+                "temperature": list_get(hourly.get("temperature_2m") or [], i),
+                "rain_probability": list_get(hourly.get("precipitation_probability") or [], i),
+                "precipitation": list_get(hourly.get("precipitation") or [], i),
+                "weather_code": list_get(hourly.get("weather_code") or [], i),
+                "wind_speed": list_get(hourly.get("wind_speed_10m") or [], i),
+                "visibility": list_get(hourly.get("visibility") or [], i),
+            })
+
+        daily_items = []
+        for i, day in enumerate(daily.get("time") or []):
+            daily_items.append({
+                "date": day,
+                "weather_code": list_get(daily.get("weather_code") or [], i),
+                "max": list_get(daily.get("temperature_2m_max") or [], i),
+                "min": list_get(daily.get("temperature_2m_min") or [], i),
+                "rain_probability": list_get(daily.get("precipitation_probability_max") or [], i),
+                "sunrise": list_get(daily.get("sunrise") or [], i),
+                "sunset": list_get(daily.get("sunset") or [], i),
+            })
+
+        rain_now = current.get("precipitation") or 0
+        wind = current.get("wind_speed_10m") or 0
+        visibility = current.get("visibility") or 10000
+        temp = current.get("temperature_2m") or 0
+        next_rain_prob = max([(x.get("rain_probability") or 0) for x in hourly_items[:4]] or [0])
+        next_rain_mm = max([(x.get("precipitation") or 0) for x in hourly_items[:4]] or [0])
+
+        risk_points = 0
+        risk_notes = []
+        if rain_now >= 1 or next_rain_mm >= 1 or next_rain_prob >= 70:
+            risk_points += 2
+            risk_notes.append("Rain risk for yard work")
+        elif next_rain_prob >= 40:
+            risk_points += 1
+            risk_notes.append("Possible rain later")
+        if wind >= 35:
+            risk_points += 2
+            risk_notes.append("Strong wind")
+        elif wind >= 22:
+            risk_points += 1
+            risk_notes.append("Moderate wind")
+        if visibility < 3000:
+            risk_points += 2
+            risk_notes.append("Low visibility")
+        elif visibility < 6000:
+            risk_points += 1
+            risk_notes.append("Reduced visibility")
+        if temp <= 2:
+            risk_points += 1
+            risk_notes.append("Cold conditions")
+
+        risk_level = "High" if risk_points >= 4 else ("Medium" if risk_points >= 2 else "Low")
+        if not risk_notes:
+            risk_notes = ["Good conditions for yard activity"]
 
         return jsonify({
             "ok": True,
             "source": source,
             "temperature": current.get("temperature_2m"),
+            "humidity": current.get("relative_humidity_2m"),
             "precipitation": current.get("precipitation"),
             "weather_code": current.get("weather_code"),
             "wind_speed": current.get("wind_speed_10m"),
+            "pressure": current.get("pressure_msl"),
+            "visibility": current.get("visibility"),
+            "hourly": hourly_items,
+            "daily": daily_items,
+            "risk": {"level": risk_level, "points": risk_points, "notes": risk_notes},
             "latitude": lat,
             "longitude": lon
         })
 
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 500
+
 

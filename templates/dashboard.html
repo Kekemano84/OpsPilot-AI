@@ -11,25 +11,58 @@
 
 
 
-<section class="panel compact-panel weather-widget-free">
+<section class="panel compact-panel weather-widget-free weather-pro-widget">
   <div class="panel-head">
-    <h3>☁️ {{ t("weather") }}</h3>
+    <div>
+      <h3>☁️ {{ t("weather") }}</h3>
+      <p class="muted">Live yard weather, hourly forecast and OpsPilot yard risk.</p>
+    </div>
     <div class="weather-actions">
       <button type="button" class="small-btn ghost-small" id="weatherRefreshBtn">🔄 Refresh</button>
       <span class="pill">FREE</span>
     </div>
   </div>
 
-  <div class="weather-live-card" id="weatherLiveCard">
+  <div class="weather-hero-card">
     <div>
-      <span class="weather-label">Yard weather</span>
-      <strong id="weatherTemp">Loading…</strong>
-      <small id="weatherDesc">Loading live forecast.</small>
+      <span class="weather-location" id="weatherSource">Checking location…</span>
+      <div class="weather-main-row">
+        <strong id="weatherTemp">--°C</strong>
+        <div>
+          <b id="weatherDesc">Loading weather…</b>
+          <small id="weatherRange">Live forecast</small>
+        </div>
+      </div>
     </div>
-    <div class="weather-side">
+    <div class="weather-rain-pill">
       <span id="weatherRain">--</span>
-      <small>Rain</small>
+      <small>Rain now</small>
     </div>
+  </div>
+
+  <div class="weather-grid-cards">
+    <div class="weather-mini-card"><span>💨 Wind</span><strong id="weatherWind">--</strong></div>
+    <div class="weather-mini-card"><span>💧 Humidity</span><strong id="weatherHumidity">--</strong></div>
+    <div class="weather-mini-card"><span>👁️ Visibility</span><strong id="weatherVisibility">--</strong></div>
+    <div class="weather-mini-card"><span>↧ Pressure</span><strong id="weatherPressure">--</strong></div>
+  </div>
+
+  <div class="weather-risk-card" id="weatherRiskCard">
+    <div>
+      <span>Yard Risk Score</span>
+      <strong id="weatherRisk">Checking…</strong>
+      <small id="weatherRiskNote">Loading yard conditions.</small>
+    </div>
+  </div>
+
+  <div class="weather-forecast-block">
+    <div class="weather-block-head"><strong>Next hours</strong><small>Rain probability + temperature</small></div>
+    <div class="hourly-strip" id="weatherHourly"></div>
+  </div>
+
+  <div class="weather-forecast-block">
+    <div class="weather-block-head"><strong>7 day forecast</strong><small>High / low and rain chance</small></div>
+    <div class="daily-list" id="weatherDaily"></div>
   </div>
 
   <p class="muted weather-help" id="weatherHelp">
@@ -39,80 +72,104 @@
 
 <script>
 (function () {
-  const tempEl = document.getElementById("weatherTemp");
-  const descEl = document.getElementById("weatherDesc");
-  const rainEl = document.getElementById("weatherRain");
-  const helpEl = document.getElementById("weatherHelp");
-  const refreshBtn = document.getElementById("weatherRefreshBtn");
-  if (!tempEl || !descEl || !rainEl) return;
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    temp: $("weatherTemp"), desc: $("weatherDesc"), range: $("weatherRange"),
+    rain: $("weatherRain"), source: $("weatherSource"), wind: $("weatherWind"),
+    humidity: $("weatherHumidity"), visibility: $("weatherVisibility"), pressure: $("weatherPressure"),
+    risk: $("weatherRisk"), riskNote: $("weatherRiskNote"), riskCard: $("weatherRiskCard"),
+    hourly: $("weatherHourly"), daily: $("weatherDaily"), help: $("weatherHelp"), btn: $("weatherRefreshBtn")
+  };
+  if (!els.temp) return;
 
   function weatherText(code) {
     const map = {
-      0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
-      45: "Fog", 48: "Fog", 51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle",
-      61: "Light rain", 63: "Rain", 65: "Heavy rain", 71: "Light snow", 73: "Snow",
-      75: "Heavy snow", 80: "Rain showers", 81: "Rain showers", 82: "Heavy showers",
-      95: "Thunderstorm"
+      0: ["Clear sky", "☀️"], 1: ["Mainly clear", "🌤️"], 2: ["Partly cloudy", "⛅"], 3: ["Overcast", "☁️"],
+      45: ["Fog", "🌫️"], 48: ["Fog", "🌫️"], 51: ["Light drizzle", "🌦️"], 53: ["Drizzle", "🌦️"], 55: ["Heavy drizzle", "🌧️"],
+      61: ["Light rain", "🌧️"], 63: ["Rain", "🌧️"], 65: ["Heavy rain", "⛈️"], 71: ["Light snow", "🌨️"], 73: ["Snow", "🌨️"],
+      75: ["Heavy snow", "❄️"], 80: ["Rain showers", "🌧️"], 81: ["Rain showers", "🌧️"], 82: ["Heavy showers", "⛈️"],
+      95: ["Thunderstorm", "⛈️"]
     };
-    return map[Number(code)] || "Weather update";
+    return map[Number(code)] || ["Weather update", "🌡️"];
   }
-
+  function hourLabel(value) {
+    if (!value) return "--";
+    return new Date(value).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+  }
+  function dayLabel(value, idx) {
+    if (idx === 0) return "Today";
+    return new Date(value + "T00:00:00").toLocaleDateString([], {weekday: "short"});
+  }
+  function km(value) {
+    if (value === null || value === undefined) return "--";
+    return (Number(value) / 1000).toFixed(1) + " km";
+  }
   function setLoading() {
-    tempEl.textContent = "Loading…";
-    descEl.textContent = "Checking live forecast.";
-    rainEl.textContent = "--";
-    if (helpEl) helpEl.textContent = "Loading weather. Please wait...";
+    els.temp.textContent = "--°C"; els.desc.textContent = "Loading weather…";
+    els.range.textContent = "Checking live forecast"; els.rain.textContent = "--";
+    els.source.textContent = "Checking location…"; els.wind.textContent = "--";
+    els.humidity.textContent = "--"; els.visibility.textContent = "--"; els.pressure.textContent = "--";
+    els.risk.textContent = "Checking…"; els.riskNote.textContent = "Loading yard conditions.";
+    els.hourly.innerHTML = ""; els.daily.innerHTML = "";
+    if (els.help) els.help.textContent = "Loading weather. Please wait...";
   }
-
   function setFallback(message) {
-    tempEl.textContent = "Weather unavailable";
-    descEl.textContent = message || "Could not load live weather.";
-    rainEl.textContent = "--";
-    if (helpEl) helpEl.textContent = "Set your site/address in Settings, then press Refresh.";
+    els.temp.textContent = "Weather unavailable"; els.desc.textContent = message || "Could not load live weather.";
+    els.range.textContent = "Set site/address then refresh"; els.rain.textContent = "--";
+    if (els.help) els.help.textContent = "Set your site/address in Settings, then press Refresh.";
   }
-
   function renderWeather(data) {
     if (!data || !data.ok) throw new Error((data && data.error) || "No weather data");
-    tempEl.textContent = Math.round(Number(data.temperature)) + "°C";
-    descEl.textContent = weatherText(data.weather_code) + " · Wind " + Math.round(Number(data.wind_speed || 0)) + " km/h";
-    rainEl.textContent = (data.precipitation || 0) + " mm";
-    if (helpEl) helpEl.textContent = "Live weather · " + (data.source || "site location");
-  }
+    const wt = weatherText(data.weather_code);
+    const today = (data.daily && data.daily[0]) || {};
+    els.temp.textContent = Math.round(Number(data.temperature)) + "°C";
+    els.desc.textContent = wt[1] + " " + wt[0];
+    els.range.textContent = today.max !== undefined && today.min !== undefined ? "High " + Math.round(today.max) + "° / Low " + Math.round(today.min) + "°" : "Live forecast";
+    els.rain.textContent = (data.precipitation || 0) + " mm";
+    els.source.textContent = (data.source || "Site location") + " 📍";
+    els.wind.textContent = Math.round(Number(data.wind_speed || 0)) + " km/h";
+    els.humidity.textContent = (data.humidity ?? "--") + "%";
+    els.visibility.textContent = km(data.visibility);
+    els.pressure.textContent = data.pressure ? Math.round(Number(data.pressure)) + " mb" : "--";
 
+    const level = data.risk && data.risk.level ? data.risk.level : "Low";
+    els.risk.textContent = level;
+    els.riskCard.classList.remove("risk-low", "risk-medium", "risk-high");
+    els.riskCard.classList.add("risk-" + level.toLowerCase());
+    els.riskNote.textContent = data.risk && data.risk.notes ? data.risk.notes.join(" · ") : "Good conditions for yard activity";
+
+    els.hourly.innerHTML = (data.hourly || []).map(function (h) {
+      const wh = weatherText(h.weather_code);
+      return `<div class="hourly-card"><span>${hourLabel(h.time)}</span><b>${wh[1]}</b><strong>${Math.round(Number(h.temperature || 0))}°</strong><small>💧 ${h.rain_probability ?? 0}%</small></div>`;
+    }).join("");
+
+    els.daily.innerHTML = (data.daily || []).map(function (d, idx) {
+      const wh = weatherText(d.weather_code);
+      return `<div class="daily-row"><strong>${dayLabel(d.date, idx)}</strong><span>${wh[1]} ${wh[0]}</span><small>💧 ${d.rain_probability ?? 0}%</small><b>${Math.round(Number(d.max || 0))}° / ${Math.round(Number(d.min || 0))}°</b></div>`;
+    }).join("");
+
+    if (els.help) els.help.textContent = "Live weather · " + (data.source || "site location");
+  }
   async function fetchWeather(lat, lon) {
     let url = "/api/weather?t=" + Date.now();
-    if (typeof lat === "number" && typeof lon === "number") {
-      url += "&lat=" + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lon);
-    }
+    if (typeof lat === "number" && typeof lon === "number") url += "&lat=" + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lon);
     const res = await fetch(url, { cache: "no-store" });
     const data = await res.json();
     renderWeather(data);
   }
-
   function loadWeather(useBrowserLocation) {
     setLoading();
-
     if (useBrowserLocation && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        function (pos) {
-          fetchWeather(pos.coords.latitude, pos.coords.longitude).catch(function () {
-            fetchWeather().catch(function (err2) { setFallback(err2.message); });
-          });
-        },
-        function () {
-          fetchWeather().catch(function (err) { setFallback(err.message); });
-        },
+        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude).catch(() => fetchWeather().catch((err2) => setFallback(err2.message))),
+        () => fetchWeather().catch((err) => setFallback(err.message)),
         { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 }
       );
     } else {
-      fetchWeather().catch(function (err) { setFallback(err.message); });
+      fetchWeather().catch((err) => setFallback(err.message));
     }
   }
-
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", function () { loadWeather(true); });
-  }
-
+  if (els.btn) els.btn.addEventListener("click", () => loadWeather(true));
   loadWeather(true);
 })();
 </script>
