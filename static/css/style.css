@@ -2551,3 +2551,29 @@ button:disabled {
     opacity: .85;
     margin-top: 2px;
 }
+
+/* V5.2 mobile nav: 5 buttons */
+.mobile-bottom-nav {
+    grid-template-columns: repeat(5, 1fr) !important;
+}
+.mobile-bottom-nav a {
+    min-width: 0;
+}
+.mobile-bottom-nav b {
+    font-size: clamp(0.72rem, 2.6vw, 0.95rem);
+    white-space: nowrap;
+}
+.mobile-bottom-nav span {
+    font-size: 1.15rem;
+}
+.mobile-bottom-nav small {
+    display: block;
+    font-size: 0.62rem;
+    line-height: 1;
+    opacity: .85;
+    margin-top: 2px;
+}
+.more-grid .quick-card {
+    text-decoration: none;
+    color: inherit;
+}
