@@ -3250,6 +3250,7 @@ def handover():
                 absence_rows.append({"type": t.strip(), "count": c.strip()})
 
         dispatch_rows = []
+        force_vrid_uppercase = True if request.form.get("force_vrid_uppercase") == "on" else False
         carriers = request.form.getlist("dispatch_carrier[]")
         vrids = request.form.getlist("dispatch_vrid[]")
         completed = request.form.getlist("dispatch_completed[]")
@@ -3270,6 +3271,15 @@ def handover():
             if any(row.values()):
                 dispatch_rows.append(row)
 
+        # Allow the main handover section headers to be edited directly on the form.
+        posted_section_names = {}
+        for key in default_handover_section_names().keys():
+            posted_section_names[key] = request.form.get(f"handover_section_{key}", "").strip() or section_names.get(key) or default_handover_section_names()[key]
+        section_names = posted_section_names
+
+        # VRID uppercase is controlled inside Dispatch Activities on each handover.
+        force_vrid_uppercase = True if request.form.get("force_vrid_uppercase") == "on" else False
+
         extra["absence_rows"] = absence_rows
         extra["dispatch_rows"] = dispatch_rows
         extra["section_names"] = section_names
@@ -3277,6 +3287,21 @@ def handover():
 
         generated = generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, extra)
         conn = get_db()
+
+        if request.form.get("save_handover_headers") == "on":
+            existing_template = conn.execute("SELECT * FROM handover_templates WHERE user_id=? ORDER BY id DESC LIMIT 1", (user["id"],)).fetchone()
+            if existing_template:
+                conn.execute("""
+                    UPDATE handover_templates
+                    SET section_names=?, updated_at=?
+                    WHERE id=? AND user_id=?
+                """, (json.dumps(section_names), datetime.now().isoformat(), existing_template["id"], user["id"]))
+            else:
+                conn.execute("""
+                    INSERT INTO handover_templates (user_id, name, section_names, force_vrid_uppercase, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (user["id"], "Default Handover", json.dumps(section_names), 1 if force_vrid_uppercase else 0, datetime.now().isoformat()))
+
         cur = conn.execute("""
             INSERT INTO handovers (user_id, date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, generated_report, extra_json, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -3474,89 +3499,176 @@ def export_handovers():
     ws = wb.active
     ws.title = "Handover"
 
-    headers = [
-        "Date", "Shift", "Manager", "Planned HC", "Actual HC", "Attendance",
-        "Absence Breakdown", "SLAMs", "Safety Cons", "Loads", "Safety Rules", "Safety Comments",
-        "Pick Audits", "Slam Plan", "Picked Since Time", "Picked Volume",
-        "Full Well Start", "Full Well End", "EMC Start", "EMC End", "Operations Comments",
-        "Deliveries Planned", "Deliveries Arrived", "Same Day Sortation", "Next Day Sortation", "Sort Comments",
-        "Collections Arrived", "Late Arrivals", "Trailers On Doors", "Trailers Needed Cover",
-        "Carrier", "VRID", "Completed", "On Time", "Issue",
-        "Dispatch Comments", "Suntory On Site", "Suntory Completed", "Suntory Left", "Suntory Comments",
-        "AOB", "Generated Report", "Created At"
-    ]
-    ws.append(headers)
+    from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+    from openpyxl.utils import get_column_letter
 
-    for row in rows:
+    thin = Side(style="thin", color="000000")
+    medium = Side(style="medium", color="000000")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    header_fill = PatternFill("solid", fgColor="D9EAF7")
+    title_fill = PatternFill("solid", fgColor="FFFFFF")
+    section_fill = PatternFill("solid", fgColor="EAF3FF")
+    bold = Font(bold=True)
+    title_font = Font(bold=True, size=13)
+
+    def cell(r, c, value="", bold_text=False, fill=None, align="left"):
+        ws.cell(r, c, value)
+        ws.cell(r, c).border = border
+        ws.cell(r, c).alignment = Alignment(horizontal=align, vertical="center", wrap_text=True)
+        if bold_text:
+            ws.cell(r, c).font = bold
+        if fill:
+            ws.cell(r, c).fill = fill
+        return ws.cell(r, c)
+
+    def merge(r1, c1, r2, c2, value="", bold_text=False, fill=None, align="left"):
+        ws.merge_cells(start_row=r1, start_column=c1, end_row=r2, end_column=c2)
+        cell(r1, c1, value, bold_text, fill, align)
+        for rr in range(r1, r2 + 1):
+            for cc in range(c1, c2 + 1):
+                ws.cell(rr, cc).border = border
+                ws.cell(rr, cc).alignment = Alignment(horizontal=align, vertical="center", wrap_text=True)
+                if fill:
+                    ws.cell(rr, cc).fill = fill
+        return ws.cell(r1, c1)
+
+    row_num = 1
+    max_col = 10
+
+    for h in rows:
         try:
-            extra = json.loads(row_get(row, "extra_json", "{}") or "{}")
+            extra = json.loads(row_get(h, "extra_json", "{}") or "{}")
         except Exception:
             extra = {}
 
-        absence = "; ".join([f"{x.get('type','')}: {x.get('count','')}" for x in extra.get("absence_rows", [])]) or ""
-        dispatch_rows = extra.get("dispatch_rows", []) or [{}]
-        first = True
-        for x in dispatch_rows:
-            ws.append([
-                row["date"] if first else "",
-                row["shift"] if first else "",
-                row["manager"] if first else "",
-                row["planned_hc"] if first else "",
-                row["actual_hc"] if first else "",
-                (f"{row['actual_hc']}/{row['planned_hc']}" if row["planned_hc"] else row["actual_hc"]) if first else "",
-                absence if first else "",
-                extra.get("slams","") if first else "",
-                extra.get("safety_cons","") if first else "",
-                extra.get("loads","") if first else "",
-                extra.get("safety_rules","") if first else "",
-                extra.get("safety_comments","") if first else "",
-                extra.get("pick_audits","") if first else "",
-                extra.get("slam_plan","") if first else "",
-                extra.get("picked_since_time","") if first else "",
-                extra.get("picked_since_value","") if first else "",
-                extra.get("full_well_start","") if first else "",
-                extra.get("full_well_end","") if first else "",
-                extra.get("emc_start","") if first else "",
-                extra.get("emc_end","") if first else "",
-                extra.get("ops_comments","") if first else "",
-                extra.get("deliveries_planned","") if first else "",
-                extra.get("deliveries_arrived","") if first else "",
-                extra.get("same_day_sortation","") if first else "",
-                extra.get("next_day_sortation","") if first else "",
-                extra.get("sort_comments","") if first else "",
-                extra.get("collections_arrived","") if first else "",
-                extra.get("late_arrivals","") if first else "",
-                extra.get("trailers_on_doors","") if first else "",
-                extra.get("trailers_needed_cover","") if first else "",
-                x.get("carrier",""),
-                x.get("vrid",""),
-                x.get("completed",""),
-                x.get("on_time",""),
-                x.get("issue",""),
-                extra.get("dispatch_comments","") if first else "",
-                extra.get("suntory_trailers_on_site","") if first else "",
-                extra.get("suntory_completed","") if first else "",
-                extra.get("suntory_left","") if first else "",
-                extra.get("suntory_comments","") if first else "",
-                extra.get("aob","") if first else "",
-                row["generated_report"] if first else "",
-                row["created_at"] if first else ""
-            ])
-            first = False
+        section_names = default_handover_section_names()
+        if isinstance(extra.get("section_names"), dict):
+            section_names.update(extra.get("section_names"))
 
-    style_excel_header(ws)
-    # Border around every used cell to create DHL-style cell layout
-    from openpyxl.styles import Border, Side
-    thin = Side(style="thin", color="000000")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    for row_cells in ws.iter_rows():
-        for cell in row_cells:
-            cell.border = border
-            cell.alignment = Alignment(vertical="top", wrap_text=True)
-    for col in ws.columns:
-        ws.column_dimensions[col[0].column_letter].width = min(max(len(str(c.value or "")) for c in col) + 2, 35)
+        absence = extra.get("absence_rows", []) or []
+        absence_text = " / ".join([f"{x.get('count','')} {x.get('type','')}" for x in absence if x.get("type") or x.get("count")])
 
-    return excel_response(wb, "handovers.xlsx")
+        # Title
+        merge(row_num, 1, row_num, max_col, f"{h['shift'] or 'Day Shift'} Handover", True, title_fill, "center")
+        ws.cell(row_num, 1).font = title_font
+        row_num += 1
+
+        # Header / attendance
+        merge(row_num, 1, row_num, 2, f"Date - {h['date']}", False, None, "left")
+        merge(row_num, 3, row_num, 4, f"Shift - {h['shift']}", False, None, "left")
+        merge(row_num, 5, row_num + 1, max_col, f"Attendance - {h['actual_hc']}/{h['planned_hc']}\n{absence_text}", False, None, "center")
+        row_num += 2
+
+        # Safety
+        merge(row_num, 1, row_num, 4, f"{section_names.get('safety','Safety Metrics')} - {extra.get('safe_shift','')}", False, None, "center")
+        merge(row_num, 5, row_num, max_col, "", False, None, "center")
+        row_num += 1
+        labels_values = [
+            ("SLAMS", extra.get("slams", "")),
+            ("Safety Cons", extra.get("safety_cons", "")),
+            ("LOADS", extra.get("loads", "")),
+            ("Safety Rules", extra.get("safety_rules", ""))
+        ]
+        c = 1
+        cell(row_num, c, section_names.get("safety", "Safety Metrics"), True, None, "center"); c += 1
+        for label, value in labels_values:
+            cell(row_num, c, label, False, None, "center"); c += 1
+            cell(row_num, c, value, False, None, "center"); c += 1
+        while c <= max_col:
+            cell(row_num, c, "", False, None, "center"); c += 1
+        row_num += 1
+
+        # Operations
+        merge(row_num, 1, row_num, max_col, section_names.get("operations", "Operations Pick"), True, section_fill, "left")
+        row_num += 1
+        ops_lines = [
+            ("Pick Audits Completed", extra.get("pick_audits", "")),
+            ("Slam Plan", extra.get("slam_plan", "")),
+            (f"Picked since {extra.get('picked_since_time','06:00')} hrs", extra.get("picked_since_value", "")),
+            ("Full Well at start & end of Shift", f"{extra.get('full_well_start','')}/{extra.get('full_well_end','')}"),
+            ("Well to cover EMC's at start & end of Shift", f"{extra.get('emc_start','')}/{extra.get('emc_end','')}")
+        ]
+        for label, value in ops_lines:
+            merge(row_num, 1, row_num, max_col, f"{label} - {value}", False, None, "left")
+            row_num += 1
+        merge(row_num, 1, row_num + 2, max_col, f"Additional Comments - {extra.get('ops_comments','')}", False, None, "left")
+        row_num += 3
+
+        # Sort centre
+        merge(row_num, 1, row_num, max_col, section_names.get("sort", "CUK8 Sort Centre"), True, section_fill, "left")
+        row_num += 1
+        sort_lines = [
+            ("Deliveries Planned", extra.get("deliveries_planned", "")),
+            ("Deliveries Arrived", extra.get("deliveries_arrived", "")),
+            ("Planned Same Day Sortation", extra.get("same_day_sortation", "")),
+            ("Planned Next Day Sortation", extra.get("next_day_sortation", ""))
+        ]
+        for label, value in sort_lines:
+            merge(row_num, 1, row_num, max_col, f"{label} - {value}", False, None, "left")
+            row_num += 1
+        merge(row_num, 1, row_num + 2, max_col, f"Additional Comments - {extra.get('sort_comments','')}", False, None, "left")
+        row_num += 3
+
+        # Dispatch
+        merge(row_num, 1, row_num, max_col, section_names.get("dispatch", "Dispatch"), True, section_fill, "left")
+        row_num += 1
+        merge(row_num, 1, row_num, 2, "Collections Arrived", False, None, "left")
+        merge(row_num, 3, row_num, 4, extra.get("collections_arrived", ""), False, None, "center")
+        merge(row_num, 5, row_num, 6, "LATE ARRIVALS", False, None, "center")
+        merge(row_num, 7, row_num, max_col, extra.get("late_arrivals", ""), False, None, "center")
+        row_num += 1
+        merge(row_num, 1, row_num, 2, "Trailers On Doors", False, None, "left")
+        merge(row_num, 3, row_num, 4, extra.get("trailers_on_doors", ""), False, None, "center")
+        merge(row_num, 5, row_num, 7, "Trailers needed cover today CPT's", False, None, "left")
+        merge(row_num, 8, row_num, max_col, extra.get("trailers_needed_cover", ""), False, None, "center")
+        row_num += 1
+
+        dispatch_rows = extra.get("dispatch_rows", [])
+        if dispatch_rows:
+            headers = ["Carrier / Dispatch", "VRID", "Completed", "On Time", "Issue"]
+            col_ranges = [(1,2), (3,5), (6,7), (8,9), (10,10)]
+            for idx, hname in enumerate(headers):
+                merge(row_num, col_ranges[idx][0], row_num, col_ranges[idx][1], hname, True, header_fill, "center")
+            row_num += 1
+            for d in dispatch_rows:
+                vals = [d.get("carrier",""), d.get("vrid",""), d.get("completed",""), d.get("on_time",""), d.get("issue","")]
+                for idx, val in enumerate(vals):
+                    merge(row_num, col_ranges[idx][0], row_num, col_ranges[idx][1], val, False, None, "center")
+                row_num += 1
+
+        merge(row_num, 1, row_num + 1, max_col, f"Additional Comments - {extra.get('dispatch_comments','')}", False, None, "left")
+        row_num += 2
+
+        # Suntory
+        merge(row_num, 1, row_num, max_col, section_names.get("suntory", "Suntory"), True, section_fill, "left")
+        row_num += 1
+        merge(row_num, 1, row_num, 3, "Trailers on site to complete", False, None, "left")
+        merge(row_num, 4, row_num, 4, extra.get("suntory_trailers_on_site",""), False, None, "center")
+        merge(row_num, 5, row_num, 7, "Completed on shift", False, None, "left")
+        merge(row_num, 8, row_num, max_col, extra.get("suntory_completed",""), False, None, "center")
+        row_num += 1
+        merge(row_num, 1, row_num, 3, "Left to complete", False, None, "left")
+        merge(row_num, 4, row_num, max_col, extra.get("suntory_left",""), False, None, "center")
+        row_num += 1
+        merge(row_num, 1, row_num + 1, max_col, f"Additional Comments - {extra.get('suntory_comments','')}", False, None, "left")
+        row_num += 2
+
+        # AOB
+        merge(row_num, 1, row_num, max_col, section_names.get("aob", "AOB"), True, section_fill, "left")
+        row_num += 1
+        merge(row_num, 1, row_num + 2, max_col, extra.get("aob",""), False, None, "left")
+        row_num += 4
+
+    # Layout
+    widths = [16, 16, 12, 12, 18, 14, 14, 14, 14, 14]
+    for i, width in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = width
+    for r in range(1, row_num + 1):
+        ws.row_dimensions[r].height = 20
+    ws.sheet_view.showGridLines = False
+    ws.freeze_panes = None
+
+    return excel_response(wb, "handover-dhl-style.xlsx")
 
 @app.route("/admin/export")
 @login_required

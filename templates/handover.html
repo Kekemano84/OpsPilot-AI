@@ -14,7 +14,7 @@
     <div class="panel-head">
         <div>
             <h3>Handover Template Settings</h3>
-            <p class="muted">Change section names once and save them as default. You can still edit them later.</p>
+            <p class="muted">You can change names here, or edit the blue section headers directly in the handover form and tick “Save changed section names as default”.</p>
         </div>
         <span class="pill">Template</span>
     </div>
@@ -27,7 +27,6 @@
         <div><label>Dispatch Header</label><input name="section_dispatch" value="{{ section_names.dispatch }}"></div>
         <div><label>Suntory Header</label><input name="section_suntory" value="{{ section_names.suntory }}"></div>
         <div><label>AOB Header</label><input name="section_aob" value="{{ section_names.aob }}"></div>
-        <div class="wide checkbox-row"><label><input type="checkbox" name="force_vrid_uppercase" {% if force_vrid_uppercase %}checked{% endif %}> Force UPPERCASE VRID</label></div>
         <div class="form-actions"><button class="btn primary" type="submit">Save Template</button></div>
     </form>
 </section>
@@ -45,8 +44,9 @@
         <div><label>Date</label><input type="date" name="date"></div>
         <div><label>Shift</label><input name="shift" placeholder="D1 / D2 / Night / 06:00-18:00"></div>
         <div><label>Manager</label><input name="manager" placeholder="Laszlo"></div>
+        <div class="wide checkbox-row save-headers-row"><label><input type="checkbox" name="save_handover_headers"> Save changed section names as default for next time</label></div>
 
-        <div class="wide section-title">{{ section_names.attendance }}</div>
+        <div class="wide editable-section-title"><label>Section name</label><input name="handover_section_attendance" value="{{ section_names.attendance }}"></div>
         <div><label>Planned HC</label><input type="number" name="planned_hc" placeholder="25"></div>
         <div><label>Actual HC</label><input type="number" name="actual_hc" placeholder="20"></div>
         <div class="wide dynamic-block">
@@ -63,7 +63,7 @@
             </div>
         </div>
 
-        <div class="wide section-title">{{ section_names.safety }}</div>
+        <div class="wide editable-section-title"><label>Section name</label><input name="handover_section_safety" value="{{ section_names.safety }}"></div>
         <div><label>Safe Shift</label><select name="safe_shift"><option>Yes</option><option>No</option></select></div>
         <div><label>SLAMs</label><input name="slams" placeholder="12"></div>
         <div><label>Safety Cons</label><input name="safety_cons" placeholder="3"></div>
@@ -71,7 +71,7 @@
         <div><label>Safety Rules</label><input name="safety_rules" placeholder="3"></div>
         <div class="wide"><label>Safety Additional Comments</label><textarea name="safety_comments" rows="3" placeholder="Any safety comments"></textarea></div>
 
-        <div class="wide section-title">{{ section_names.operations }}</div>
+        <div class="wide editable-section-title"><label>Section name</label><input name="handover_section_operations" value="{{ section_names.operations }}"></div>
         <div><label>Pick Audits Completed</label><input name="pick_audits" placeholder="3"></div>
         <div><label>Slam Plan</label><input name="slam_plan" placeholder="1900"></div>
         <div><label>Picked Since Time</label><input name="picked_since_time" placeholder="06:00"></div>
@@ -82,23 +82,26 @@
         <div><label>EMC / Well To Cover End</label><input name="emc_end" placeholder="196"></div>
         <div class="wide"><label>Operations Pick Additional Comments</label><textarea name="ops_comments" rows="3" placeholder="Clear until 21:15"></textarea></div>
 
-        <div class="wide section-title">{{ section_names.sort }}</div>
+        <div class="wide editable-section-title"><label>Section name</label><input name="handover_section_sort" value="{{ section_names.sort }}"></div>
         <div><label>Deliveries Planned</label><input name="deliveries_planned" placeholder="24"></div>
         <div><label>Deliveries Arrived</label><input name="deliveries_arrived" placeholder="17"></div>
         <div><label>Planned Same Day Sortation</label><input name="same_day_sortation" placeholder="6"></div>
         <div><label>Planned Next Day Sortation</label><input name="next_day_sortation" placeholder="6"></div>
         <div class="wide"><label>Sort Centre Additional Comments</label><textarea name="sort_comments" rows="3" placeholder="714 tipped in total..."></textarea></div>
 
-        <div class="wide section-title">{{ section_names.dispatch }}</div>
+        <div class="wide editable-section-title"><label>Section name</label><input name="handover_section_dispatch" value="{{ section_names.dispatch }}"></div>
         <div><label>Collections Arrived</label><input name="collections_arrived" placeholder="7"></div>
         <div><label>Late Arrivals</label><input name="late_arrivals" placeholder="0"></div>
         <div><label>Trailers On Doors</label><input name="trailers_on_doors" placeholder="7"></div>
         <div><label>Trailers Needed To Cover Today CPTs</label><input name="trailers_needed_cover" placeholder="6"></div>
 
         <div class="wide dynamic-block">
-            <div class="dynamic-head">
+            <div class="dynamic-head dispatch-dynamic-head">
                 <label>Dispatch Activities</label>
-                <button class="small-btn" type="button" onclick="addDispatchRow()">+ Add dispatch</button>
+                <div class="dispatch-head-actions">
+                    <label class="inline-toggle"><input type="checkbox" id="vridUppercaseToggle" name="force_vrid_uppercase" {% if force_vrid_uppercase %}checked{% endif %}> VRID UPPERCASE</label>
+                    <button class="small-btn" type="button" onclick="addDispatchRow()">+ Add dispatch</button>
+                </div>
             </div>
             <div class="dispatch-table-head">
                 <span>Carrier / Dispatch</span><span>VRID</span><span>Completed</span><span>On Time</span><span>Issue</span><span></span>
@@ -117,13 +120,13 @@
 
         <div class="wide"><label>Dispatch Additional Comments</label><textarea name="dispatch_comments" rows="3" placeholder="No major issues, most lanes built."></textarea></div>
 
-        <div class="wide section-title">{{ section_names.suntory }}</div>
+        <div class="wide editable-section-title"><label>Section name</label><input name="handover_section_suntory" value="{{ section_names.suntory }}"></div>
         <div><label>Trailers On Site To Complete</label><input name="suntory_trailers_on_site" placeholder="20"></div>
         <div><label>Completed On Shift</label><input name="suntory_completed" placeholder="4.5"></div>
         <div><label>Left To Complete</label><input name="suntory_left" placeholder="15"></div>
         <div class="wide"><label>Suntory Additional Comments</label><textarea name="suntory_comments" rows="3" placeholder="Any Suntory comments"></textarea></div>
 
-        <div class="wide section-title">{{ section_names.aob }}</div>
+        <div class="wide editable-section-title"><label>Section name</label><input name="handover_section_aob" value="{{ section_names.aob }}"></div>
         <div class="wide"><label>AOB Additional Comments</label><textarea name="aob" rows="3" placeholder="Anything else"></textarea></div>
 
         <div class="wide"><label>Issues</label><input name="issues" placeholder="Optional extra issue notes"></div>
@@ -141,8 +144,6 @@
         <div class="panel-head">
             <strong>{{ row.date|dateuk }} - {{ row.shift }}</strong>
             <div class="mini-actions">
-                <a class="small-btn" href="{{ url_for('handover_email', item_id=row.id) }}">{{ t("preview_email") if t else "Preview Email" }}</a>
-                <a class="small-btn" href="{{ url_for('handover_download', item_id=row.id) }}">TXT</a>
                 <a class="small-btn" href="{{ url_for('handover_pdf', item_id=row.id) }}">PDF</a>
             </div>
         </div>
@@ -170,16 +171,24 @@ function addAbsenceRow() {
 }
 
 function applyVridUppercase() {
-    const force = {{ 'true' if force_vrid_uppercase else 'false' }};
-    if (!force) return;
+    const toggle = document.getElementById('vridUppercaseToggle');
+    const force = toggle ? toggle.checked : false;
     document.querySelectorAll('.vrid-input').forEach(function(input) {
-        input.addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
-        });
-        input.value = input.value.toUpperCase();
+        if (!input.dataset.vridBound) {
+            input.addEventListener('input', function() {
+                const t = document.getElementById('vridUppercaseToggle');
+                if (t && t.checked) this.value = this.value.toUpperCase();
+            });
+            input.dataset.vridBound = '1';
+        }
+        if (force) input.value = input.value.toUpperCase();
     });
 }
-document.addEventListener('DOMContentLoaded', applyVridUppercase);
+document.addEventListener('DOMContentLoaded', function() {
+    applyVridUppercase();
+    const toggle = document.getElementById('vridUppercaseToggle');
+    if (toggle) toggle.addEventListener('change', applyVridUppercase);
+});
 
 function addDispatchRow() {
     const wrap = document.getElementById('dispatchRows');

@@ -2213,3 +2213,71 @@ button:disabled {
         grid-template-columns: 1fr !important;
     }
 }
+
+
+/* Editable handover section headers */
+.editable-section-title {
+    background: #eef6ff;
+    border: 1px solid #111827;
+    border-radius: 12px;
+    padding: 8px 10px;
+}
+.editable-section-title label {
+    display: block;
+    font-size: .72rem;
+    color: #64748b;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.editable-section-title input {
+    width: 100%;
+    border: 0 !important;
+    background: transparent;
+    color: #1d4ed8;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 2px 0;
+    min-height: 26px;
+}
+.editable-section-title input:focus {
+    outline: 2px solid rgba(37, 99, 235, .25);
+    border-radius: 6px;
+}
+.save-headers-row {
+    background: #f8fafc;
+    border: 1px dashed #93c5fd;
+    border-radius: 14px;
+    padding: 10px 12px;
+}
+
+
+/* V3.4 handover dispatch controls */
+.dispatch-head-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.inline-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 9px 12px;
+    font-weight: 900;
+    color: #334155;
+}
+.inline-toggle input {
+    width: 18px;
+    height: 18px;
+}
+@media (max-width: 700px) {
+    .dispatch-head-actions {
+        justify-content: flex-start;
+    }
+}
