@@ -74,7 +74,7 @@
             </div>
         </div>
 
-        <div class="plan-chip">{{ 'Business' if user.plan == 'business' else ('Pro' if user.plan == 'pro' else plan_names[user.plan]) }} plan</div>
+        <div class="plan-chip">{% if user.email == "admin@opspilot.ai" %}Admin{% elif user.plan == "business" %}Business plan{% elif user.plan == "pro" %}Pro plan{% else %}Free plan{% endif %}</div>
 
         <nav class="nav grouped-nav tidy-sidebar final-sidebar">
             <a class="{{ 'active' if page == 'dashboard' else '' }} nav-link nav-primary" href="{{ url_for('index') }}">
@@ -107,6 +107,7 @@
 
             <details class="nav-group">
                 <summary><span class="nav-ico">⚙️</span><span>{{ t("account") if t("account") != "account" else "Account" }}</span></summary>
+                <a class="{{ 'active' if page == 'shift_calendar' else '' }} nav-link" href="{{ url_for('shift_calendar') }}"><span class="nav-ico">📅</span><span>{{ t("calendar") }}</span></a>
                 <a class="{{ 'active' if page == 'mileage' else '' }} nav-link" href="{{ url_for('mileage') }}"><span class="nav-ico">🚗</span><span>{{ t("mileage") }}</span></a>
                 <a class="{{ 'active' if page == 'expenses' else '' }} nav-link" href="{{ url_for('expenses') }}"><span class="nav-ico">💷</span><span>{{ t("expenses") }}</span></a>
                 <a class="{{ 'active' if page == 'settings' else '' }} nav-link" href="{{ url_for('settings') }}"><span class="nav-ico">👤</span><span>{{ t("profile") if t("profile") != "profile" else "Profile" }}</span></a>

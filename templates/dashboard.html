@@ -46,7 +46,7 @@
   </div>
 
   <details class="weather-more-details">
-    <summary>More Details ▼</summary>
+    <summary id="weatherDetailsToggle">More Details ▼</summary>
 
   <div class="weather-grid-cards">
     <div class="weather-mini-card"><span>💨 Wind</span><strong id="weatherWind">--</strong></div>
@@ -168,18 +168,65 @@
   }
   function loadWeather(useBrowserLocation) {
     setLoading();
+    const detailsBox = document.querySelector(".weather-more-details");
+  if (detailsBox) {
+    detailsBox.addEventListener("toggle", function () {
+      const s = document.getElementById("weatherDetailsToggle");
+      if (s) s.textContent = detailsBox.open ? "Hide Details ▲" : "More Details ▼";
+    });
+  }
+
+  if (els.btn) {
+      els.btn.disabled = true;
+      els.btn.textContent = "Refreshing...";
+    }
+
+    let finished = false;
+    function done() {
+      finished = true;
+      if (els.btn) {
+        els.btn.disabled = false;
+        els.btn.textContent = "🔄 Refresh";
+      }
+    }
+    function fallbackFetch() {
+      fetchWeather()
+        .then(done)
+        .catch((err) => { setFallback(err.message); done(); });
+    }
+
     if (useBrowserLocation && navigator.geolocation) {
+      const safetyTimer = setTimeout(function () {
+        if (!finished) fallbackFetch();
+      }, 6500);
+
       navigator.geolocation.getCurrentPosition(
-        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude).catch(() => fetchWeather().catch((err2) => setFallback(err2.message))),
-        () => fetchWeather().catch((err) => setFallback(err.message)),
-        { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 }
+        function (pos) {
+          if (finished) return;
+          clearTimeout(safetyTimer);
+          fetchWeather(pos.coords.latitude, pos.coords.longitude)
+            .then(done)
+            .catch(function () { fallbackFetch(); });
+        },
+        function () {
+          if (finished) return;
+          clearTimeout(safetyTimer);
+          fallbackFetch();
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
       );
     } else {
-      fetchWeather().catch((err) => setFallback(err.message));
+      fallbackFetch();
     }
   }
-  if (els.btn) els.btn.addEventListener("click", () => loadWeather(true));
-  loadWeather(true);
+  if (els.btn) {
+    els.btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      loadWeather(true);
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () { loadWeather(true); });
+  if (document.readyState !== "loading") loadWeather(true);
 })();
 </script>
 <section class="dashboard-compact-grid">

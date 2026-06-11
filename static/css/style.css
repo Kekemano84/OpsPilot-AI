@@ -2512,3 +2512,12 @@ button:disabled {
 .lock-chip{font-size:.85rem;font-weight:1000;border-radius:999px;padding:2px 7px;background:#eef2ff;color:#1e3a8a;white-space:nowrap}
 .final-sidebar .business-chip{display:none!important}
 @media(max-width:700px){.weather-sun-row{grid-template-columns:1fr}}
+
+.weather-actions .small-btn:disabled {
+    opacity: .65;
+    cursor: wait;
+}
+.weather-more-details summary {
+    cursor: pointer;
+    user-select: none;
+}
