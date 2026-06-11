@@ -70,7 +70,14 @@
 
   </details>
 
-  <p class="muted weather-help" id="weatherHelp">
+  
+  <div class="weather-permission-box" id="weatherPermissionBox" style="display:none;">
+    <strong>📍 Location permission needed</strong>
+    <p>To show live weather for your current yard, please allow location access in your browser.</p>
+    <button type="button" class="small-btn" id="weatherAllowLocationBtn">Share my location</button>
+    <button type="button" class="small-btn ghost-small" id="weatherUseSavedBtn">Use saved site address</button>
+  </div>
+<p class="muted weather-help" id="weatherHelp">
     Uses browser location first. If that fails, it uses your saved site/address.
   </p>
 </section>
@@ -84,7 +91,8 @@
     humidity: $("weatherHumidity"), visibility: $("weatherVisibility"), pressure: $("weatherPressure"),
     sunrise: $("weatherSunrise"), sunset: $("weatherSunset"),
     risk: $("weatherRisk"), riskNote: $("weatherRiskNote"), riskCard: $("weatherRiskCard"),
-    hourly: $("weatherHourly"), daily: $("weatherDaily"), help: $("weatherHelp"), btn: $("weatherRefreshBtn")
+    hourly: $("weatherHourly"), daily: $("weatherDaily"), help: $("weatherHelp"), btn: $("weatherRefreshBtn"),
+    permissionBox: $("weatherPermissionBox"), allowBtn: $("weatherAllowLocationBtn"), savedBtn: $("weatherUseSavedBtn")
   };
   if (!els.temp) return;
 
@@ -124,10 +132,11 @@
     els.hourly.innerHTML = ""; els.daily.innerHTML = "";
     if (els.help) els.help.textContent = "Loading weather. Please wait...";
   }
-  function setFallback(message) {
+  function setFallback(message, showPermission) {
     els.temp.textContent = "Weather unavailable"; els.desc.textContent = message || "Could not load live weather.";
-    els.range.textContent = "Set site/address then refresh"; els.rain.textContent = "--";
-    if (els.help) els.help.textContent = "Set your site/address in Settings, then press Refresh.";
+    els.range.textContent = "Allow location or use saved site"; els.rain.textContent = "--";
+    if (els.permissionBox && showPermission) els.permissionBox.style.display = "block";
+    if (els.help) els.help.textContent = "Press Share my location, or use your saved site/address.";
   }
   function renderWeather(data) {
     if (!data || !data.ok) throw new Error((data && data.error) || "No weather data");
@@ -166,17 +175,9 @@
     const data = await res.json();
     renderWeather(data);
   }
-  function loadWeather(useBrowserLocation) {
+  function loadWeather(useBrowserLocation, forceAsk) {
     setLoading();
-    const detailsBox = document.querySelector(".weather-more-details");
-  if (detailsBox) {
-    detailsBox.addEventListener("toggle", function () {
-      const s = document.getElementById("weatherDetailsToggle");
-      if (s) s.textContent = detailsBox.open ? "Hide Details ▲" : "More Details ▼";
-    });
-  }
-
-  if (els.btn) {
+    if (els.btn) {
       els.btn.disabled = true;
       els.btn.textContent = "Refreshing...";
     }
@@ -189,16 +190,24 @@
         els.btn.textContent = "🔄 Refresh";
       }
     }
-    function fallbackFetch() {
+    function fallbackFetch(showPermission) {
       fetchWeather()
         .then(done)
-        .catch((err) => { setFallback(err.message); done(); });
+        .catch((err) => { setFallback(err.message, showPermission); done(); });
     }
+    function askBrowserLocation() {
+      if (!navigator.geolocation) {
+        setFallback("Browser location is not available on this device.", true);
+        done();
+        return;
+      }
 
-    if (useBrowserLocation && navigator.geolocation) {
       const safetyTimer = setTimeout(function () {
-        if (!finished) fallbackFetch();
-      }, 6500);
+        if (!finished) {
+          setFallback("Location request timed out. Please press Share my location again.", true);
+          done();
+        }
+      }, 9000);
 
       navigator.geolocation.getCurrentPosition(
         function (pos) {
@@ -206,24 +215,67 @@
           clearTimeout(safetyTimer);
           fetchWeather(pos.coords.latitude, pos.coords.longitude)
             .then(done)
-            .catch(function () { fallbackFetch(); });
+            .catch(function () { fallbackFetch(true); });
         },
-        function () {
+        function (error) {
           if (finished) return;
           clearTimeout(safetyTimer);
-          fallbackFetch();
+          let msg = "Location permission was not allowed.";
+          if (error && error.code === 1) msg = "Location is blocked. Please allow location permission in your browser.";
+          if (error && error.code === 2) msg = "Could not detect location. You can use saved site address.";
+          if (error && error.code === 3) msg = "Location request timed out. Try Refresh again.";
+          setFallback(msg, true);
+          done();
         },
-        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
       );
+    }
+
+    if (useBrowserLocation) {
+      if (forceAsk) {
+        askBrowserLocation();
+        return;
+      }
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({name: "geolocation"}).then(function (status) {
+          if (status.state === "granted" || status.state === "prompt") {
+            askBrowserLocation();
+          } else {
+            setFallback("Location is blocked. Press Share my location or enable location in browser settings.", true);
+            done();
+          }
+        }).catch(function () {
+          askBrowserLocation();
+        });
+      } else {
+        askBrowserLocation();
+      }
     } else {
-      fallbackFetch();
+      fallbackFetch(false);
     }
   }
+
   if (els.btn) {
     els.btn.addEventListener("click", function (e) {
       e.preventDefault();
-      loadWeather(true);
+      loadWeather(true, true);
     });
+  }
+  if (els.allowBtn) {
+    els.allowBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      loadWeather(true, true);
+    });
+  }
+  if (els.savedBtn) {
+    els.savedBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      loadWeather(false, false);
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () { loadWeather(true, false); });
+  if (document.readyState !== "loading") loadWeather(true, false);
+});
   }
   document.addEventListener("DOMContentLoaded", function () { loadWeather(true); });
   if (document.readyState !== "loading") loadWeather(true);

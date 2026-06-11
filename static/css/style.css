@@ -2521,3 +2521,25 @@ button:disabled {
     cursor: pointer;
     user-select: none;
 }
+
+.weather-permission-box {
+    margin: 12px 0;
+    padding: 16px;
+    border-radius: 18px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+}
+.weather-permission-box strong {
+    display: block;
+    color: #9a3412;
+    margin-bottom: 6px;
+}
+.weather-permission-box p {
+    margin: 0 0 12px;
+    color: #7c2d12;
+    font-weight: 700;
+}
+.weather-permission-box .small-btn {
+    margin-right: 8px;
+    margin-top: 4px;
+}
