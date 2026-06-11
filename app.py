@@ -410,6 +410,7 @@ def init_db():
     """)
     conn.commit()
 
+    safe_add_column("handovers", "extra_json", "TEXT")
     safe_add_column("users", "annual_leave_entitlement", "REAL DEFAULT 28")
     safe_add_column("users", "language", "TEXT DEFAULT 'en'")
     safe_add_column("users", "favorite_tools", "TEXT DEFAULT 'morning_brief,mileage,expenses,handover'")
@@ -466,7 +467,8 @@ def ensure_schema_updates():
             ("email_sent", "INTEGER DEFAULT 0")
         ],
         "handovers": [
-            ("pdf_created", "INTEGER DEFAULT 0")
+            ("pdf_created", "INTEGER DEFAULT 0"),
+            ("extra_json", "TEXT")
         ],
         "photo_records": [
             ("ai_result", "TEXT")
@@ -1142,53 +1144,81 @@ Let’s keep it safe, organised and productive.
 
 def generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, extra=None):
     extra = extra or {}
-    def v(key, default=""):
-        return (extra.get(key) or default or "").strip()
 
-    attendance = v("attendance", f"{actual_hc}/{planned_hc}" if planned_hc else str(actual_hc or ""))
+    def v(key, default=""):
+        value = extra.get(key, default)
+        if value is None:
+            return ""
+        if isinstance(value, (list, dict)):
+            return value
+        return str(value).strip()
+
+    absence_rows = extra.get("absence_rows", [])
+    dispatch_rows = extra.get("dispatch_rows", [])
+
+    absence_text = "\n".join([f"- {r.get('type','')}: {r.get('count','')}" for r in absence_rows if r.get("type") or r.get("count")]) or "No absence breakdown added."
+    dispatch_text = "\n".join([
+        f"- {r.get('carrier','')} | VRID: {r.get('vrid','')} | Completed: {r.get('completed','')} | On Time: {r.get('on_time','')} | Issue: {r.get('issue','')}"
+        for r in dispatch_rows if r.get("carrier") or r.get("vrid")
+    ]) or "No dispatch activities added."
+
+    attendance = f"{actual_hc}/{planned_hc}" if planned_hc else str(actual_hc or "")
+
     return f"""{shift or 'Shift'} Handover
 Date: {date}
 Shift: {shift or 'Not specified'}
 Manager: {manager or 'Not specified'}
+Volume: {volume}
 Attendance: {attendance}
 
-SAFETY
+ABSENCE BREAKDOWN
+{absence_text}
+
+SAFETY METRICS
 Safe Shift: {v('safe_shift', 'Safe Shift')}
-SLAMS: {v('slams')}
+SLAMs: {v('slams')}
 Safety Cons: {v('safety_cons')}
 Loads: {v('loads')}
 Safety Rules: {v('safety_rules')}
+Additional Comments: {v('safety_comments')}
 
 OPERATIONS PICK
 Pick Audits Completed: {v('pick_audits')}
 Slam Plan: {v('slam_plan')}
-Picked since start: {v('picked_since_start')}
-Full Well at start & end of shift: {v('full_well')}
-Cover / Notes: {v('cover_notes')}
+Picked Since: {v('picked_since_time', '06:00')} - {v('picked_since_value')}
+Full Well Start: {v('full_well_start')}
+Full Well End: {v('full_well_end')}
+EMC / Well To Cover Start: {v('emc_start')}
+EMC / Well To Cover End: {v('emc_end')}
 Additional Comments: {v('ops_comments') or issues or 'No major issues reported.'}
 
-SORT CENTRE
+SUK / SORT CENTRE
 Deliveries Planned: {v('deliveries_planned')}
 Deliveries Arrived: {v('deliveries_arrived')}
+Planned Same Day Sortation: {v('same_day_sortation')}
 Planned Next Day Sortation: {v('next_day_sortation')}
 Additional Comments: {v('sort_comments')}
 
 DISPATCH
-Late Slams Identified: {late_trailers}
-Collections Planned: {v('collections_planned')}
 Collections Arrived: {v('collections_arrived')}
 Late Arrivals: {v('late_arrivals')}
 Trailers on Doors: {v('trailers_on_doors')}
-Trailers Needed Cover Today CPTs: {v('trailers_needed_cover')}
+Trailers Needed to Cover Today CPTs: {v('trailers_needed_cover')}
+
+Dispatch Activities:
+{dispatch_text}
+
 Additional Comments: {v('dispatch_comments') or actions or 'No further action required.'}
 
 SUNTORY
-{v('suntory')}
+Trailers on Site to Complete: {v('suntory_trailers_on_site')}
+Completed on Shift: {v('suntory_completed')}
+Left to Complete: {v('suntory_left')}
+Additional Comments: {v('suntory_comments')}
 
 AOB
 {v('aob')}
 """
-
 def generate_shift_plan(date, shift, volume, available_hc, target_rate, planned_hours):
     capacity = available_hc * target_rate * planned_hours if available_hc and target_rate and planned_hours else 0
     gap = capacity - volume
@@ -3102,14 +3132,51 @@ def handover():
         late_trailers = int(request.form.get("late_trailers") or 0)
         issues = request.form.get("issues", "").strip()
         actions = request.form.get("actions", "").strip()
-        handover_fields = ["attendance", "safe_shift", "slams", "safety_cons", "loads", "safety_rules", "pick_audits", "slam_plan", "picked_since_start", "full_well", "cover_notes", "ops_comments", "deliveries_planned", "deliveries_arrived", "next_day_sortation", "sort_comments", "collections_planned", "collections_arrived", "late_arrivals", "trailers_on_doors", "trailers_needed_cover", "dispatch_comments", "suntory", "aob"]
+
+        handover_fields = [
+            "safe_shift", "slams", "safety_cons", "loads", "safety_rules", "safety_comments",
+            "pick_audits", "slam_plan", "picked_since_time", "picked_since_value",
+            "full_well_start", "full_well_end", "emc_start", "emc_end", "ops_comments",
+            "deliveries_planned", "deliveries_arrived", "same_day_sortation", "next_day_sortation", "sort_comments",
+            "collections_arrived", "late_arrivals", "trailers_on_doors", "trailers_needed_cover", "dispatch_comments",
+            "suntory_trailers_on_site", "suntory_completed", "suntory_left", "suntory_comments", "aob"
+        ]
         extra = {name: request.form.get(name, "").strip() for name in handover_fields}
+
+        absence_rows = []
+        absence_types = request.form.getlist("absence_type[]")
+        absence_counts = request.form.getlist("absence_count[]")
+        for t, c in zip(absence_types, absence_counts):
+            if (t or c):
+                absence_rows.append({"type": t.strip(), "count": c.strip()})
+
+        dispatch_rows = []
+        carriers = request.form.getlist("dispatch_carrier[]")
+        vrids = request.form.getlist("dispatch_vrid[]")
+        completed = request.form.getlist("dispatch_completed[]")
+        on_time = request.form.getlist("dispatch_on_time[]")
+        issue = request.form.getlist("dispatch_issue[]")
+        max_len = max(len(carriers), len(vrids), len(completed), len(on_time), len(issue), 0)
+        for i in range(max_len):
+            row = {
+                "carrier": carriers[i].strip() if i < len(carriers) else "",
+                "vrid": vrids[i].strip() if i < len(vrids) else "",
+                "completed": completed[i].strip() if i < len(completed) else "",
+                "on_time": on_time[i].strip() if i < len(on_time) else "",
+                "issue": issue[i].strip() if i < len(issue) else "",
+            }
+            if any(row.values()):
+                dispatch_rows.append(row)
+
+        extra["absence_rows"] = absence_rows
+        extra["dispatch_rows"] = dispatch_rows
+
         generated = generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, extra)
         conn = get_db()
         conn.execute("""
-            INSERT INTO handovers (user_id, date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, generated_report, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (user["id"], date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, generated, datetime.now().isoformat()))
+            INSERT INTO handovers (user_id, date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, generated_report, extra_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user["id"], date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, generated, json.dumps(extra), datetime.now().isoformat()))
         conn.commit()
         conn.close()
         flash("Handover generated.", "success")
@@ -3293,11 +3360,63 @@ def export_handovers():
     conn = get_db()
     rows = conn.execute("SELECT * FROM handovers WHERE user_id = ? ORDER BY date DESC, id DESC", (user["id"],)).fetchall()
     conn.close()
-    wb = Workbook(); ws = wb.active; ws.title = "Handovers"
-    ws.append(["Date", "Shift", "Manager", "Volume", "Planned HC", "Actual HC", "Late Trailers", "Issues", "Actions", "Report", "Created At"])
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Handovers"
+
+    ws.append([
+        "Date", "Shift", "Manager", "Volume", "Planned HC", "Actual HC", "Attendance",
+        "Sick/Holiday/Absence Breakdown",
+        "SLAMs", "Safety Cons", "Loads", "Safety Rules", "Safety Comments",
+        "Pick Audits", "Slam Plan", "Picked Since Time", "Picked Volume",
+        "Full Well Start", "Full Well End", "EMC Start", "EMC End", "Operations Comments",
+        "Deliveries Planned", "Deliveries Arrived", "Same Day Sortation", "Next Day Sortation", "Sort Comments",
+        "Collections Arrived", "Late Arrivals", "Trailers On Doors", "Trailers Needed Cover",
+        "Dispatch Activities", "Dispatch Comments",
+        "Suntory On Site", "Suntory Completed", "Suntory Left", "Suntory Comments",
+        "AOB", "Generated Report", "Created At"
+    ])
+
     for row in rows:
-        ws.append([row["date"], row["shift"], row["manager"], row["volume"], row["planned_hc"], row["actual_hc"], row["late_trailers"], row["issues"], row["actions"], row["generated_report"], row["created_at"]])
+        try:
+            extra = json.loads(row_get(row, "extra_json", "{}") or "{}")
+        except Exception:
+            extra = {}
+
+        absence = "; ".join([f"{x.get('type','')}: {x.get('count','')}" for x in extra.get("absence_rows", [])])
+        dispatch = "; ".join([
+            f"{x.get('carrier','')} | VRID {x.get('vrid','')} | Completed {x.get('completed','')} | On Time {x.get('on_time','')} | Issue {x.get('issue','')}"
+            for x in extra.get("dispatch_rows", [])
+        ])
+
+        ws.append([
+            row["date"], row["shift"], row["manager"], row["volume"], row["planned_hc"], row["actual_hc"],
+            f"{row['actual_hc']}/{row['planned_hc']}" if row["planned_hc"] else row["actual_hc"],
+            absence,
+            extra.get("slams",""), extra.get("safety_cons",""), extra.get("loads",""), extra.get("safety_rules",""), extra.get("safety_comments",""),
+            extra.get("pick_audits",""), extra.get("slam_plan",""), extra.get("picked_since_time",""), extra.get("picked_since_value",""),
+            extra.get("full_well_start",""), extra.get("full_well_end",""), extra.get("emc_start",""), extra.get("emc_end",""), extra.get("ops_comments",""),
+            extra.get("deliveries_planned",""), extra.get("deliveries_arrived",""), extra.get("same_day_sortation",""), extra.get("next_day_sortation",""), extra.get("sort_comments",""),
+            extra.get("collections_arrived",""), extra.get("late_arrivals",""), extra.get("trailers_on_doors",""), extra.get("trailers_needed_cover",""),
+            dispatch, extra.get("dispatch_comments",""),
+            extra.get("suntory_trailers_on_site",""), extra.get("suntory_completed",""), extra.get("suntory_left",""), extra.get("suntory_comments",""),
+            extra.get("aob",""), row["generated_report"], row["created_at"]
+        ])
+
+    # Add dispatch activities as a second sheet
+    ws2 = wb.create_sheet("Dispatch Activities")
+    ws2.append(["Handover Date", "Shift", "Carrier", "VRID", "Completed", "On Time", "Issue"])
+    for row in rows:
+        try:
+            extra = json.loads(row_get(row, "extra_json", "{}") or "{}")
+        except Exception:
+            extra = {}
+        for x in extra.get("dispatch_rows", []):
+            ws2.append([row["date"], row["shift"], x.get("carrier",""), x.get("vrid",""), x.get("completed",""), x.get("on_time",""), x.get("issue","")])
+
     style_excel_header(ws)
+    style_excel_header(ws2)
     return excel_response(wb, "handovers.xlsx")
 
 @app.route("/admin/export")

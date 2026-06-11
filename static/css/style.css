@@ -2110,3 +2110,62 @@ button:disabled {
     opacity: .55;
     cursor: not-allowed;
 }
+
+
+/* Handover V3 dispatch/VRID dynamic rows */
+.dynamic-block {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 14px;
+}
+.dynamic-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.dynamic-head label {
+    margin: 0;
+}
+.dynamic-rows {
+    display: grid;
+    gap: 10px;
+}
+.dynamic-row {
+    display: grid;
+    grid-template-columns: 1fr 120px auto;
+    gap: 8px;
+    align-items: center;
+}
+.dispatch-row {
+    grid-template-columns: 1.3fr 1fr 110px 110px 100px auto;
+}
+.dispatch-table-head {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 110px 110px 100px auto;
+    gap: 8px;
+    padding: 0 4px 8px;
+    color: #64748b;
+    font-weight: 800;
+    font-size: .85rem;
+}
+.dynamic-row input,
+.dynamic-row select {
+    min-width: 0;
+}
+@media (max-width: 800px) {
+    .dynamic-row,
+    .dispatch-row,
+    .dispatch-table-head {
+        grid-template-columns: 1fr;
+    }
+    .dispatch-table-head {
+        display: none;
+    }
+    .dynamic-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
