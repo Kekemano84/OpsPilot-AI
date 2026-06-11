@@ -13,7 +13,7 @@ from email.message import EmailMessage
 from io import BytesIO
 
 from flask import (
-    Flask, render_template, request, redirect, url_for, send_file, flash, session
+    Flask, render_template, request, redirect, url_for, send_file, flash, session, jsonify
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -4820,7 +4820,7 @@ def manifest_json():
 @app.route("/service-worker.js")
 def service_worker():
     js = """
-const CACHE_NAME = 'opspilot-ai-v1';
+const CACHE_NAME = 'opspilot-ai-v40';
 const urlsToCache = [
   '/',
   '/static/css/style.css'
@@ -4848,4 +4848,69 @@ seed_admin_user()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
+
+
+@app.route("/api/weather")
+@login_required
+def api_weather():
+    user = current_user()
+
+    def as_float(value):
+        try:
+            return float(value)
+        except Exception:
+            return None
+
+    lat = as_float(request.args.get("lat"))
+    lon = as_float(request.args.get("lon"))
+    source = "browser location"
+
+    try:
+        # Use saved site/address if browser location is not supplied.
+        if lat is None or lon is None:
+            query = (row_get(user, "address", "") or row_get(user, "company_name", "") or "Warrington, UK").strip()
+            source = query
+            geo_resp = requests.get(
+                "https://geocoding-api.open-meteo.com/v1/search",
+                params={"name": query, "count": 1, "language": "en", "format": "json"},
+                timeout=8
+            )
+            geo_data = geo_resp.json() if geo_resp.ok else {}
+            result = (geo_data.get("results") or [{}])[0]
+            lat = result.get("latitude") or 53.3900
+            lon = result.get("longitude") or -2.5969
+            source = result.get("name") or source
+
+        resp = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": lat,
+                "longitude": lon,
+                "current": "temperature_2m,precipitation,weather_code,wind_speed_10m",
+                "timezone": "auto"
+            },
+            timeout=8
+        )
+        if not resp.ok:
+            return jsonify({"ok": False, "error": "Weather service unavailable"}), 502
+
+        data = resp.json()
+        current = data.get("current") or {}
+        if not current:
+            return jsonify({"ok": False, "error": "No weather data returned"}), 502
+
+        return jsonify({
+            "ok": True,
+            "source": source,
+            "temperature": current.get("temperature_2m"),
+            "precipitation": current.get("precipitation"),
+            "weather_code": current.get("weather_code"),
+            "wind_speed": current.get("wind_speed_10m"),
+            "latitude": lat,
+            "longitude": lon
+        })
+
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
 

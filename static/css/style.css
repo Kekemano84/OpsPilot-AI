@@ -2341,3 +2341,23 @@ button:disabled {
     .template-section-row { grid-template-columns: 1fr; }
     .add-section-inline { flex-direction: column; align-items: stretch; }
 }
+
+.weather-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.weather-widget-free .panel-head {
+    align-items: center;
+}
+.weather-widget-free .small-btn {
+    white-space: nowrap;
+}
+@media (max-width: 640px) {
+    .weather-actions {
+        width: 100%;
+        justify-content: flex-start;
+        margin-top: 8px;
+    }
+}

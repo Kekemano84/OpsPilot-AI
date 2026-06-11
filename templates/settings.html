@@ -24,7 +24,7 @@
         <div><label>{{ t("default_mileage_rate") if t("default_mileage_rate") != "default_mileage_rate" else "Default Mileage Rate (£/mile)" }}</label><input type="number" step="0.01" name="mileage_rate" value="{{ row.mileage_rate or 0.55 }}"></div>
         <div><label>{{ t("door_count") if t("door_count") != "door_count" else "Door Count" }}</label><input type="number" min="1" max="1000" name="door_count" value="{{ row.door_count or 100 }}"></div>
         <div><label>{{ t("fence_count") if t("fence_count") != "fence_count" else "Fence Count" }}</label><input type="number" min="1" max="1000" name="fence_count" value="{{ row.fence_count or 120 }}"></div>
-        <div class="wide"><label>{{ t("address") if t("address") != "address" else "Address" }}</label><input name="address" value="{{ row.address or '' }}"></div>
+        <div class="wide"><label>{{ t("address") if t("address") != "address" else "Address" }}</label><input name="address" placeholder="e.g. Preston Brook, Warrington, Runcorn" value="{{ row.address or '' }}"></div>
 
         <div id="language-settings"><label>{{ t("language") if t("language") != "language" else "Language" }}</label><select name="language">{% for code,label in available_languages %}<option value="{{ code }}" {% if row.language==code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
 
