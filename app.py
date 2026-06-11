@@ -2401,6 +2401,11 @@ def register():
     return render_template("auth.html", mode="register", page="auth")
 
 
+
+@app.route("/share")
+def share_preview():
+    return redirect(url_for("login"))
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
