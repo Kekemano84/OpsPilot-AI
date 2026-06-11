@@ -2361,3 +2361,16 @@ button:disabled {
         margin-top: 8px;
     }
 }
+
+.plan-admin-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+    gap: 8px;
+}
+.plan-admin-actions .small-btn {
+    text-align: center;
+    justify-content: center;
+}
+@media (max-width: 900px) {
+    .plan-admin-actions { grid-template-columns: 1fr; }
+}

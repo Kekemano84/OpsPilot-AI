@@ -121,6 +121,26 @@
 </script>
 </section>
 
+
+<section class="panel compact-panel">
+    <div class="panel-head">
+        <div>
+            <h3>Demo Business Accounts</h3>
+            <p class="muted">Creates 5 Business test accounts with full app access, but no Admin panel or revenue dashboard.</p>
+        </div>
+        <span class="pill">Password: OpsPilot2026!</span>
+    </div>
+    <div class="mini-actions">
+        <form method="POST" action="{{ url_for('admin_create_demo_users') }}">
+            <button class="small-btn" type="submit">Create / Reset Demo Users</button>
+        </form>
+        <form method="POST" action="{{ url_for('admin_delete_demo_users') }}" onsubmit="return confirm('Delete all demo users?')">
+            <button class="small-btn danger-btn" type="submit">Delete Demo Users</button>
+        </form>
+    </div>
+    <p class="muted">Emails: demo1@opspilot.ai, demo2@opspilot.ai, demo3@opspilot.ai, demo4@opspilot.ai, demo5@opspilot.ai</p>
+</section>
+
 <section class="panel compact-panel">
     <div class="panel-head">
         <h3>Users</h3>
@@ -129,19 +149,26 @@
 
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Role</th><th>Created</th><th>Pro Until</th><th>Status</th><th>Set Plan</th><th>Set Role</th><th>Delete</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Access</th><th>Role</th><th>Created</th><th>Valid Until</th><th>Status</th><th>Plan Options</th><th>Delete</th></tr></thead>
             <tbody>
                 {% for u in users %}
                 <tr>
                     <td><strong>{{ u.name }}</strong></td>
                     <td>{{ u.email }}</td>
-                    <td><span class="status yard">{{ plan_names[u.plan] }}</span></td>
+                    <td><span class="status yard">{{ display_plan_name(u) }}</span></td>
                     <td>{{ u.role or "-" }}</td>
                     <td>{{ u.created_at[:10] }}</td>
                     <td>{{ u.pro_expires_at[:10] if u.pro_expires_at else "No expiry" }}</td>
                     <td>{{ u.subscription_status or "-" }}{% if u.pro_reason %}<br><small>{{ u.pro_reason }}</small>{% endif %}</td>
-                    <td><div class="mini-actions"><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_plan', user_id=u.id, plan='free') }}">Free</a><a class="small-btn" href="{{ url_for('admin_set_user_plan', user_id=u.id, plan='pro') }}">Manual Pro</a><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_trial_pro30', user_id=u.id) }}">30 Day Pro</a><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_gift_pro', user_id=u.id) }}">Gift Pro</a></div></td>
-                    <td><div class="mini-actions"><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_role', user_id=u.id, role='User') }}">User</a><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_role', user_id=u.id, role='FLM') }}">FLM</a><a class="small-btn ghost-small" href="{{ url_for('admin_set_user_role', user_id=u.id, role='Manager') }}">Manager</a></div></td>
+                    <td><div class="mini-actions plan-admin-actions">
+                        <a class="small-btn ghost-small" href="{{ url_for('admin_set_user_plan', user_id=u.id, plan='free') }}">Free</a>
+                        <a class="small-btn" href="{{ url_for('admin_set_user_plan', user_id=u.id, plan='pro') }}">Manual Pro</a>
+                        <a class="small-btn ghost-small" href="{{ url_for('admin_set_user_trial_pro30', user_id=u.id) }}">30 Day Pro</a>
+                        <a class="small-btn ghost-small" href="{{ url_for('admin_set_user_gift_pro', user_id=u.id) }}">Gift Pro</a>
+                        <a class="small-btn" href="{{ url_for('admin_set_user_plan', user_id=u.id, plan='business') }}">Manual Business</a>
+                        <a class="small-btn ghost-small" href="{{ url_for('admin_set_user_trial_business30', user_id=u.id) }}">30 Day Business</a>
+                        <a class="small-btn ghost-small" href="{{ url_for('admin_set_user_gift_business', user_id=u.id) }}">Gift Business</a>
+                    </div></td>
                     <td>{% if u.email != 'admin@opspilot.ai' %}<form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}" onsubmit="return confirm('Delete this account and all data?')"><button class="small-btn danger-btn" type="submit">Delete Account</button></form>{% endif %}</td>
                 </tr>
                 {% else %}<tr><td colspan="9" class="empty">No users yet.</td></tr>{% endfor %}

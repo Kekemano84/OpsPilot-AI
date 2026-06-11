@@ -71,6 +71,14 @@ CLASS4_NI_HIGHER = 0.02
 
 PLAN_ORDER = {"free": 0, "pro": 1, "business": 2}
 PLAN_NAMES = {"free": "Free", "pro": "Pro £5.99", "business": "Business £9.99"}
+
+def display_plan_name(user_row):
+    try:
+        if is_admin(user_row):
+            return "Admin"
+    except Exception:
+        pass
+    return PLAN_NAMES.get(row_get(user_row, "plan", "free"), "Free")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID")
@@ -1073,6 +1081,7 @@ def money(value):
 
 
 app.jinja_env.filters["money"] = money
+app.jinja_env.globals["display_plan_name"] = display_plan_name
 
 
 @app.template_filter("dateuk")
@@ -4157,6 +4166,92 @@ def admin_dashboard():
     return render_template("admin.html", users=users, stats=stats, page="admin")
 
 
+
+@app.route("/admin/demo-users/create", methods=["POST"])
+@login_required
+def admin_create_demo_users():
+    admin = current_user()
+    if not is_admin(admin):
+        flash("Admin access only.", "error")
+        return redirect(url_for("index"))
+
+    demo_password = "OpsPilot2026!"
+    demo_users = [
+        ("Demo User 1", "demo1@opspilot.ai"),
+        ("Demo User 2", "demo2@opspilot.ai"),
+        ("Demo User 3", "demo3@opspilot.ai"),
+        ("Demo User 4", "demo4@opspilot.ai"),
+        ("Demo User 5", "demo5@opspilot.ai"),
+    ]
+
+    conn = get_db()
+    created = 0
+    updated = 0
+    now = datetime.now().isoformat(timespec="seconds")
+
+    for name, email in demo_users:
+        existing = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        password_hash = generate_password_hash(demo_password)
+        if existing:
+            conn.execute("""
+                UPDATE users
+                SET name = ?,
+                    password_hash = ?,
+                    plan = 'business',
+                    role = 'Manager',
+                    subscription_status = 'demo_business',
+                    pro_expires_at = NULL,
+                    pro_reason = 'Demo Business account'
+                WHERE email = ?
+            """, (name, password_hash, email))
+            updated += 1
+        else:
+            conn.execute("""
+                INSERT INTO users (name, email, password_hash, plan, business_name, created_at, role, subscription_status, pro_expires_at, pro_reason)
+                VALUES (?, ?, ?, 'business', 'OpsPilot AI Demo', ?, 'Manager', 'demo_business', NULL, 'Demo Business account')
+            """, (name, email, password_hash, now))
+            created += 1
+
+    conn.commit()
+    conn.close()
+
+    flash(f"Demo Business users ready. Created: {created}, updated/reset: {updated}. Password: {demo_password}", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/demo-users/delete", methods=["POST"])
+@login_required
+def admin_delete_demo_users():
+    admin = current_user()
+    if not is_admin(admin):
+        flash("Admin access only.", "error")
+        return redirect(url_for("index"))
+
+    emails = [f"demo{i}@opspilot.ai" for i in range(1, 6)]
+    conn = get_db()
+    deleted = 0
+    for email in emails:
+        user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        if user:
+            uid = user["id"]
+            # Delete common user data tables when they exist.
+            for table in [
+                "mileage", "expenses", "invoices", "yard_checks", "handovers", "team_members",
+                "shift_calendar", "daily_logs", "actions", "sites", "custom_locations",
+                "handover_templates", "calendar_notes", "shift_plans"
+            ]:
+                try:
+                    conn.execute(f"DELETE FROM {table} WHERE user_id = ?", (uid,))
+                except Exception:
+                    pass
+            conn.execute("DELETE FROM users WHERE id = ?", (uid,))
+            deleted += 1
+    conn.commit()
+    conn.close()
+    flash(f"Deleted {deleted} demo users.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.route("/admin/user/<int:user_id>/plan/<plan>")
 @login_required
 def admin_set_user_plan(user_id, plan):
@@ -4165,21 +4260,21 @@ def admin_set_user_plan(user_id, plan):
         flash("Admin access only.", "error")
         return redirect(url_for("index"))
 
-    if plan not in ["free", "pro"]:
+    if plan not in ["free", "pro", "business"]:
         flash("Invalid plan.", "error")
         return redirect(url_for("admin_dashboard"))
 
     conn = get_db()
 
-    if plan == "pro":
+    if plan in ["pro", "business"]:
         conn.execute("""
             UPDATE users
-            SET plan = 'pro',
+            SET plan = ?,
                 subscription_status = 'manual_admin',
                 pro_expires_at = NULL,
-                pro_reason = 'Manual Pro set by admin'
+                pro_reason = ?
             WHERE id = ?
-        """, (user_id,))
+        """, (plan, f"Manual {PLAN_NAMES[plan]} set by admin", user_id))
     else:
         conn.execute("""
             UPDATE users
@@ -4245,6 +4340,54 @@ def admin_set_user_gift_pro(user_id):
     conn.close()
 
     flash("Free Pro gift activated for user.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+
+@app.route("/admin/user/<int:user_id>/trial/business30")
+@login_required
+def admin_set_user_trial_business30(user_id):
+    admin = current_user()
+    if not is_admin(admin):
+        flash("Admin access only.", "error")
+        return redirect(url_for("index"))
+
+    expires_at = (datetime.now() + timedelta(days=30)).isoformat(timespec="seconds")
+    conn = get_db()
+    conn.execute("""
+        UPDATE users
+        SET plan = 'business',
+            subscription_status = 'trial_admin',
+            pro_expires_at = ?,
+            pro_reason = '30 day Business trial set by admin'
+        WHERE id = ?
+    """, (expires_at, user_id))
+    conn.commit()
+    conn.close()
+    flash("30 day Business trial activated.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/user/<int:user_id>/gift/business")
+@login_required
+def admin_set_user_gift_business(user_id):
+    admin = current_user()
+    if not is_admin(admin):
+        flash("Admin access only.", "error")
+        return redirect(url_for("index"))
+
+    conn = get_db()
+    conn.execute("""
+        UPDATE users
+        SET plan = 'business',
+            subscription_status = 'gift_admin',
+            pro_expires_at = NULL,
+            pro_reason = 'Free Business gift set by admin'
+        WHERE id = ?
+    """, (user_id,))
+    conn.commit()
+    conn.close()
+    flash("Free Business gift activated for user.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
