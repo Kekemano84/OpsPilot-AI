@@ -5015,16 +5015,10 @@ self.addEventListener('fetch', event => {
 init_db()
 ensure_schema_updates()
 seed_admin_user()
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
-
-
-
-
 @app.route("/api/weather")
 @login_required
 def api_weather():
+    """Live weather for dashboard. Browser GPS first, then saved site/address, then Warrington fallback."""
     user = current_user()
 
     def as_float(value):
@@ -5037,29 +5031,31 @@ def api_weather():
     lon = as_float(request.args.get("lon"))
     source = "browser location"
 
+    if lat is None or lon is None:
+        query = (
+            row_get(user, "address", "")
+            or row_get(user, "site_name", "")
+            or row_get(user, "company_name", "")
+            or ""
+        ).strip()
+        if not query or "opspilot" in query.lower() or "admin" in query.lower():
+            query = "Warrington, United Kingdom"
+
+        try:
+            geo = requests.get(
+                "https://geocoding-api.open-meteo.com/v1/search",
+                params={"name": query, "count": 1, "language": "en", "format": "json"},
+                timeout=6,
+            )
+            result = ((geo.json() if geo.ok else {}).get("results") or [{}])[0]
+            lat = result.get("latitude") or 53.3900
+            lon = result.get("longitude") or -2.5969
+            source = result.get("name") or "Warrington"
+        except Exception:
+            lat, lon, source = 53.3900, -2.5969, "Warrington"
+
     try:
-        # Strong fallback: if browser location is not supplied, use saved address, then Warrington.
-        if lat is None or lon is None:
-            query = (row_get(user, "address", "") or row_get(user, "company_name", "") or "").strip()
-            if not query or "opspilot" in query.lower():
-                query = "Warrington, United Kingdom"
-            source = query
-
-            try:
-                geo_resp = requests.get(
-                    "https://geocoding-api.open-meteo.com/v1/search",
-                    params={"name": query, "count": 1, "language": "en", "format": "json"},
-                    timeout=6
-                )
-                geo_data = geo_resp.json() if geo_resp.ok else {}
-                result = (geo_data.get("results") or [{}])[0]
-                lat = result.get("latitude") or 53.3900
-                lon = result.get("longitude") or -2.5969
-                source = result.get("name") or "Warrington"
-            except Exception:
-                lat, lon, source = 53.3900, -2.5969, "Warrington"
-
-        weather_resp = requests.get(
+        resp = requests.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
                 "latitude": lat,
@@ -5068,88 +5064,83 @@ def api_weather():
                 "hourly": "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,visibility",
                 "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset",
                 "timezone": "auto",
-                "forecast_days": 2
+                "forecast_days": 2,
             },
-            timeout=8
+            timeout=8,
         )
-        if not weather_resp.ok:
-            raise RuntimeError("Open-Meteo unavailable")
-
-        data = weather_resp.json()
+        resp.raise_for_status()
+        data = resp.json()
         current = data.get("current") or {}
         hourly = data.get("hourly") or {}
         daily = data.get("daily") or {}
         if not current:
-            raise RuntimeError("No weather data returned")
+            raise RuntimeError("No current weather returned")
 
-        def list_get(values, i):
+        def get(values, i, default=None):
             try:
-                return values[i]
+                value = values[i]
+                return default if value is None else value
             except Exception:
-                return None
+                return default
 
         times = hourly.get("time") or []
         now_index = 0
-        current_time = current.get("time")
-        if current_time and current_time in times:
-            now_index = times.index(current_time)
+        if current.get("time") in times:
+            now_index = times.index(current.get("time"))
 
         hourly_items = []
         for i in range(now_index, min(now_index + 8, len(times))):
             hourly_items.append({
-                "time": times[i],
-                "temperature": list_get(hourly.get("temperature_2m") or [], i),
-                "rain_probability": list_get(hourly.get("precipitation_probability") or [], i),
-                "precipitation": list_get(hourly.get("precipitation") or [], i),
-                "weather_code": list_get(hourly.get("weather_code") or [], i),
-                "wind_speed": list_get(hourly.get("wind_speed_10m") or [], i),
-                "visibility": list_get(hourly.get("visibility") or [], i),
+                "time": get(times, i),
+                "temperature": get(hourly.get("temperature_2m") or [], i, 0),
+                "rain_probability": get(hourly.get("precipitation_probability") or [], i, 0),
+                "precipitation": get(hourly.get("precipitation") or [], i, 0),
+                "weather_code": get(hourly.get("weather_code") or [], i, 0),
+                "wind_speed": get(hourly.get("wind_speed_10m") or [], i, 0),
+                "visibility": get(hourly.get("visibility") or [], i, 10000),
             })
 
         daily_items = []
         for i, day in enumerate(daily.get("time") or []):
             daily_items.append({
                 "date": day,
-                "weather_code": list_get(daily.get("weather_code") or [], i),
-                "max": list_get(daily.get("temperature_2m_max") or [], i),
-                "min": list_get(daily.get("temperature_2m_min") or [], i),
-                "rain_probability": list_get(daily.get("precipitation_probability_max") or [], i),
-                "sunrise": list_get(daily.get("sunrise") or [], i),
-                "sunset": list_get(daily.get("sunset") or [], i),
+                "weather_code": get(daily.get("weather_code") or [], i, 0),
+                "max": get(daily.get("temperature_2m_max") or [], i, 0),
+                "min": get(daily.get("temperature_2m_min") or [], i, 0),
+                "rain_probability": get(daily.get("precipitation_probability_max") or [], i, 0),
+                "sunrise": get(daily.get("sunrise") or [], i, ""),
+                "sunset": get(daily.get("sunset") or [], i, ""),
             })
 
         rain_now = current.get("precipitation") or 0
         wind = current.get("wind_speed_10m") or 0
         visibility = current.get("visibility") or 10000
-        temp = current.get("temperature_2m") or 0
         next_rain_prob = max([(x.get("rain_probability") or 0) for x in hourly_items[:4]] or [0])
         next_rain_mm = max([(x.get("precipitation") or 0) for x in hourly_items[:4]] or [0])
 
         risk_points = 0
-        risk_notes = []
+        notes = []
         if rain_now >= 1 or next_rain_mm >= 1 or next_rain_prob >= 70:
             risk_points += 2
-            risk_notes.append("Rain risk for yard work")
+            notes.append("Rain risk for yard work")
         elif next_rain_prob >= 40:
             risk_points += 1
-            risk_notes.append("Possible rain later")
+            notes.append("Possible rain later")
         if wind >= 35:
             risk_points += 2
-            risk_notes.append("Strong wind")
+            notes.append("Strong wind")
         elif wind >= 22:
             risk_points += 1
-            risk_notes.append("Moderate wind")
+            notes.append("Moderate wind")
         if visibility < 3000:
             risk_points += 2
-            risk_notes.append("Low visibility")
+            notes.append("Low visibility")
         elif visibility < 6000:
             risk_points += 1
-            risk_notes.append("Reduced visibility")
-        if temp <= 2:
-            risk_points += 1
-            risk_notes.append("Cold conditions")
-        if not risk_notes:
-            risk_notes = ["Good conditions for yard activity"]
+            notes.append("Reduced visibility")
+        if not notes:
+            notes = ["Good conditions for yard activity"]
+
         risk_level = "High" if risk_points >= 4 else ("Medium" if risk_points >= 2 else "Low")
 
         return jsonify({
@@ -5164,13 +5155,10 @@ def api_weather():
             "visibility": current.get("visibility"),
             "hourly": hourly_items,
             "daily": daily_items,
-            "risk": {"level": risk_level, "points": risk_points, "notes": risk_notes},
-            "latitude": lat,
-            "longitude": lon
+            "risk": {"level": risk_level, "points": risk_points, "notes": notes},
         })
 
     except Exception as exc:
-        # Last-resort demo-safe fallback so dashboard never gets stuck.
         return jsonify({
             "ok": True,
             "source": "Warrington fallback",
@@ -5184,14 +5172,23 @@ def api_weather():
             "hourly": [],
             "daily": [{
                 "date": "",
-                "weather_code": 3,
                 "max": 16,
                 "min": 10,
-                "rain_probability": 0,
                 "sunrise": "2026-06-11T04:42",
-                "sunset": "2026-06-11T21:37"
+                "sunset": "2026-06-11T21:37",
+                "rain_probability": 0,
+                "weather_code": 3,
             }],
-            "risk": {"level": "Low", "points": 0, "notes": ["Fallback weather shown. Refresh again later."]},
-            "error": str(exc)
+            "risk": {"level": "Low", "points": 0, "notes": ["Fallback weather shown."]},
+            "error": str(exc),
         })
+
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
+
+
+
 

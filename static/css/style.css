@@ -2543,3 +2543,11 @@ button:disabled {
     margin-right: 8px;
     margin-top: 4px;
 }
+
+.mobile-bottom-nav small {
+    display: block;
+    font-size: 0.68rem;
+    line-height: 1;
+    opacity: .85;
+    margin-top: 2px;
+}

@@ -204,12 +204,11 @@
 
         {% if user %}
         <nav class="mobile-bottom-nav">
-            <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('index') }}">⌂<span>{{ t("home") }}</span></a>
-            <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}">📅<span>{{ t("calendar") }}</span><span class="trial-chip">14 DAY</span></a>
-            <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}">🚛<span>{{ t("checks") }}</span></a>
-            <a class="{{ 'active' if page == 'team' else '' }}" href="{{ url_for('team') }}">👥<span>{{ t("team") }}</span></a>
-            <a class="{{ 'active' if page in ['more', 'settings', 'pricing', 'admin', 'billing'] else '' }}" href="{{ url_for('more_menu') }}">☰<span>{{ t("more") }}</span></a>
-        </nav>
+    <a class="{{ 'active' if page == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}"><span>⌂</span><b>Home</b></a>
+    <a class="{{ 'active' if page == 'shift_calendar' else '' }}" href="{{ url_for('shift_calendar') }}"><span>📅</span><b>Calendar</b><small>14 DAY</small></a>
+    <a class="{{ 'active' if page == 'handover' else '' }}" href="{{ url_for('handover') }}"><span>📋</span><b>Handover</b></a>
+    <a class="{{ 'active' if page == 'yard_check' else '' }}" href="{{ url_for('yard_check') }}"><span>🚛</span><b>Yard</b></a>
+</nav>
         {% endif %}
 
 

@@ -83,179 +83,124 @@
 
 <script>
 (function () {
-  const $ = (id) => document.getElementById(id);
+  function $(id) { return document.getElementById(id); }
   const els = {
     temp: $("weatherTemp"), desc: $("weatherDesc"), range: $("weatherRange"),
     rain: $("weatherRain"), source: $("weatherSource"), wind: $("weatherWind"),
     humidity: $("weatherHumidity"), visibility: $("weatherVisibility"), pressure: $("weatherPressure"),
-    sunrise: $("weatherSunrise"), sunset: $("weatherSunset"),
     risk: $("weatherRisk"), riskNote: $("weatherRiskNote"), riskCard: $("weatherRiskCard"),
     hourly: $("weatherHourly"), daily: $("weatherDaily"), help: $("weatherHelp"), btn: $("weatherRefreshBtn"),
-    permissionBox: $("weatherPermissionBox"), allowBtn: $("weatherAllowLocationBtn"), savedBtn: $("weatherUseSavedBtn")
+    allowBtn: $("weatherAllowLocationBtn"), savedBtn: $("weatherUseSavedBtn"), permissionBox: $("weatherPermissionBox"),
+    sunrise: $("weatherSunrise"), sunset: $("weatherSunset")
   };
   if (!els.temp) return;
 
-  function weatherText(code) {
-    const map = {
-      0: ["Clear sky", "☀️"], 1: ["Mainly clear", "🌤️"], 2: ["Partly cloudy", "⛅"], 3: ["Overcast", "☁️"],
-      45: ["Fog", "🌫️"], 48: ["Fog", "🌫️"], 51: ["Light drizzle", "🌦️"], 53: ["Drizzle", "🌦️"], 55: ["Heavy drizzle", "🌧️"],
-      61: ["Light rain", "🌧️"], 63: ["Rain", "🌧️"], 65: ["Heavy rain", "⛈️"], 71: ["Light snow", "🌨️"], 73: ["Snow", "🌨️"],
-      75: ["Heavy snow", "❄️"], 80: ["Rain showers", "🌧️"], 81: ["Rain showers", "🌧️"], 82: ["Heavy showers", "⛈️"],
-      95: ["Thunderstorm", "⛈️"]
-    };
-    return map[Number(code)] || ["Weather update", "🌡️"];
+  function wt(code) {
+    const map = {0:["Clear sky","☀️"],1:["Mainly clear","🌤️"],2:["Partly cloudy","⛅"],3:["Overcast","☁️"],45:["Fog","🌫️"],48:["Fog","🌫️"],51:["Light drizzle","🌦️"],53:["Drizzle","🌦️"],55:["Heavy drizzle","🌧️"],61:["Light rain","🌧️"],63:["Rain","🌧️"],65:["Heavy rain","⛈️"],71:["Light snow","🌨️"],73:["Snow","🌨️"],75:["Heavy snow","❄️"],80:["Rain showers","🌧️"],81:["Rain showers","🌧️"],82:["Heavy showers","⛈️"],95:["Thunderstorm","⛈️"]};
+    return map[Number(code)] || ["Weather update","🌡️"];
   }
-  function hourLabel(value) {
-    if (!value) return "--";
-    return new Date(value).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+  function timeOnly(v) {
+    if (!v) return "--";
+    try { return new Date(v).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}); }
+    catch(e) { return "--"; }
   }
-  function dayLabel(value, idx) {
-    if (idx === 0) return "Today";
-    return new Date(value + "T00:00:00").toLocaleDateString([], {weekday: "short"});
-  }
-  function km(value) {
-    if (value === null || value === undefined) return "--";
-    return (Number(value) / 1000).toFixed(1) + " km";
-  }
-  function sunTime(value) {
-    if (!value) return "--";
-    return new Date(value).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+  function km(v) {
+    if (v === null || v === undefined) return "--";
+    return (Number(v) / 1000).toFixed(1) + " km";
   }
   function setLoading() {
-    els.temp.textContent = "--°C"; els.desc.textContent = "Loading weather…";
-    els.range.textContent = "Checking live forecast"; els.rain.textContent = "--";
-    els.source.textContent = "Checking location…"; els.wind.textContent = "--";
-    els.humidity.textContent = "--"; els.visibility.textContent = "--"; els.pressure.textContent = "--";
-    if (els.sunrise) els.sunrise.textContent = "--"; if (els.sunset) els.sunset.textContent = "--";
-    els.risk.textContent = "Checking…"; els.riskNote.textContent = "Loading yard conditions.";
-    els.hourly.innerHTML = ""; els.daily.innerHTML = "";
-    if (els.help) els.help.textContent = "Loading weather. Please wait...";
+    if (els.permissionBox) els.permissionBox.style.display = "none";
+    els.source.textContent = "Checking location...";
+    els.temp.textContent = "--°C";
+    els.desc.textContent = "Loading weather...";
+    els.range.textContent = "Live forecast";
+    els.rain.textContent = "--";
+    if (els.sunrise) els.sunrise.textContent = "--";
+    if (els.sunset) els.sunset.textContent = "--";
+    if (els.help) els.help.textContent = "Loading weather...";
   }
-  function setFallback(message, showPermission) {
-    els.temp.textContent = "Weather unavailable"; els.desc.textContent = message || "Could not load live weather.";
-    els.range.textContent = "Allow location or use saved site"; els.rain.textContent = "--";
-    if (els.permissionBox && showPermission) els.permissionBox.style.display = "block";
-    if (els.help) els.help.textContent = "Press Share my location, or use your saved site/address.";
-  }
-  function renderWeather(data) {
-    if (!data || !data.ok) throw new Error((data && data.error) || "No weather data");
-    const wt = weatherText(data.weather_code);
+  function render(data) {
+    if (!data || !data.ok) throw new Error((data && data.error) || "Weather error");
+    const main = wt(data.weather_code);
     const today = (data.daily && data.daily[0]) || {};
-    els.temp.textContent = Math.round(Number(data.temperature)) + "°C";
-    els.desc.textContent = wt[1] + " " + wt[0];
-    els.range.textContent = today.max !== undefined && today.min !== undefined ? "High " + Math.round(today.max) + "° / Low " + Math.round(today.min) + "°" : "Live forecast";
+    els.source.textContent = (data.source || "Live location") + " 📍";
+    els.temp.textContent = Math.round(Number(data.temperature || 0)) + "°C";
+    els.desc.textContent = main[1] + " " + main[0];
+    els.range.textContent = (today.max !== undefined && today.min !== undefined) ? "High " + Math.round(Number(today.max)) + "° / Low " + Math.round(Number(today.min)) + "°" : "Live forecast";
     els.rain.textContent = (data.precipitation || 0) + " mm";
-    els.source.textContent = (data.source || "Site location") + " 📍";
-    els.wind.textContent = Math.round(Number(data.wind_speed || 0)) + " km/h";
-    els.humidity.textContent = (data.humidity ?? "--") + "%";
-    els.visibility.textContent = km(data.visibility);
-    els.pressure.textContent = data.pressure ? Math.round(Number(data.pressure)) + " mb" : "--";
-    if (els.sunrise) els.sunrise.textContent = sunTime(today.sunrise);
-    if (els.sunset) els.sunset.textContent = sunTime(today.sunset);
-
-    const level = data.risk && data.risk.level ? data.risk.level : "Low";
-    els.risk.textContent = level;
-    els.riskCard.classList.remove("risk-low", "risk-medium", "risk-high");
-    els.riskCard.classList.add("risk-" + level.toLowerCase());
-    els.riskNote.textContent = data.risk && data.risk.notes ? data.risk.notes.join(" · ") : "Good conditions for yard activity";
-
-    els.hourly.innerHTML = (data.hourly || []).map(function (h) {
-      const wh = weatherText(h.weather_code);
-      return `<div class="hourly-card"><span>${hourLabel(h.time)}</span><b>${wh[1]}</b><strong>${Math.round(Number(h.temperature || 0))}°</strong><small>💧 ${h.rain_probability ?? 0}%</small></div>`;
-    }).join("");
-    if (els.daily) els.daily.innerHTML = "";
-
-    if (els.help) els.help.textContent = "Live weather · " + (data.source || "site location");
+    if (els.sunrise) els.sunrise.textContent = timeOnly(today.sunrise);
+    if (els.sunset) els.sunset.textContent = timeOnly(today.sunset);
+    if (els.wind) els.wind.textContent = Math.round(Number(data.wind_speed || 0)) + " km/h";
+    if (els.humidity) els.humidity.textContent = (data.humidity ?? "--") + "%";
+    if (els.visibility) els.visibility.textContent = km(data.visibility);
+    if (els.pressure) els.pressure.textContent = data.pressure ? Math.round(Number(data.pressure)) + " mb" : "--";
+    if (els.risk) els.risk.textContent = data.risk?.level || "Low";
+    if (els.riskNote) els.riskNote.textContent = (data.risk?.notes || ["Good conditions for yard activity"]).join(" · ");
+    if (els.riskCard) {
+      els.riskCard.classList.remove("risk-low","risk-medium","risk-high");
+      els.riskCard.classList.add("risk-" + (data.risk?.level || "Low").toLowerCase());
+    }
+    if (els.hourly) {
+      els.hourly.innerHTML = (data.hourly || []).map(function(h){
+        const w = wt(h.weather_code);
+        return `<div class="hourly-card"><span>${timeOnly(h.time)}</span><b>${w[1]}</b><strong>${Math.round(Number(h.temperature || 0))}°</strong><small>💧 ${h.rain_probability ?? 0}%</small></div>`;
+      }).join("");
+    }
+    if (els.help) els.help.textContent = "Live weather · " + (data.source || "location");
   }
   async function fetchWeather(lat, lon) {
     let url = "/api/weather?t=" + Date.now();
     if (typeof lat === "number" && typeof lon === "number") url += "&lat=" + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lon);
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, {cache:"no-store"});
     const data = await res.json();
-    renderWeather(data);
+    render(data);
   }
-  function loadWeather(useBrowserLocation, forceAsk) {
+  function finishButton() {
+    if (els.btn) {
+      els.btn.disabled = false;
+      els.btn.textContent = "🔄 Refresh";
+    }
+  }
+  function useFallback(showBox) {
+    fetchWeather().catch(function(err){
+      els.desc.textContent = "Weather unavailable";
+      if (els.help) els.help.textContent = err.message || "Could not load weather.";
+      if (els.permissionBox && showBox) els.permissionBox.style.display = "block";
+    }).finally(finishButton);
+  }
+  function loadWeather(askPermission) {
     setLoading();
     if (els.btn) {
       els.btn.disabled = true;
       els.btn.textContent = "Refreshing...";
     }
-
-    function done() {
-      if (els.btn) {
-        els.btn.disabled = false;
-        els.btn.textContent = "🔄 Refresh";
+    if (!askPermission || !navigator.geolocation) {
+      useFallback(false);
+      return;
+    }
+    let done = false;
+    const timer = setTimeout(function(){
+      if (!done) {
+        done = true;
+        useFallback(true);
       }
-    }
-    function fallbackFetch(showPermission) {
-      fetchWeather()
-        .then(done)
-        .catch((err) => { setFallback(err.message, showPermission); done(); });
-    }
-    function askBrowserLocation() {
-      if (!navigator.geolocation) {
-        fallbackFetch(true);
-        return;
-      }
-
-      let completed = false;
-      const safetyTimer = setTimeout(function () {
-        if (!completed) {
-          completed = true;
-          fallbackFetch(true);
-        }
-      }, 7000);
-
-      navigator.geolocation.getCurrentPosition(
-        function (pos) {
-          if (completed) return;
-          completed = true;
-          clearTimeout(safetyTimer);
-          fetchWeather(pos.coords.latitude, pos.coords.longitude)
-            .then(done)
-            .catch(function () { fallbackFetch(true); });
-        },
-        function () {
-          if (completed) return;
-          completed = true;
-          clearTimeout(safetyTimer);
-          fallbackFetch(true);
-        },
-        { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
-      );
-    }
-
-    if (useBrowserLocation) {
-      askBrowserLocation();
-    } else {
-      fallbackFetch(false);
-    }
+    }, 7000);
+    navigator.geolocation.getCurrentPosition(function(pos){
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      fetchWeather(pos.coords.latitude, pos.coords.longitude).catch(function(){ useFallback(true); }).finally(finishButton);
+    }, function(){
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      useFallback(true);
+    }, {enableHighAccuracy:false, timeout:6000, maximumAge:300000});
   }
-
-  if (els.btn) {
-    els.btn.addEventListener("click", function (e) {
-      e.preventDefault();
-      loadWeather(true, true);
-    });
-  }
-  if (els.allowBtn) {
-    els.allowBtn.addEventListener("click", function (e) {
-      e.preventDefault();
-      loadWeather(true, true);
-    });
-  }
-  if (els.savedBtn) {
-    els.savedBtn.addEventListener("click", function (e) {
-      e.preventDefault();
-      loadWeather(false, false);
-    });
-  }
-  document.addEventListener("DOMContentLoaded", function () { loadWeather(true, false); });
-  if (document.readyState !== "loading") loadWeather(true, false);
-});
-  }
-  document.addEventListener("DOMContentLoaded", function () { loadWeather(true); });
-  if (document.readyState !== "loading") loadWeather(true);
+  if (els.btn) els.btn.addEventListener("click", function(e){ e.preventDefault(); loadWeather(true); });
+  if (els.allowBtn) els.allowBtn.addEventListener("click", function(e){ e.preventDefault(); loadWeather(true); });
+  if (els.savedBtn) els.savedBtn.addEventListener("click", function(e){ e.preventDefault(); loadWeather(false); });
+  window.addEventListener("load", function(){ loadWeather(true); });
 })();
 </script>
 <section class="dashboard-compact-grid">
