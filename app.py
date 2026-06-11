@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 from functools import wraps
 from email.message import EmailMessage
 from io import BytesIO
-from xml.sax.saxutils import escape
 
 from flask import (
     Flask, render_template, request, redirect, url_for, send_file, flash, session
@@ -19,12 +18,6 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
-from reportlab.lib.styles import getSampleStyleSheet
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -1367,206 +1360,6 @@ Return:
     except Exception as exc:
         return f"Photo AI failed, manual record saved. Error: {exc}"
 
-
-def create_handover_pdf(row):
-    """Create a clean DHL-style landscape PDF using direct canvas drawing.
-
-    This avoids ReportLab table-span errors and prevents the 500 error.
-    """
-    buffer = BytesIO()
-    page_w, page_h = landscape(A4)
-    c = canvas.Canvas(buffer, pagesize=landscape(A4))
-
-    def get_extra():
-        try:
-            data = json.loads(row_get(row, "extra_json", "{}") or "{}")
-            return data if isinstance(data, dict) else {}
-        except Exception:
-            return {}
-
-    def text(value):
-        return str(value or "").strip()
-
-    extra = get_extra()
-    section_names = default_handover_section_names()
-    section_names["_enabled"] = {key: True for key in default_handover_section_names().keys()}
-    section_names["_custom"] = []
-    if isinstance(extra.get("section_names"), dict):
-        saved_names = extra.get("section_names")
-        for key in default_handover_section_names().keys():
-            if saved_names.get(key):
-                section_names[key] = saved_names.get(key)
-        if isinstance(saved_names.get("_enabled"), dict):
-            section_names["_enabled"].update(saved_names.get("_enabled"))
-        if isinstance(saved_names.get("_custom"), list):
-            section_names["_custom"] = saved_names.get("_custom")
-
-    def enabled(key):
-        return bool(section_names.get("_enabled", {}).get(key, True))
-
-    absence = extra.get("absence_rows", []) or []
-    absence_text = " / ".join([f"{text(a.get('count'))} {text(a.get('type'))}" for a in absence if text(a.get("count")) or text(a.get("type"))])
-
-    left = 12 * mm
-    top = page_h - 10 * mm
-    width = page_w - 24 * mm
-    row_h = 8 * mm
-    y = top
-
-    def new_page_if_needed(required=20*mm):
-        nonlocal y
-        if y - required < 12 * mm:
-            c.showPage()
-            y = top
-
-    def rect(x, y_top, w, h, fill=None, stroke=1):
-        if fill:
-            c.setFillColor(fill)
-            c.rect(x, y_top-h, w, h, fill=1, stroke=stroke)
-            c.setFillColor(colors.black)
-        else:
-            c.rect(x, y_top-h, w, h, fill=0, stroke=stroke)
-
-    def write(x, y_top, value, size=8, bold=False, align="left", max_width=None):
-        value = text(value)
-        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
-        if align == "center":
-            c.drawCentredString(x, y_top, value[:120])
-        elif align == "right":
-            c.drawRightString(x, y_top, value[:120])
-        else:
-            c.drawString(x, y_top, value[:160])
-
-    def cell(x, w, h, value="", bold=False, align="left", fill=None, size=8):
-        nonlocal y
-        rect(x, y, w, h, fill)
-        tx = x + 2*mm
-        if align == "center":
-            tx = x + w/2
-        elif align == "right":
-            tx = x + w - 2*mm
-        write(tx, y - h/2 + 2.2, value, size=size, bold=bold, align=align)
-
-    def full_row(value="", h=row_h, bold=False, fill=None, size=8, align="left"):
-        nonlocal y
-        new_page_if_needed(h)
-        cell(left, width, h, value, bold=bold, fill=fill, size=size, align=align)
-        y -= h
-
-    def two_row(a, b, ctext="", h=row_h):
-        nonlocal y
-        new_page_if_needed(h)
-        cell(left, width*0.25, h, a)
-        cell(left+width*0.25, width*0.25, h, b)
-        cell(left+width*0.50, width*0.50, h, ctext, align="center")
-        y -= h
-
-    def line_row(label, value, h=row_h):
-        full_row(f"{label} - {value}", h=h)
-
-    def comments_row(label, value):
-        val = text(value)
-        h = max(16*mm, min(34*mm, 10*mm + (len(val)//95)*5*mm))
-        full_row(f"{label} - {val}", h=h)
-
-    # Header
-    c.setLineWidth(0.8)
-    full_row(f"{row['shift'] or 'Day Shift'} Handover", h=9*mm, bold=True, size=11, align="center")
-    two_row(f"Date - {row['date']}", f"Shift - {row['shift']}", f"Attendance - {row['actual_hc']}/{row['planned_hc']}    {absence_text}", h=10*mm)
-
-    # Safety
-    if enabled("safety"):
-        full_row(f"{section_names.get('safety','Safety Metrics')} - {extra.get('safe_shift','')}", h=8*mm, align="center")
-        new_page_if_needed(row_h)
-        col_w = width / 9
-        labels = [
-            section_names.get("safety","Safety Metrics"), "SLAMS", extra.get("slams",""),
-            "Safety Cons", extra.get("safety_cons",""), "LOADS", extra.get("loads",""),
-            "Safety Rules", extra.get("safety_rules","")
-        ]
-        x = left
-        for i, val in enumerate(labels):
-            cell(x, col_w, row_h, val, bold=(i == 0), align="center")
-            x += col_w
-        y -= row_h
-
-    if enabled("operations"):
-        full_row(section_names.get("operations","Operations Pick"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
-        line_row("Pick Audits Completed", extra.get("pick_audits",""))
-        line_row("Slam Plan", extra.get("slam_plan",""))
-        line_row(f"Picked since {extra.get('picked_since_time','06:00')} hrs", extra.get("picked_since_value",""))
-        line_row("Full Well at start & end of Shift", f"{extra.get('full_well_start','')}/{extra.get('full_well_end','')}")
-        line_row("Well to cover EMC's at start & end of Shift", f"{extra.get('emc_start','')}/{extra.get('emc_end','')}")
-        comments_row("Additional Comments", extra.get("ops_comments",""))
-
-    if enabled("sort"):
-        full_row(section_names.get("sort","CUK8 Sort Centre"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
-        line_row("Deliveries Planned", extra.get("deliveries_planned",""))
-        line_row("Deliveries Arrived", extra.get("deliveries_arrived",""))
-        line_row("Planned Same Day Sortation", extra.get("same_day_sortation",""))
-        line_row("Planned Next Day Sortation", extra.get("next_day_sortation",""))
-        comments_row("Additional Comments", extra.get("sort_comments",""))
-
-    if enabled("dispatch"):
-        full_row(section_names.get("dispatch","Dispatch"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
-        new_page_if_needed(row_h*2)
-        cell(left, width*.18, row_h, "Collections Arrived")
-        cell(left+width*.18, width*.12, row_h, extra.get("collections_arrived",""), align="center")
-        cell(left+width*.30, width*.18, row_h, "LATE ARRIVALS", align="center")
-        cell(left+width*.48, width*.12, row_h, extra.get("late_arrivals",""), align="center")
-        cell(left+width*.60, width*.20, row_h, "Trailers On Doors")
-        cell(left+width*.80, width*.20, row_h, extra.get("trailers_on_doors",""), align="center")
-        y -= row_h
-        cell(left, width*.35, row_h, "Trailers needed cover today CPT's")
-        cell(left+width*.35, width*.15, row_h, extra.get("trailers_needed_cover",""), align="center")
-        cell(left+width*.50, width*.50, row_h, "")
-        y -= row_h
-
-        dispatch_rows = extra.get("dispatch_rows", []) or []
-        if dispatch_rows:
-            widths = [width*.32, width*.24, width*.14, width*.14, width*.16]
-            headers = ["Carrier / Dispatch", "VRID", "Completed", "On Time", "Issue"]
-            x = left
-            for w, htxt in zip(widths, headers):
-                cell(x, w, row_h, htxt, bold=True, align="center", fill=colors.HexColor("#F8FAFC"))
-                x += w
-            y -= row_h
-            for d in dispatch_rows:
-                new_page_if_needed(row_h)
-                vals = [d.get("carrier",""), d.get("vrid",""), d.get("completed",""), d.get("on_time",""), d.get("issue","")]
-                x = left
-                for w, val in zip(widths, vals):
-                    cell(x, w, row_h, val, align="center")
-                    x += w
-                y -= row_h
-        comments_row("Additional Comments", extra.get("dispatch_comments",""))
-
-    if enabled("suntory"):
-        full_row(section_names.get("suntory","Suntory"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
-        new_page_if_needed(row_h)
-        cell(left, width*.28, row_h, "Trailers on site to complete")
-        cell(left+width*.28, width*.12, row_h, extra.get("suntory_trailers_on_site",""), align="center")
-        cell(left+width*.40, width*.24, row_h, "Completed on shift")
-        cell(left+width*.64, width*.12, row_h, extra.get("suntory_completed",""), align="center")
-        cell(left+width*.76, width*.16, row_h, "Left to complete")
-        cell(left+width*.92, width*.08, row_h, extra.get("suntory_left",""), align="center")
-        y -= row_h
-        comments_row("Additional Comments", extra.get("suntory_comments",""))
-
-    # Custom sections
-    custom_values = extra.get("custom_sections", []) or []
-    for cs in custom_values:
-        if text(cs.get("name")):
-            full_row(cs.get("name"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
-            comments_row("Details", cs.get("value",""))
-
-    if enabled("aob"):
-        full_row(section_names.get("aob","AOB"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
-        comments_row("AOB", extra.get("aob",""))
-
-    c.save()
-    buffer.seek(0)
-    return buffer
 
 def invoice_pdf_buffer(user, invoice):
     buffer = BytesIO()
@@ -3651,24 +3444,6 @@ def handover_email(item_id):
         return redirect(url_for("handover"))
     body = row["generated_report"] or ""
     return render_template("email_export.html", title="Handover Email Preview", body=body, page="handover")
-
-
-@app.route("/handover/<int:item_id>/pdf")
-@login_required
-@plan_required("pro")
-def handover_pdf(item_id):
-    user = current_user()
-    conn = get_db()
-    row = conn.execute("SELECT * FROM handovers WHERE id = ? AND user_id = ?", (item_id, user["id"])).fetchone()
-    if not row:
-        conn.close()
-        flash("Handover not found.", "error")
-        return redirect(url_for("handover"))
-    conn.execute("UPDATE handovers SET pdf_created = 1 WHERE id = ? AND user_id = ?", (item_id, user["id"]))
-    conn.commit()
-    conn.close()
-    buffer = create_handover_pdf(row)
-    return send_file(buffer, as_attachment=True, download_name=f"handover-{row['date']}.pdf", mimetype="application/pdf")
 
 
 @app.route("/team", methods=["GET", "POST"])

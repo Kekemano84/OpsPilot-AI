@@ -4,7 +4,7 @@
 <section class="hero-card pro-hero compact-hero">
     <div>
         <p class="eyebrow">Shift Handover</p>
-        <h3>DHL-style handover with editable sections, dispatch VRIDs and Excel/PDF export.</h3>
+        <h3>DHL-style handover with editable sections, dispatch VRIDs and Excel export.</h3>
     </div>
     <a class="btn light" href="{{ url_for('export_handovers') }}">📊 Export Excel</a>
 </section>
@@ -182,7 +182,6 @@
         <div class="panel-head">
             <strong>{{ row.date|dateuk }} - {{ row.shift }}</strong>
             <div class="mini-actions">
-                <a class="small-btn" href="{{ url_for('handover_pdf', item_id=row.id) }}">PDF</a>
             </div>
         </div>
         <pre class="report-box">{{ row.generated_report }}</pre>
