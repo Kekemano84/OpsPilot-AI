@@ -2402,6 +2402,34 @@ def register():
 
 
 
+
+@app.route("/og-test")
+def og_test():
+    return """
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>OpsPilot AI - Operations Management Platform</title>
+<meta property="og:title" content="OpsPilot AI - Operations Management Platform">
+<meta property="og:description" content="Manager Toolkit for shifts, handovers, mileage, expenses, yard checks and team records.">
+<meta property="og:image" content="https://opspilot-ai-t1ip.onrender.com/static/images/opspilot-share.png?v=37">
+<meta property="og:image:secure_url" content="https://opspilot-ai-t1ip.onrender.com/static/images/opspilot-share.png?v=37">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://opspilot-ai-t1ip.onrender.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpsPilot AI">
+</head>
+<body>
+<h1>OpsPilot AI</h1>
+<img src="/static/images/opspilot-share.png?v=37" style="max-width:600px;width:100%;">
+</body>
+</html>
+"""
+
+
 @app.route("/share")
 def share_preview():
     return redirect(url_for("login"))
