@@ -2374,3 +2374,89 @@ button:disabled {
 @media (max-width: 900px) {
     .plan-admin-actions { grid-template-columns: 1fr; }
 }
+
+/* V4.2 cleaner sidebar */
+.tidy-sidebar {
+    gap: 8px;
+}
+.tidy-sidebar .nav-group {
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 16px;
+    padding: 6px;
+    background: rgba(15, 23, 42, 0.18);
+}
+.tidy-sidebar .nav-group summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 900;
+    list-style: none;
+}
+.tidy-sidebar .nav-group summary::-webkit-details-marker {
+    display: none;
+}
+.tidy-sidebar .nav-group summary::after {
+    content: "⌄";
+    margin-left: auto;
+    opacity: .75;
+    transition: transform .2s ease;
+}
+.tidy-sidebar .nav-group[open] summary::after {
+    transform: rotate(180deg);
+}
+.tidy-sidebar .nav-link {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    margin: 3px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+}
+.tidy-sidebar .nav-link span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tidy-sidebar .nav-primary {
+    border: 1px solid rgba(148, 163, 184, .16);
+    background: rgba(255,255,255,.02);
+}
+.nav-ico {
+    width: 24px;
+    min-width: 24px;
+    text-align: center;
+    font-size: 1rem;
+    opacity: .95;
+}
+.tidy-sidebar .business-chip,
+.tidy-sidebar .trial-chip {
+    font-size: .68rem;
+    font-weight: 900;
+    border-radius: 999px;
+    padding: 3px 7px;
+    color: #0f172a;
+    background: linear-gradient(135deg, #fde047, #22c55e);
+}
+.tidy-sidebar .trial-chip {
+    background: #bfdbfe;
+}
+.tidy-sidebar .admin-badge {
+    font-size: .68rem;
+    font-weight: 900;
+    border-radius: 999px;
+    padding: 3px 7px;
+    background: linear-gradient(135deg, #fde047, #22c55e);
+    color: white;
+}
+.tidy-sidebar .pro-badge {
+    display: none !important;
+}
+@media (max-width: 900px) {
+    .tidy-sidebar .nav-group:not([open]) {
+        padding-bottom: 6px;
+    }
+}
