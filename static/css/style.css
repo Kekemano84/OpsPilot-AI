@@ -2671,3 +2671,126 @@ button:disabled {
         font-size: 1rem;
     }
 }
+
+/* V5.4 Shift Calendar Month View */
+.calendar-view-head {
+    align-items: flex-start;
+    gap: 16px;
+}
+.calendar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.month-calendar {
+    margin-top: 18px;
+    border: 1px solid #dbe7f5;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #ffffff;
+}
+.month-weekdays,
+.month-week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.month-weekdays span {
+    padding: 12px 8px;
+    background: #eef6ff;
+    color: #53657d;
+    font-weight: 900;
+    text-align: center;
+    border-right: 1px solid #dbe7f5;
+}
+.month-weekdays span:last-child {
+    border-right: 0;
+}
+.month-day {
+    min-height: 118px;
+    padding: 10px;
+    border-top: 1px solid #dbe7f5;
+    border-right: 1px solid #dbe7f5;
+    background: #f8fbff;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.month-day:nth-child(7n) {
+    border-right: 0;
+}
+.month-date {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid #dbe7f5;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    color: #0f172a;
+}
+.month-day strong {
+    font-size: .9rem;
+    line-height: 1.15;
+}
+.month-day small,
+.month-day em {
+    font-size: .75rem;
+    color: #64748b;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+.month-day.outside-month {
+    opacity: .42;
+    background: #f1f5f9;
+}
+.month-day.status-work {
+    background: #ecfdf5;
+}
+.month-day.status-off {
+    background: #f8fafc;
+}
+.month-day.status-holiday,
+.month-day.status-bank-holiday {
+    background: #eff6ff;
+}
+.month-day.status-sick {
+    background: #fff1f2;
+}
+.month-day.status-training {
+    background: #fefce8;
+}
+.month-day.status-overtime {
+    background: #faf5ff;
+}
+.month-day.status-custom {
+    background: #fff7ed;
+}
+
+@media (max-width: 760px) {
+    .calendar-view-head {
+        display: block;
+    }
+    .calendar-actions {
+        margin-top: 12px;
+        justify-content: flex-start;
+    }
+    .month-calendar {
+        overflow-x: auto;
+        border-radius: 18px;
+    }
+    .month-weekdays,
+    .month-week {
+        min-width: 760px;
+    }
+    .month-day {
+        min-height: 104px;
+        padding: 8px;
+    }
+    .month-date {
+        width: 26px;
+        height: 26px;
+        font-size: .82rem;
+    }
+}

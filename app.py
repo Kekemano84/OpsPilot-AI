@@ -3,6 +3,7 @@ import requests
 import secrets
 import json
 import sqlite3
+import calendar
 import uuid
 import smtplib
 import ssl
@@ -2410,13 +2411,32 @@ def shift_calendar():
             flash("Shift day updated.", "success")
             return redirect(url_for("shift_calendar"))
 
+    view = request.args.get("view", "month")
     start = request.args.get("start")
-    try:
-        start_date = datetime.strptime(start, "%Y-%m-%d").date() if start else get_week_start()
-    except Exception:
-        start_date = get_week_start()
+    month_arg = request.args.get("month")
 
-    end_date = start_date + timedelta(days=27)
+    if view == "list":
+        try:
+            start_date = datetime.strptime(start, "%Y-%m-%d").date() if start else get_week_start()
+        except Exception:
+            start_date = get_week_start()
+        end_date = start_date + timedelta(days=27)
+        prev_start = (start_date - timedelta(days=28)).isoformat()
+        next_start = (start_date + timedelta(days=28)).isoformat()
+        month_date = start_date.replace(day=1)
+    else:
+        view = "month"
+        try:
+            month_date = datetime.strptime(month_arg, "%Y-%m").date().replace(day=1) if month_arg else datetime.today().date().replace(day=1)
+        except Exception:
+            month_date = datetime.today().date().replace(day=1)
+        start_date = month_date
+        last_day = calendar.monthrange(month_date.year, month_date.month)[1]
+        end_date = month_date.replace(day=last_day)
+        prev_month_raw = (month_date.replace(day=1) - timedelta(days=1)).replace(day=1)
+        next_month_raw = (month_date.replace(day=28) + timedelta(days=4)).replace(day=1)
+        prev_start = prev_month_raw.strftime("%Y-%m")
+        next_start = next_month_raw.strftime("%Y-%m")
 
     conn = get_db()
     rows = conn.execute("""
@@ -2427,28 +2447,44 @@ def shift_calendar():
     conn.close()
 
     by_date = {row["date"]: row for row in rows}
-    calendar_days = []
-    d = start_date
-    while d <= end_date:
-        key = d.isoformat()
-        row = by_date.get(key)
-        calendar_days.append(row if row else {
-            "date": key,
+
+    def empty_day(day):
+        return {
+            "date": day.isoformat(),
             "status": "Not Set",
             "shift_name": "",
             "start_time": "",
             "end_time": "",
             "notes": "",
             "source": "Empty",
-        })
+        }
+
+    calendar_days = []
+    d = start_date
+    while d <= end_date:
+        key = d.isoformat()
+        calendar_days.append(by_date.get(key) or empty_day(d))
         d += timedelta(days=1)
 
-    prev_start = (start_date - timedelta(days=28)).isoformat()
-    next_start = (start_date + timedelta(days=28)).isoformat()
+    month_weeks = []
+    if view == "month":
+        month_calendar = calendar.Calendar(firstweekday=0).monthdatescalendar(month_date.year, month_date.month)
+        for week in month_calendar:
+            week_items = []
+            for day in week:
+                item = by_date.get(day.isoformat()) or empty_day(day)
+                item = dict(item)
+                item["in_month"] = day.month == month_date.month
+                week_items.append(item)
+            month_weeks.append(week_items)
 
     return render_template(
         "shift_calendar.html",
         rows=calendar_days,
+        month_weeks=month_weeks,
+        view=view,
+        current_month=month_date.strftime("%B %Y"),
+        current_month_value=month_date.strftime("%Y-%m"),
         statuses=statuses,
         patterns=patterns,
         page="shift_calendar",

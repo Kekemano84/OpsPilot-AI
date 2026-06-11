@@ -149,14 +149,49 @@ document.addEventListener("DOMContentLoaded", toggleCustomPattern);
 </script>
 
 <section class="panel">
-    <div class="panel-head">
-        <h3>Calendar View</h3>
-        <div class="mini-actions">
-            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', start=prev_start) }}">Previous</a>
-            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', start=next_start) }}">Next</a>
+    <div class="panel-head calendar-view-head">
+        <div>
+            <h3>Calendar View</h3>
+            {% if view == "month" %}
+            <p class="muted">{{ current_month }}</p>
+            {% else %}
+            <p class="muted">28 day list view</p>
+            {% endif %}
+        </div>
+        <div class="mini-actions calendar-actions">
+            {% if view == "month" %}
+            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', view='month', month=prev_start) }}">Previous Month</a>
+            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', view='month') }}">This Month</a>
+            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', view='month', month=next_start) }}">Next Month</a>
+            <a class="small-btn" href="{{ url_for('shift_calendar', view='list', start=rows[0].date if rows else '') }}">List View</a>
+            {% else %}
+            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', view='list', start=prev_start) }}">Previous</a>
+            <a class="small-btn ghost-small" href="{{ url_for('shift_calendar', view='list', start=next_start) }}">Next</a>
+            <a class="small-btn" href="{{ url_for('shift_calendar', view='month', month=current_month_value) }}">Month View</a>
+            {% endif %}
         </div>
     </div>
 
+    {% if view == "month" %}
+    <div class="month-calendar">
+        <div class="month-weekdays">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        {% for week in month_weeks %}
+        <div class="month-week">
+            {% for row in week %}
+            <div class="month-day {% if not row.in_month %}outside-month{% endif %} status-{{ row.status|lower|replace(' ', '-') }}">
+                <div class="month-date">{{ row.date[-2:] }}</div>
+                <strong>{{ row.status }}</strong>
+                {% if row.shift_name %}<small>{{ row.shift_name }}</small>{% endif %}
+                {% if row.start_time or row.end_time %}<small>{{ row.start_time }} - {{ row.end_time }}</small>{% endif %}
+                {% if row.notes %}<em>{{ row.notes }}</em>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
     <div class="calendar-grid">
         {% for row in rows %}
         <div class="calendar-day status-{{ row.status|lower|replace(' ', '-') }}">
@@ -174,6 +209,7 @@ document.addEventListener("DOMContentLoaded", toggleCustomPattern);
         </div>
         {% endfor %}
     </div>
+    {% endif %}
 </section>
 
 <section class="panel legend-panel">
