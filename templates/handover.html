@@ -1,5 +1,187 @@
 {% extends "base.html" %}
-{% block title %}Handover{% endblock %}
+{% block title %}Handover
+<script>
+(function () {
+    const form = document.getElementById("handoverDraftForm");
+    if (!form) return;
+
+    const keyBase = "opspilot_handover_draft_v1";
+    const dateInput = form.querySelector('[name="date"]');
+    const statusEl = document.getElementById("handoverDraftStatus");
+    const saveBtn = document.getElementById("saveHandoverDraftBtn");
+    const loadBtn = document.getElementById("loadHandoverDraftBtn");
+    const clearBtn = document.getElementById("clearHandoverDraftBtn");
+
+    function currentKey() {
+        const d = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0, 10);
+        return keyBase + "_" + d;
+    }
+
+    function setStatus(text) {
+        if (!statusEl) return;
+        statusEl.textContent = text;
+    }
+
+    function readForm() {
+        const data = {};
+        const grouped = {};
+        form.querySelectorAll("input, textarea, select").forEach((el) => {
+            if (!el.name || el.type === "file" || el.name === "draft_submitted") return;
+            if (el.name.endsWith("[]")) {
+                if (!grouped[el.name]) grouped[el.name] = [];
+                if (el.type === "checkbox") grouped[el.name].push(el.checked);
+                else grouped[el.name].push(el.value);
+            } else if (el.type === "checkbox") {
+                data[el.name] = el.checked;
+            } else {
+                data[el.name] = el.value;
+            }
+        });
+        data.__grouped = grouped;
+        data.__saved_at = new Date().toISOString();
+        return data;
+    }
+
+    function saveDraft(manual) {
+        try {
+            localStorage.setItem(currentKey(), JSON.stringify(readForm()));
+            localStorage.setItem(keyBase + "_latest", currentKey());
+            const time = new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+            setStatus((manual ? "Draft saved manually" : "Autosaved") + " at " + time);
+        } catch (e) {
+            setStatus("Draft could not be saved on this device.");
+        }
+    }
+
+    function setSimpleField(name, value) {
+        const el = form.querySelector(`[name="${CSS.escape(name)}"]`);
+        if (!el) return;
+        if (el.type === "checkbox") el.checked = !!value;
+        else el.value = value || "";
+        el.dispatchEvent(new Event("input", {bubbles: true}));
+        el.dispatchEvent(new Event("change", {bubbles: true}));
+    }
+
+    function loadDraft() {
+        const keys = [currentKey(), localStorage.getItem(keyBase + "_latest")].filter(Boolean);
+        let raw = null;
+        for (const k of keys) {
+            raw = localStorage.getItem(k);
+            if (raw) break;
+        }
+        if (!raw) {
+            setStatus("No saved draft found on this device.");
+            return;
+        }
+
+        try {
+            const data = JSON.parse(raw);
+
+            // Rebuild absence rows
+            if (data.__grouped && (data.__grouped["absence_type[]"] || data.__grouped["absence_count[]"])) {
+                const wrap = document.getElementById("absenceRows");
+                if (wrap) wrap.innerHTML = "";
+                const types = data.__grouped["absence_type[]"] || [];
+                const counts = data.__grouped["absence_count[]"] || [];
+                const max = Math.max(types.length, counts.length, 1);
+                for (let i = 0; i < max; i++) {
+                    if (typeof window.addAbsenceRow === "function") window.addAbsenceRow();
+                    const rows = wrap ? wrap.querySelectorAll(".dynamic-row") : [];
+                    const row = rows[rows.length - 1];
+                    if (row) {
+                        const t = row.querySelector('[name="absence_type[]"]');
+                        const c = row.querySelector('[name="absence_count[]"]');
+                        if (t) t.value = types[i] || "";
+                        if (c) c.value = counts[i] || "";
+                    }
+                }
+            }
+
+            // Rebuild dispatch rows
+            if (data.__grouped && (data.__grouped["dispatch_carrier[]"] || data.__grouped["dispatch_vrid[]"])) {
+                const carrierWrap = form.querySelector('[name="dispatch_carrier[]"]')?.closest(".dynamic-block");
+                const rowContainer = carrierWrap ? carrierWrap.querySelector(".dynamic-rows, #dispatchRows") : document.getElementById("dispatchRows");
+                if (rowContainer) rowContainer.innerHTML = "";
+                const carriers = data.__grouped["dispatch_carrier[]"] || [];
+                const vrids = data.__grouped["dispatch_vrid[]"] || [];
+                const completed = data.__grouped["dispatch_completed[]"] || [];
+                const ontime = data.__grouped["dispatch_on_time[]"] || [];
+                const issue = data.__grouped["dispatch_issue[]"] || [];
+                const max = Math.max(carriers.length, vrids.length, completed.length, ontime.length, issue.length, 1);
+                for (let i = 0; i < max; i++) {
+                    if (typeof window.addDispatchRow === "function") window.addDispatchRow();
+                    const rows = rowContainer ? rowContainer.querySelectorAll(".dispatch-row, .dynamic-row") : form.querySelectorAll(".dispatch-row, .dynamic-row");
+                    const row = rows[rows.length - 1];
+                    if (row) {
+                        const c = row.querySelector('[name="dispatch_carrier[]"]');
+                        const v = row.querySelector('[name="dispatch_vrid[]"]');
+                        const co = row.querySelector('[name="dispatch_completed[]"]');
+                        const ot = row.querySelector('[name="dispatch_on_time[]"]');
+                        const is = row.querySelector('[name="dispatch_issue[]"]');
+                        if (c) c.value = carriers[i] || "";
+                        if (v) v.value = vrids[i] || "";
+                        if (co) co.value = completed[i] || "Yes";
+                        if (ot) ot.value = ontime[i] || "Yes";
+                        if (is) is.value = issue[i] || "No";
+                    }
+                }
+            }
+
+            Object.keys(data).forEach((name) => {
+                if (name.startsWith("__") || name.endsWith("[]")) return;
+                setSimpleField(name, data[name]);
+            });
+
+            const savedAt = data.__saved_at ? new Date(data.__saved_at).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "";
+            setStatus("Draft loaded" + (savedAt ? " from " + savedAt : "") + ".");
+        } catch (e) {
+            setStatus("Draft found, but it could not be loaded.");
+        }
+    }
+
+    function clearDraft() {
+        if (!confirm("Clear the saved handover draft on this device?")) return;
+        localStorage.removeItem(currentKey());
+        const latest = localStorage.getItem(keyBase + "_latest");
+        if (latest) localStorage.removeItem(latest);
+        localStorage.removeItem(keyBase + "_latest");
+        setStatus("Draft cleared.");
+    }
+
+    let timer = null;
+    form.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => saveDraft(false), 700);
+    });
+    form.addEventListener("change", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => saveDraft(false), 250);
+    });
+
+    // Keep a final copy before submit, then clear after generate button sends it.
+    form.addEventListener("submit", () => {
+        saveDraft(true);
+        sessionStorage.setItem("opspilot_clear_handover_draft_after_submit", currentKey());
+    });
+
+    if (saveBtn) saveBtn.addEventListener("click", () => saveDraft(true));
+    if (loadBtn) loadBtn.addEventListener("click", loadDraft);
+    if (clearBtn) clearBtn.addEventListener("click", clearDraft);
+
+    // If the page reloaded after a successful submit, clear the submitted draft.
+    const clearKey = sessionStorage.getItem("opspilot_clear_handover_draft_after_submit");
+    if (clearKey && window.location.pathname.includes("/handover")) {
+        localStorage.removeItem(clearKey);
+        sessionStorage.removeItem("opspilot_clear_handover_draft_after_submit");
+        setStatus("Generated handover saved. Draft cleared.");
+    } else {
+        const raw = localStorage.getItem(currentKey()) || localStorage.getItem(localStorage.getItem(keyBase + "_latest") || "");
+        if (raw) setStatus("Saved draft found. Press Load Draft to continue.");
+    }
+})();
+</script>
+
+{% endblock %}
 {% block content %}
 <section class="hero-card pro-hero compact-hero">
     <div>
@@ -70,15 +252,21 @@
 </section>
 
 <section class="panel compact-panel">
-    <div class="panel-head">
+    <div class="panel-head handover-draft-head">
         <div>
             <h3>Generate Handover</h3>
-            <p class="muted">Date, shift, attendance, safety, pick, sort centre, dispatch, Suntory and AOB.</p>
+            <p class="muted">Start it at the beginning of the shift, keep editing during the day, then generate at the end.</p>
+            <small class="draft-status" id="handoverDraftStatus">Draft autosave ready</small>
         </div>
-        <span class="pill">PRO</span>
+        <div class="handover-draft-actions">
+            <button class="small-btn ghost-small" type="button" id="saveHandoverDraftBtn">Save Draft</button>
+            <button class="small-btn ghost-small" type="button" id="loadHandoverDraftBtn">Load Draft</button>
+            <button class="small-btn danger-btn" type="button" id="clearHandoverDraftBtn">Clear Draft</button>
+        </div>
     </div>
 
-    <form method="POST" enctype="multipart/form-data" class="form-grid handover-form">
+    <form method="POST" enctype="multipart/form-data" class="form-grid handover-form" id="handoverDraftForm">
+        <input type="hidden" name="draft_submitted" value="yes">
         <div><label>Date</label><input type="date" name="date"></div>
         <div><label>Shift</label><input name="shift" placeholder="D1 / D2 / Night / 06:00-18:00"></div>
         <div><label>Manager</label><input name="manager" placeholder="Laszlo"></div>
@@ -194,7 +382,7 @@ function removeRow(btn) {
     const row = btn.closest('.dynamic-row');
     if (row) row.remove();
 }
-function addAbsenceRow() {
+window.addAbsenceRow = function addAbsenceRow() {
     const wrap = document.getElementById('absenceRows');
     const div = document.createElement('div');
     div.className = 'dynamic-row';
@@ -234,7 +422,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (toggle) toggle.addEventListener('change', applyVridUppercase);
 });
 
-function addDispatchRow() {
+window.addDispatchRow = function addDispatchRow() {
     const wrap = document.getElementById('dispatchRows');
     const div = document.createElement('div');
     div.className = 'dynamic-row dispatch-row';
@@ -250,4 +438,186 @@ function addDispatchRow() {
 
     applyVridUppercase();}
 </script>
+
+<script>
+(function () {
+    const form = document.getElementById("handoverDraftForm");
+    if (!form) return;
+
+    const keyBase = "opspilot_handover_draft_v1";
+    const dateInput = form.querySelector('[name="date"]');
+    const statusEl = document.getElementById("handoverDraftStatus");
+    const saveBtn = document.getElementById("saveHandoverDraftBtn");
+    const loadBtn = document.getElementById("loadHandoverDraftBtn");
+    const clearBtn = document.getElementById("clearHandoverDraftBtn");
+
+    function currentKey() {
+        const d = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0, 10);
+        return keyBase + "_" + d;
+    }
+
+    function setStatus(text) {
+        if (!statusEl) return;
+        statusEl.textContent = text;
+    }
+
+    function readForm() {
+        const data = {};
+        const grouped = {};
+        form.querySelectorAll("input, textarea, select").forEach((el) => {
+            if (!el.name || el.type === "file" || el.name === "draft_submitted") return;
+            if (el.name.endsWith("[]")) {
+                if (!grouped[el.name]) grouped[el.name] = [];
+                if (el.type === "checkbox") grouped[el.name].push(el.checked);
+                else grouped[el.name].push(el.value);
+            } else if (el.type === "checkbox") {
+                data[el.name] = el.checked;
+            } else {
+                data[el.name] = el.value;
+            }
+        });
+        data.__grouped = grouped;
+        data.__saved_at = new Date().toISOString();
+        return data;
+    }
+
+    function saveDraft(manual) {
+        try {
+            localStorage.setItem(currentKey(), JSON.stringify(readForm()));
+            localStorage.setItem(keyBase + "_latest", currentKey());
+            const time = new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+            setStatus((manual ? "Draft saved manually" : "Autosaved") + " at " + time);
+        } catch (e) {
+            setStatus("Draft could not be saved on this device.");
+        }
+    }
+
+    function setSimpleField(name, value) {
+        const el = form.querySelector(`[name="${CSS.escape(name)}"]`);
+        if (!el) return;
+        if (el.type === "checkbox") el.checked = !!value;
+        else el.value = value || "";
+        el.dispatchEvent(new Event("input", {bubbles: true}));
+        el.dispatchEvent(new Event("change", {bubbles: true}));
+    }
+
+    function loadDraft() {
+        const keys = [currentKey(), localStorage.getItem(keyBase + "_latest")].filter(Boolean);
+        let raw = null;
+        for (const k of keys) {
+            raw = localStorage.getItem(k);
+            if (raw) break;
+        }
+        if (!raw) {
+            setStatus("No saved draft found on this device.");
+            return;
+        }
+
+        try {
+            const data = JSON.parse(raw);
+
+            // Rebuild absence rows
+            if (data.__grouped && (data.__grouped["absence_type[]"] || data.__grouped["absence_count[]"])) {
+                const wrap = document.getElementById("absenceRows");
+                if (wrap) wrap.innerHTML = "";
+                const types = data.__grouped["absence_type[]"] || [];
+                const counts = data.__grouped["absence_count[]"] || [];
+                const max = Math.max(types.length, counts.length, 1);
+                for (let i = 0; i < max; i++) {
+                    if (typeof window.addAbsenceRow === "function") window.addAbsenceRow();
+                    const rows = wrap ? wrap.querySelectorAll(".dynamic-row") : [];
+                    const row = rows[rows.length - 1];
+                    if (row) {
+                        const t = row.querySelector('[name="absence_type[]"]');
+                        const c = row.querySelector('[name="absence_count[]"]');
+                        if (t) t.value = types[i] || "";
+                        if (c) c.value = counts[i] || "";
+                    }
+                }
+            }
+
+            // Rebuild dispatch rows
+            if (data.__grouped && (data.__grouped["dispatch_carrier[]"] || data.__grouped["dispatch_vrid[]"])) {
+                const carrierWrap = form.querySelector('[name="dispatch_carrier[]"]')?.closest(".dynamic-block");
+                const rowContainer = carrierWrap ? carrierWrap.querySelector(".dynamic-rows, #dispatchRows") : document.getElementById("dispatchRows");
+                if (rowContainer) rowContainer.innerHTML = "";
+                const carriers = data.__grouped["dispatch_carrier[]"] || [];
+                const vrids = data.__grouped["dispatch_vrid[]"] || [];
+                const completed = data.__grouped["dispatch_completed[]"] || [];
+                const ontime = data.__grouped["dispatch_on_time[]"] || [];
+                const issue = data.__grouped["dispatch_issue[]"] || [];
+                const max = Math.max(carriers.length, vrids.length, completed.length, ontime.length, issue.length, 1);
+                for (let i = 0; i < max; i++) {
+                    if (typeof window.addDispatchRow === "function") window.addDispatchRow();
+                    const rows = rowContainer ? rowContainer.querySelectorAll(".dispatch-row, .dynamic-row") : form.querySelectorAll(".dispatch-row, .dynamic-row");
+                    const row = rows[rows.length - 1];
+                    if (row) {
+                        const c = row.querySelector('[name="dispatch_carrier[]"]');
+                        const v = row.querySelector('[name="dispatch_vrid[]"]');
+                        const co = row.querySelector('[name="dispatch_completed[]"]');
+                        const ot = row.querySelector('[name="dispatch_on_time[]"]');
+                        const is = row.querySelector('[name="dispatch_issue[]"]');
+                        if (c) c.value = carriers[i] || "";
+                        if (v) v.value = vrids[i] || "";
+                        if (co) co.value = completed[i] || "Yes";
+                        if (ot) ot.value = ontime[i] || "Yes";
+                        if (is) is.value = issue[i] || "No";
+                    }
+                }
+            }
+
+            Object.keys(data).forEach((name) => {
+                if (name.startsWith("__") || name.endsWith("[]")) return;
+                setSimpleField(name, data[name]);
+            });
+
+            const savedAt = data.__saved_at ? new Date(data.__saved_at).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "";
+            setStatus("Draft loaded" + (savedAt ? " from " + savedAt : "") + ".");
+        } catch (e) {
+            setStatus("Draft found, but it could not be loaded.");
+        }
+    }
+
+    function clearDraft() {
+        if (!confirm("Clear the saved handover draft on this device?")) return;
+        localStorage.removeItem(currentKey());
+        const latest = localStorage.getItem(keyBase + "_latest");
+        if (latest) localStorage.removeItem(latest);
+        localStorage.removeItem(keyBase + "_latest");
+        setStatus("Draft cleared.");
+    }
+
+    let timer = null;
+    form.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => saveDraft(false), 700);
+    });
+    form.addEventListener("change", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => saveDraft(false), 250);
+    });
+
+    // Keep a final copy before submit, then clear after generate button sends it.
+    form.addEventListener("submit", () => {
+        saveDraft(true);
+        sessionStorage.setItem("opspilot_clear_handover_draft_after_submit", currentKey());
+    });
+
+    if (saveBtn) saveBtn.addEventListener("click", () => saveDraft(true));
+    if (loadBtn) loadBtn.addEventListener("click", loadDraft);
+    if (clearBtn) clearBtn.addEventListener("click", clearDraft);
+
+    // If the page reloaded after a successful submit, clear the submitted draft.
+    const clearKey = sessionStorage.getItem("opspilot_clear_handover_draft_after_submit");
+    if (clearKey && window.location.pathname.includes("/handover")) {
+        localStorage.removeItem(clearKey);
+        sessionStorage.removeItem("opspilot_clear_handover_draft_after_submit");
+        setStatus("Generated handover saved. Draft cleared.");
+    } else {
+        const raw = localStorage.getItem(currentKey()) || localStorage.getItem(localStorage.getItem(keyBase + "_latest") || "");
+        if (raw) setStatus("Saved draft found. Press Load Draft to continue.");
+    }
+})();
+</script>
+
 {% endblock %}

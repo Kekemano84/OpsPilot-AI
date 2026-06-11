@@ -2815,3 +2815,30 @@ button:disabled {
         gap: 12px;
     }
 }
+
+/* V5.6 Handover draft/autosave controls */
+.handover-draft-head {
+    align-items: flex-start;
+    gap: 16px;
+}
+.handover-draft-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.draft-status {
+    display: inline-block;
+    margin-top: 8px;
+    color: #64748b;
+    font-weight: 800;
+}
+@media (max-width: 760px) {
+    .handover-draft-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .handover-draft-actions .small-btn {
+        flex: 1 1 auto;
+    }
+}
