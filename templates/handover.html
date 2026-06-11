@@ -9,6 +9,29 @@
     <a class="btn light" href="{{ url_for('export_handovers') }}">📊 Export Excel</a>
 </section>
 
+
+<section class="panel compact-panel">
+    <div class="panel-head">
+        <div>
+            <h3>Handover Template Settings</h3>
+            <p class="muted">Change section names once and save them as default. You can still edit them later.</p>
+        </div>
+        <span class="pill">Template</span>
+    </div>
+    <form method="POST" action="{{ url_for('save_handover_template') }}" class="form-grid">
+        <div><label>Template Name</label><input name="template_name" value="{{ template.name if template else 'Default Handover' }}"></div>
+        <div><label>Attendance Header</label><input name="section_attendance" value="{{ section_names.attendance }}"></div>
+        <div><label>Safety Header</label><input name="section_safety" value="{{ section_names.safety }}"></div>
+        <div><label>Operations Header</label><input name="section_operations" value="{{ section_names.operations }}"></div>
+        <div><label>Sort Centre Header</label><input name="section_sort" value="{{ section_names.sort }}"></div>
+        <div><label>Dispatch Header</label><input name="section_dispatch" value="{{ section_names.dispatch }}"></div>
+        <div><label>Suntory Header</label><input name="section_suntory" value="{{ section_names.suntory }}"></div>
+        <div><label>AOB Header</label><input name="section_aob" value="{{ section_names.aob }}"></div>
+        <div class="wide checkbox-row"><label><input type="checkbox" name="force_vrid_uppercase" {% if force_vrid_uppercase %}checked{% endif %}> Force UPPERCASE VRID</label></div>
+        <div class="form-actions"><button class="btn primary" type="submit">Save Template</button></div>
+    </form>
+</section>
+
 <section class="panel compact-panel">
     <div class="panel-head">
         <div>
@@ -22,9 +45,8 @@
         <div><label>Date</label><input type="date" name="date"></div>
         <div><label>Shift</label><input name="shift" placeholder="D1 / D2 / Night / 06:00-18:00"></div>
         <div><label>Manager</label><input name="manager" placeholder="Laszlo"></div>
-        <div><label>Volume</label><input type="number" name="volume"></div>
 
-        <div class="wide section-title">Attendance</div>
+        <div class="wide section-title">{{ section_names.attendance }}</div>
         <div><label>Planned HC</label><input type="number" name="planned_hc" placeholder="25"></div>
         <div><label>Actual HC</label><input type="number" name="actual_hc" placeholder="20"></div>
         <div class="wide dynamic-block">
@@ -41,7 +63,7 @@
             </div>
         </div>
 
-        <div class="wide section-title">Safety Metrics</div>
+        <div class="wide section-title">{{ section_names.safety }}</div>
         <div><label>Safe Shift</label><select name="safe_shift"><option>Yes</option><option>No</option></select></div>
         <div><label>SLAMs</label><input name="slams" placeholder="12"></div>
         <div><label>Safety Cons</label><input name="safety_cons" placeholder="3"></div>
@@ -49,7 +71,7 @@
         <div><label>Safety Rules</label><input name="safety_rules" placeholder="3"></div>
         <div class="wide"><label>Safety Additional Comments</label><textarea name="safety_comments" rows="3" placeholder="Any safety comments"></textarea></div>
 
-        <div class="wide section-title">Operations Pick</div>
+        <div class="wide section-title">{{ section_names.operations }}</div>
         <div><label>Pick Audits Completed</label><input name="pick_audits" placeholder="3"></div>
         <div><label>Slam Plan</label><input name="slam_plan" placeholder="1900"></div>
         <div><label>Picked Since Time</label><input name="picked_since_time" placeholder="06:00"></div>
@@ -60,14 +82,14 @@
         <div><label>EMC / Well To Cover End</label><input name="emc_end" placeholder="196"></div>
         <div class="wide"><label>Operations Pick Additional Comments</label><textarea name="ops_comments" rows="3" placeholder="Clear until 21:15"></textarea></div>
 
-        <div class="wide section-title">SUK / Sort Centre</div>
+        <div class="wide section-title">{{ section_names.sort }}</div>
         <div><label>Deliveries Planned</label><input name="deliveries_planned" placeholder="24"></div>
         <div><label>Deliveries Arrived</label><input name="deliveries_arrived" placeholder="17"></div>
         <div><label>Planned Same Day Sortation</label><input name="same_day_sortation" placeholder="6"></div>
         <div><label>Planned Next Day Sortation</label><input name="next_day_sortation" placeholder="6"></div>
         <div class="wide"><label>Sort Centre Additional Comments</label><textarea name="sort_comments" rows="3" placeholder="714 tipped in total..."></textarea></div>
 
-        <div class="wide section-title">Dispatch</div>
+        <div class="wide section-title">{{ section_names.dispatch }}</div>
         <div><label>Collections Arrived</label><input name="collections_arrived" placeholder="7"></div>
         <div><label>Late Arrivals</label><input name="late_arrivals" placeholder="0"></div>
         <div><label>Trailers On Doors</label><input name="trailers_on_doors" placeholder="7"></div>
@@ -84,7 +106,7 @@
             <div id="dispatchRows" class="dynamic-rows">
                 <div class="dynamic-row dispatch-row">
                     <input name="dispatch_carrier[]" placeholder="DPD / Evri / Amazon">
-                    <input name="dispatch_vrid[]" placeholder="VRID">
+                    <input name="dispatch_vrid[]" class="vrid-input" placeholder="VRID">
                     <select name="dispatch_completed[]"><option>Yes</option><option>No</option></select>
                     <select name="dispatch_on_time[]"><option>Yes</option><option>No</option></select>
                     <select name="dispatch_issue[]"><option>No</option><option>Yes</option></select>
@@ -95,13 +117,13 @@
 
         <div class="wide"><label>Dispatch Additional Comments</label><textarea name="dispatch_comments" rows="3" placeholder="No major issues, most lanes built."></textarea></div>
 
-        <div class="wide section-title">Suntory</div>
+        <div class="wide section-title">{{ section_names.suntory }}</div>
         <div><label>Trailers On Site To Complete</label><input name="suntory_trailers_on_site" placeholder="20"></div>
         <div><label>Completed On Shift</label><input name="suntory_completed" placeholder="4.5"></div>
         <div><label>Left To Complete</label><input name="suntory_left" placeholder="15"></div>
         <div class="wide"><label>Suntory Additional Comments</label><textarea name="suntory_comments" rows="3" placeholder="Any Suntory comments"></textarea></div>
 
-        <div class="wide section-title">AOB</div>
+        <div class="wide section-title">{{ section_names.aob }}</div>
         <div class="wide"><label>AOB Additional Comments</label><textarea name="aob" rows="3" placeholder="Anything else"></textarea></div>
 
         <div class="wide"><label>Issues</label><input name="issues" placeholder="Optional extra issue notes"></div>
@@ -144,14 +166,28 @@ function addAbsenceRow() {
         <button type="button" class="small-btn danger-btn" onclick="removeRow(this)">Delete</button>
     `;
     wrap.appendChild(div);
+    applyVridUppercase();
 }
+
+function applyVridUppercase() {
+    const force = {{ 'true' if force_vrid_uppercase else 'false' }};
+    if (!force) return;
+    document.querySelectorAll('.vrid-input').forEach(function(input) {
+        input.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+        input.value = input.value.toUpperCase();
+    });
+}
+document.addEventListener('DOMContentLoaded', applyVridUppercase);
+
 function addDispatchRow() {
     const wrap = document.getElementById('dispatchRows');
     const div = document.createElement('div');
     div.className = 'dynamic-row dispatch-row';
     div.innerHTML = `
         <input name="dispatch_carrier[]" placeholder="DPD / Evri / Amazon">
-        <input name="dispatch_vrid[]" placeholder="VRID">
+        <input name="dispatch_vrid[]" class="vrid-input" placeholder="VRID">
         <select name="dispatch_completed[]"><option>Yes</option><option>No</option></select>
         <select name="dispatch_on_time[]"><option>Yes</option><option>No</option></select>
         <select name="dispatch_issue[]"><option>No</option><option>Yes</option></select>

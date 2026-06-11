@@ -408,6 +408,29 @@ def init_db():
             created_at TEXT NOT NULL
         )
     """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS handover_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL DEFAULT 'Default Handover',
+            section_names TEXT,
+            force_vrid_uppercase INTEGER DEFAULT 1,
+            created_at TEXT NOT NULL,
+            updated_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS handover_audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            handover_id INTEGER,
+            action TEXT NOT NULL,
+            details TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
     conn.commit()
 
     safe_add_column("handovers", "extra_json", "TEXT")
@@ -1153,6 +1176,14 @@ def generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, 
             return value
         return str(value).strip()
 
+    section_names = default_handover_section_names()
+    try:
+        saved_names = extra.get("section_names") or {}
+        if isinstance(saved_names, dict):
+            section_names.update(saved_names)
+    except Exception:
+        pass
+
     absence_rows = extra.get("absence_rows", [])
     dispatch_rows = extra.get("dispatch_rows", [])
 
@@ -1168,13 +1199,12 @@ def generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, 
 Date: {date}
 Shift: {shift or 'Not specified'}
 Manager: {manager or 'Not specified'}
-Volume: {volume}
 Attendance: {attendance}
 
-ABSENCE BREAKDOWN
+{section_names.get('attendance', 'Attendance').upper()}
 {absence_text}
 
-SAFETY METRICS
+{section_names.get('safety', 'Safety Metrics').upper()}
 Safe Shift: {v('safe_shift', 'Safe Shift')}
 SLAMs: {v('slams')}
 Safety Cons: {v('safety_cons')}
@@ -1182,7 +1212,7 @@ Loads: {v('loads')}
 Safety Rules: {v('safety_rules')}
 Additional Comments: {v('safety_comments')}
 
-OPERATIONS PICK
+{section_names.get('operations', 'Operations Pick').upper()}
 Pick Audits Completed: {v('pick_audits')}
 Slam Plan: {v('slam_plan')}
 Picked Since: {v('picked_since_time', '06:00')} - {v('picked_since_value')}
@@ -1192,14 +1222,14 @@ EMC / Well To Cover Start: {v('emc_start')}
 EMC / Well To Cover End: {v('emc_end')}
 Additional Comments: {v('ops_comments') or issues or 'No major issues reported.'}
 
-SUK / SORT CENTRE
+{section_names.get('sort', 'CUK8 Sort Centre').upper()}
 Deliveries Planned: {v('deliveries_planned')}
 Deliveries Arrived: {v('deliveries_arrived')}
 Planned Same Day Sortation: {v('same_day_sortation')}
 Planned Next Day Sortation: {v('next_day_sortation')}
 Additional Comments: {v('sort_comments')}
 
-DISPATCH
+{section_names.get('dispatch', 'Dispatch').upper()}
 Collections Arrived: {v('collections_arrived')}
 Late Arrivals: {v('late_arrivals')}
 Trailers on Doors: {v('trailers_on_doors')}
@@ -1210,13 +1240,13 @@ Dispatch Activities:
 
 Additional Comments: {v('dispatch_comments') or actions or 'No further action required.'}
 
-SUNTORY
+{section_names.get('suntory', 'Suntory').upper()}
 Trailers on Site to Complete: {v('suntory_trailers_on_site')}
 Completed on Shift: {v('suntory_completed')}
 Left to Complete: {v('suntory_left')}
 Additional Comments: {v('suntory_comments')}
 
-AOB
+{section_names.get('aob', 'AOB').upper()}
 {v('aob')}
 """
 def generate_shift_plan(date, shift, volume, available_hc, target_rate, planned_hours):
@@ -3117,16 +3147,85 @@ def kpi_dashboard():
     return render_template("kpi.html", rows=rows, summary=summary, page="kpi")
 
 
+
+def default_handover_section_names():
+    return {
+        "attendance": "Attendance",
+        "safety": "Safety Metrics",
+        "operations": "Operations Pick",
+        "sort": "CUK8 Sort Centre",
+        "dispatch": "Dispatch",
+        "suntory": "Suntory",
+        "aob": "AOB"
+    }
+
+def get_handover_template(user_id):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM handover_templates WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+    if not row:
+        names = default_handover_section_names()
+        conn.execute("""
+            INSERT INTO handover_templates (user_id, name, section_names, force_vrid_uppercase, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, "Default Handover", json.dumps(names), 1, datetime.now().isoformat()))
+        conn.commit()
+        row = conn.execute("SELECT * FROM handover_templates WHERE user_id=? ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+    conn.close()
+    return row
+
+def parse_handover_template(row):
+    names = default_handover_section_names()
+    try:
+        saved = json.loads(row_get(row, "section_names", "{}") or "{}")
+        if isinstance(saved, dict):
+            names.update(saved)
+    except Exception:
+        pass
+    return names
+
+@app.route("/handover/template", methods=["POST"])
+@login_required
+@plan_required("pro")
+def save_handover_template():
+    user = current_user()
+    section_names = {}
+    for key in default_handover_section_names().keys():
+        section_names[key] = request.form.get(f"section_{key}", "").strip() or default_handover_section_names()[key]
+    force_upper = 1 if request.form.get("force_vrid_uppercase") == "on" else 0
+    template_name = request.form.get("template_name", "").strip() or "Default Handover"
+
+    conn = get_db()
+    existing = conn.execute("SELECT * FROM handover_templates WHERE user_id=? ORDER BY id DESC LIMIT 1", (user["id"],)).fetchone()
+    if existing:
+        conn.execute("""
+            UPDATE handover_templates
+            SET name=?, section_names=?, force_vrid_uppercase=?, updated_at=?
+            WHERE id=? AND user_id=?
+        """, (template_name, json.dumps(section_names), force_upper, datetime.now().isoformat(), existing["id"], user["id"]))
+    else:
+        conn.execute("""
+            INSERT INTO handover_templates (user_id, name, section_names, force_vrid_uppercase, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user["id"], template_name, json.dumps(section_names), force_upper, datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+    flash("Handover template saved.", "success")
+    return redirect(url_for("handover"))
+
 @app.route("/handover", methods=["GET", "POST"])
 @login_required
 @plan_required("pro")
 def handover():
     user = current_user()
+    template = get_handover_template(user["id"])
+    section_names = parse_handover_template(template)
+    force_vrid_uppercase = bool(row_get(template, "force_vrid_uppercase", 1))
+
     if request.method == "POST":
         date = request.form.get("date") or datetime.today().strftime("%Y-%m-%d")
         shift = request.form.get("shift", "Day")
         manager = request.form.get("manager", "").strip()
-        volume = int(request.form.get("volume") or 0)
+        volume = 0
         planned_hc = int(request.form.get("planned_hc") or 0)
         actual_hc = int(request.form.get("actual_hc") or 0)
         late_trailers = int(request.form.get("late_trailers") or 0)
@@ -3158,9 +3257,12 @@ def handover():
         issue = request.form.getlist("dispatch_issue[]")
         max_len = max(len(carriers), len(vrids), len(completed), len(on_time), len(issue), 0)
         for i in range(max_len):
+            vrid_value = vrids[i].strip() if i < len(vrids) else ""
+            if force_vrid_uppercase:
+                vrid_value = vrid_value.upper()
             row = {
                 "carrier": carriers[i].strip() if i < len(carriers) else "",
-                "vrid": vrids[i].strip() if i < len(vrids) else "",
+                "vrid": vrid_value,
                 "completed": completed[i].strip() if i < len(completed) else "",
                 "on_time": on_time[i].strip() if i < len(on_time) else "",
                 "issue": issue[i].strip() if i < len(issue) else "",
@@ -3170,13 +3272,20 @@ def handover():
 
         extra["absence_rows"] = absence_rows
         extra["dispatch_rows"] = dispatch_rows
+        extra["section_names"] = section_names
+        extra["force_vrid_uppercase"] = force_vrid_uppercase
 
         generated = generate_handover_text(date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, extra)
         conn = get_db()
-        conn.execute("""
+        cur = conn.execute("""
             INSERT INTO handovers (user_id, date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, generated_report, extra_json, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (user["id"], date, shift, manager, volume, planned_hc, actual_hc, late_trailers, issues, actions, generated, json.dumps(extra), datetime.now().isoformat()))
+        handover_id = cur.lastrowid
+        conn.execute("""
+            INSERT INTO handover_audit_log (user_id, handover_id, action, details, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user["id"], handover_id, "Created", f"Handover created for {date} / {shift}", datetime.now().isoformat()))
         conn.commit()
         conn.close()
         flash("Handover generated.", "success")
@@ -3184,7 +3293,7 @@ def handover():
     conn = get_db()
     rows = conn.execute("SELECT * FROM handovers WHERE user_id = ? ORDER BY date DESC, id DESC", (user["id"],)).fetchall()
     conn.close()
-    return render_template("handover.html", rows=rows, page="handover")
+    return render_template("handover.html", rows=rows, page="handover", template=template, section_names=section_names, force_vrid_uppercase=force_vrid_uppercase)
 
 
 @app.route("/handover/<int:item_id>/download")
@@ -3363,20 +3472,20 @@ def export_handovers():
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Handovers"
+    ws.title = "Handover"
 
-    ws.append([
-        "Date", "Shift", "Manager", "Volume", "Planned HC", "Actual HC", "Attendance",
-        "Sick/Holiday/Absence Breakdown",
-        "SLAMs", "Safety Cons", "Loads", "Safety Rules", "Safety Comments",
+    headers = [
+        "Date", "Shift", "Manager", "Planned HC", "Actual HC", "Attendance",
+        "Absence Breakdown", "SLAMs", "Safety Cons", "Loads", "Safety Rules", "Safety Comments",
         "Pick Audits", "Slam Plan", "Picked Since Time", "Picked Volume",
         "Full Well Start", "Full Well End", "EMC Start", "EMC End", "Operations Comments",
         "Deliveries Planned", "Deliveries Arrived", "Same Day Sortation", "Next Day Sortation", "Sort Comments",
         "Collections Arrived", "Late Arrivals", "Trailers On Doors", "Trailers Needed Cover",
-        "Dispatch Activities", "Dispatch Comments",
-        "Suntory On Site", "Suntory Completed", "Suntory Left", "Suntory Comments",
+        "Carrier", "VRID", "Completed", "On Time", "Issue",
+        "Dispatch Comments", "Suntory On Site", "Suntory Completed", "Suntory Left", "Suntory Comments",
         "AOB", "Generated Report", "Created At"
-    ])
+    ]
+    ws.append(headers)
 
     for row in rows:
         try:
@@ -3384,39 +3493,69 @@ def export_handovers():
         except Exception:
             extra = {}
 
-        absence = "; ".join([f"{x.get('type','')}: {x.get('count','')}" for x in extra.get("absence_rows", [])])
-        dispatch = "; ".join([
-            f"{x.get('carrier','')} | VRID {x.get('vrid','')} | Completed {x.get('completed','')} | On Time {x.get('on_time','')} | Issue {x.get('issue','')}"
-            for x in extra.get("dispatch_rows", [])
-        ])
-
-        ws.append([
-            row["date"], row["shift"], row["manager"], row["volume"], row["planned_hc"], row["actual_hc"],
-            f"{row['actual_hc']}/{row['planned_hc']}" if row["planned_hc"] else row["actual_hc"],
-            absence,
-            extra.get("slams",""), extra.get("safety_cons",""), extra.get("loads",""), extra.get("safety_rules",""), extra.get("safety_comments",""),
-            extra.get("pick_audits",""), extra.get("slam_plan",""), extra.get("picked_since_time",""), extra.get("picked_since_value",""),
-            extra.get("full_well_start",""), extra.get("full_well_end",""), extra.get("emc_start",""), extra.get("emc_end",""), extra.get("ops_comments",""),
-            extra.get("deliveries_planned",""), extra.get("deliveries_arrived",""), extra.get("same_day_sortation",""), extra.get("next_day_sortation",""), extra.get("sort_comments",""),
-            extra.get("collections_arrived",""), extra.get("late_arrivals",""), extra.get("trailers_on_doors",""), extra.get("trailers_needed_cover",""),
-            dispatch, extra.get("dispatch_comments",""),
-            extra.get("suntory_trailers_on_site",""), extra.get("suntory_completed",""), extra.get("suntory_left",""), extra.get("suntory_comments",""),
-            extra.get("aob",""), row["generated_report"], row["created_at"]
-        ])
-
-    # Add dispatch activities as a second sheet
-    ws2 = wb.create_sheet("Dispatch Activities")
-    ws2.append(["Handover Date", "Shift", "Carrier", "VRID", "Completed", "On Time", "Issue"])
-    for row in rows:
-        try:
-            extra = json.loads(row_get(row, "extra_json", "{}") or "{}")
-        except Exception:
-            extra = {}
-        for x in extra.get("dispatch_rows", []):
-            ws2.append([row["date"], row["shift"], x.get("carrier",""), x.get("vrid",""), x.get("completed",""), x.get("on_time",""), x.get("issue","")])
+        absence = "; ".join([f"{x.get('type','')}: {x.get('count','')}" for x in extra.get("absence_rows", [])]) or ""
+        dispatch_rows = extra.get("dispatch_rows", []) or [{}]
+        first = True
+        for x in dispatch_rows:
+            ws.append([
+                row["date"] if first else "",
+                row["shift"] if first else "",
+                row["manager"] if first else "",
+                row["planned_hc"] if first else "",
+                row["actual_hc"] if first else "",
+                (f"{row['actual_hc']}/{row['planned_hc']}" if row["planned_hc"] else row["actual_hc"]) if first else "",
+                absence if first else "",
+                extra.get("slams","") if first else "",
+                extra.get("safety_cons","") if first else "",
+                extra.get("loads","") if first else "",
+                extra.get("safety_rules","") if first else "",
+                extra.get("safety_comments","") if first else "",
+                extra.get("pick_audits","") if first else "",
+                extra.get("slam_plan","") if first else "",
+                extra.get("picked_since_time","") if first else "",
+                extra.get("picked_since_value","") if first else "",
+                extra.get("full_well_start","") if first else "",
+                extra.get("full_well_end","") if first else "",
+                extra.get("emc_start","") if first else "",
+                extra.get("emc_end","") if first else "",
+                extra.get("ops_comments","") if first else "",
+                extra.get("deliveries_planned","") if first else "",
+                extra.get("deliveries_arrived","") if first else "",
+                extra.get("same_day_sortation","") if first else "",
+                extra.get("next_day_sortation","") if first else "",
+                extra.get("sort_comments","") if first else "",
+                extra.get("collections_arrived","") if first else "",
+                extra.get("late_arrivals","") if first else "",
+                extra.get("trailers_on_doors","") if first else "",
+                extra.get("trailers_needed_cover","") if first else "",
+                x.get("carrier",""),
+                x.get("vrid",""),
+                x.get("completed",""),
+                x.get("on_time",""),
+                x.get("issue",""),
+                extra.get("dispatch_comments","") if first else "",
+                extra.get("suntory_trailers_on_site","") if first else "",
+                extra.get("suntory_completed","") if first else "",
+                extra.get("suntory_left","") if first else "",
+                extra.get("suntory_comments","") if first else "",
+                extra.get("aob","") if first else "",
+                row["generated_report"] if first else "",
+                row["created_at"] if first else ""
+            ])
+            first = False
 
     style_excel_header(ws)
-    style_excel_header(ws2)
+    # Border around every used cell to create DHL-style cell layout
+    from openpyxl.styles import Border, Side
+    thin = Side(style="thin", color="000000")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    for row_cells in ws.iter_rows():
+        for cell in row_cells:
+            cell.border = border
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width = min(max(len(str(c.value or "")) for c in col) + 2, 35)
+
     return excel_response(wb, "handovers.xlsx")
 
 @app.route("/admin/export")

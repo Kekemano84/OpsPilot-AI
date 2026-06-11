@@ -2169,3 +2169,47 @@ button:disabled {
         flex-direction: column;
     }
 }
+
+
+/* Handover template settings and cell/border layout */
+.checkbox-row label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+}
+.section-title {
+    border: 1px solid #111827 !important;
+    background: #eef6ff !important;
+    color: #1d4ed8;
+    padding: 10px 12px !important;
+    text-transform: uppercase;
+}
+.handover-form input,
+.handover-form textarea,
+.handover-form select {
+    border: 1px solid #11182722;
+}
+.dynamic-block {
+    border: 1px solid #111827 !important;
+}
+.dispatch-table-head,
+.dispatch-row {
+    grid-template-columns: minmax(180px, 1.4fr) minmax(170px, 1fr) 120px 120px 110px 120px !important;
+}
+.dispatch-table-head span {
+    padding: 8px;
+    border: 1px solid #111827;
+    background: #f8fafc;
+}
+.dispatch-row > input,
+.dispatch-row > select,
+.dispatch-row > button {
+    width: 100%;
+}
+@media (max-width: 900px) {
+    .dispatch-table-head,
+    .dispatch-row {
+        grid-template-columns: 1fr !important;
+    }
+}
