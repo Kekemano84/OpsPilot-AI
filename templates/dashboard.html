@@ -19,7 +19,6 @@
     </div>
     <div class="weather-actions">
       <button type="button" class="small-btn ghost-small" id="weatherRefreshBtn">🔄 Refresh</button>
-      <span class="pill">FREE</span>
     </div>
   </div>
 
@@ -182,9 +181,7 @@
       els.btn.textContent = "Refreshing...";
     }
 
-    let finished = false;
     function done() {
-      finished = true;
       if (els.btn) {
         els.btn.disabled = false;
         els.btn.textContent = "🔄 Refresh";
@@ -197,59 +194,39 @@
     }
     function askBrowserLocation() {
       if (!navigator.geolocation) {
-        setFallback("Browser location is not available on this device.", true);
-        done();
+        fallbackFetch(true);
         return;
       }
 
+      let completed = false;
       const safetyTimer = setTimeout(function () {
-        if (!finished) {
-          setFallback("Location request timed out. Please press Share my location again.", true);
-          done();
+        if (!completed) {
+          completed = true;
+          fallbackFetch(true);
         }
-      }, 9000);
+      }, 7000);
 
       navigator.geolocation.getCurrentPosition(
         function (pos) {
-          if (finished) return;
+          if (completed) return;
+          completed = true;
           clearTimeout(safetyTimer);
           fetchWeather(pos.coords.latitude, pos.coords.longitude)
             .then(done)
             .catch(function () { fallbackFetch(true); });
         },
-        function (error) {
-          if (finished) return;
+        function () {
+          if (completed) return;
+          completed = true;
           clearTimeout(safetyTimer);
-          let msg = "Location permission was not allowed.";
-          if (error && error.code === 1) msg = "Location is blocked. Please allow location permission in your browser.";
-          if (error && error.code === 2) msg = "Could not detect location. You can use saved site address.";
-          if (error && error.code === 3) msg = "Location request timed out. Try Refresh again.";
-          setFallback(msg, true);
-          done();
+          fallbackFetch(true);
         },
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
       );
     }
 
     if (useBrowserLocation) {
-      if (forceAsk) {
-        askBrowserLocation();
-        return;
-      }
-      if (navigator.permissions && navigator.permissions.query) {
-        navigator.permissions.query({name: "geolocation"}).then(function (status) {
-          if (status.state === "granted" || status.state === "prompt") {
-            askBrowserLocation();
-          } else {
-            setFallback("Location is blocked. Press Share my location or enable location in browser settings.", true);
-            done();
-          }
-        }).catch(function () {
-          askBrowserLocation();
-        });
-      } else {
-        askBrowserLocation();
-      }
+      askBrowserLocation();
     } else {
       fallbackFetch(false);
     }
