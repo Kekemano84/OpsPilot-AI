@@ -2,33 +2,67 @@
 {% block content %}
 <h1>More</h1>
 
-<section class="panel">
+<section class="panel more-panel">
   <h2>More Options</h2>
   <p class="muted">Extra tools and account options.</p>
 
-  <div class="quick-grid more-grid">
-    <a class="quick-card" href="{{ url_for('team') }}">
-      <span>👥</span><strong>Team</strong><small>People records</small>
+  <div class="more-menu-grid">
+    <a class="more-option-card" href="{{ url_for('team') }}">
+      <span class="more-option-icon">👥</span>
+      <span class="more-option-text">
+        <strong>Team</strong>
+        <small>People records</small>
+      </span>
     </a>
-    <a class="quick-card" href="{{ url_for('mileage') }}">
-      <span>🚗</span><strong>Mileage</strong><small>HMRC mileage</small>
+
+    <a class="more-option-card" href="{{ url_for('mileage') }}">
+      <span class="more-option-icon">🚗</span>
+      <span class="more-option-text">
+        <strong>Mileage</strong>
+        <small>HMRC mileage</small>
+      </span>
     </a>
-    <a class="quick-card" href="{{ url_for('expenses') }}">
-      <span>💷</span><strong>Expenses</strong><small>Business costs</small>
+
+    <a class="more-option-card" href="{{ url_for('expenses') }}">
+      <span class="more-option-icon">💷</span>
+      <span class="more-option-text">
+        <strong>Expenses</strong>
+        <small>Business costs</small>
+      </span>
     </a>
-    <a class="quick-card" href="{{ url_for('yard_settings') }}">
-      <span>⚙️</span><strong>Yard Settings</strong><small>Doors and locations</small>
+
+    <a class="more-option-card" href="{{ url_for('yard_settings') }}">
+      <span class="more-option-icon">⚙️</span>
+      <span class="more-option-text">
+        <strong>Yard Settings</strong>
+        <small>Doors and locations</small>
+      </span>
     </a>
-    <a class="quick-card" href="{{ url_for('pricing') }}">
-      <span>💳</span><strong>Plans</strong><small>Free / Pro / Business</small>
+
+    <a class="more-option-card" href="{{ url_for('pricing') }}">
+      <span class="more-option-icon">💳</span>
+      <span class="more-option-text">
+        <strong>Plans</strong>
+        <small>Free / Pro / Business</small>
+      </span>
     </a>
+
     {% if user.role == "admin" or user.email == "admin@opspilot.ai" %}
-    <a class="quick-card" href="#">
-      <span>🛠️</span><strong>Admin</strong><small>Admin dashboard</small>
+    <a class="more-option-card" href="#">
+      <span class="more-option-icon">🛠️</span>
+      <span class="more-option-text">
+        <strong>Admin</strong>
+        <small>Admin dashboard</small>
+      </span>
     </a>
     {% endif %}
-    <a class="quick-card" href="{{ url_for('logout') }}">
-      <span>🚪</span><strong>Logout</strong><small>Sign out</small>
+
+    <a class="more-option-card danger-soft" href="{{ url_for('logout') }}">
+      <span class="more-option-icon">🚪</span>
+      <span class="more-option-text">
+        <strong>Logout</strong>
+        <small>Sign out</small>
+      </span>
     </a>
   </div>
 </section>

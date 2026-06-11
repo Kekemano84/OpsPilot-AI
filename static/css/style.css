@@ -2577,3 +2577,97 @@ button:disabled {
     text-decoration: none;
     color: inherit;
 }
+
+/* V5.3 More page mobile layout fix */
+.more-panel {
+    overflow: hidden;
+}
+
+.more-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.more-option-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 82px;
+    padding: 16px;
+    border-radius: 22px;
+    background: #f8fbff;
+    border: 1px solid #e1e8f2;
+    text-decoration: none;
+    color: #0f172a;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+
+.more-option-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.more-option-icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: #eef5ff;
+    font-size: 1.45rem;
+}
+
+.more-option-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.more-option-text strong {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1.15;
+    color: #0f172a;
+    white-space: normal;
+}
+
+.more-option-text small {
+    display: block;
+    color: #64748b;
+    font-weight: 700;
+    font-size: .82rem;
+    line-height: 1.2;
+}
+
+.more-option-card.danger-soft {
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+@media (max-width: 720px) {
+    .more-menu-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .more-option-card {
+        min-height: 74px;
+        padding: 14px;
+        border-radius: 20px;
+    }
+
+    .more-option-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+        font-size: 1.35rem;
+    }
+
+    .more-option-text strong {
+        font-size: 1rem;
+    }
+}
