@@ -1369,13 +1369,13 @@ Return:
 
 
 def create_handover_pdf(row):
-    """Create a robust DHL-style bordered PDF from saved handover data."""
-    buffer = BytesIO()
+    """Create a clean DHL-style landscape PDF using direct canvas drawing.
 
-    def safe(value):
-        if value is None:
-            return ""
-        return escape(str(value))
+    This avoids ReportLab table-span errors and prevents the 500 error.
+    """
+    buffer = BytesIO()
+    page_w, page_h = landscape(A4)
+    c = canvas.Canvas(buffer, pagesize=landscape(A4))
 
     def get_extra():
         try:
@@ -1384,176 +1384,187 @@ def create_handover_pdf(row):
         except Exception:
             return {}
 
+    def text(value):
+        return str(value or "").strip()
+
     extra = get_extra()
     section_names = default_handover_section_names()
+    section_names["_enabled"] = {key: True for key in default_handover_section_names().keys()}
+    section_names["_custom"] = []
     if isinstance(extra.get("section_names"), dict):
-        section_names.update(extra.get("section_names"))
+        saved_names = extra.get("section_names")
+        for key in default_handover_section_names().keys():
+            if saved_names.get(key):
+                section_names[key] = saved_names.get(key)
+        if isinstance(saved_names.get("_enabled"), dict):
+            section_names["_enabled"].update(saved_names.get("_enabled"))
+        if isinstance(saved_names.get("_custom"), list):
+            section_names["_custom"] = saved_names.get("_custom")
 
-    absence_rows = extra.get("absence_rows", []) or []
-    absence_text = " / ".join([
-        f"{safe(x.get('count',''))} {safe(x.get('type',''))}"
-        for x in absence_rows if x.get("type") or x.get("count")
-    ])
+    def enabled(key):
+        return bool(section_names.get("_enabled", {}).get(key, True))
 
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        rightMargin=8 * mm,
-        leftMargin=8 * mm,
-        topMargin=8 * mm,
-        bottomMargin=8 * mm
-    )
+    absence = extra.get("absence_rows", []) or []
+    absence_text = " / ".join([f"{text(a.get('count'))} {text(a.get('type'))}" for a in absence if text(a.get("count")) or text(a.get("type"))])
 
-    styles = getSampleStyleSheet()
-    body_style = styles["BodyText"]
-    body_style.fontSize = 8
-    body_style.leading = 10
+    left = 12 * mm
+    top = page_h - 10 * mm
+    width = page_w - 24 * mm
+    row_h = 8 * mm
+    y = top
 
-    def p(text, bold=False):
-        text = safe(text).replace("\n", "<br/>")
-        if bold:
-            text = f"<b>{text}</b>"
-        return Paragraph(text, body_style)
+    def new_page_if_needed(required=20*mm):
+        nonlocal y
+        if y - required < 12 * mm:
+            c.showPage()
+            y = top
 
-    story = []
+    def rect(x, y_top, w, h, fill=None, stroke=1):
+        if fill:
+            c.setFillColor(fill)
+            c.rect(x, y_top-h, w, h, fill=1, stroke=stroke)
+            c.setFillColor(colors.black)
+        else:
+            c.rect(x, y_top-h, w, h, fill=0, stroke=stroke)
 
-    table_data = []
-    table_data.append([p(f"{row['shift'] or 'Day Shift'} Handover", True), "", "", "", "", "", "", "", "", ""])
-    table_data.append([p(f"Date - {row['date']}"), "", p(f"Shift - {row['shift']}"), "", p(f"Attendance - {row['actual_hc']}/{row['planned_hc']}<br/>{absence_text}"), "", "", "", "", ""])
-    table_data.append([p(f"{section_names.get('safety','Safety Metrics')} - {extra.get('safe_shift','')}"), "", "", "", "", "", "", "", "", ""])
-    table_data.append([
-        p(section_names.get("safety", "Safety Metrics"), True),
-        p("SLAMS"), p(extra.get("slams", "")),
-        p("Safety Cons"), p(extra.get("safety_cons", "")),
-        p("LOADS"), p(extra.get("loads", "")),
-        p("Safety Rules"), p(extra.get("safety_rules", "")),
-        ""
-    ])
+    def write(x, y_top, value, size=8, bold=False, align="left", max_width=None):
+        value = text(value)
+        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+        if align == "center":
+            c.drawCentredString(x, y_top, value[:120])
+        elif align == "right":
+            c.drawRightString(x, y_top, value[:120])
+        else:
+            c.drawString(x, y_top, value[:160])
 
-    # Operations Pick
-    table_data.append([p(section_names.get("operations", "Operations Pick"), True), "", "", "", "", "", "", "", "", ""])
-    ops_lines = [
-        ("Pick Audits Completed", extra.get("pick_audits", "")),
-        ("Slam Plan", extra.get("slam_plan", "")),
-        (f"Picked since {extra.get('picked_since_time','06:00')} hrs", extra.get("picked_since_value", "")),
-        ("Full Well at start & end of Shift", f"{extra.get('full_well_start','')}/{extra.get('full_well_end','')}"),
-        ("Well to cover EMC's at start & end of Shift", f"{extra.get('emc_start','')}/{extra.get('emc_end','')}")
-    ]
-    for label, value in ops_lines:
-        table_data.append([p(f"{label} - {value}"), "", "", "", "", "", "", "", "", ""])
-    table_data.append([p(f"Additional Comments - {extra.get('ops_comments','')}"), "", "", "", "", "", "", "", "", ""])
-    table_data.append(["", "", "", "", "", "", "", "", "", ""])
+    def cell(x, w, h, value="", bold=False, align="left", fill=None, size=8):
+        nonlocal y
+        rect(x, y, w, h, fill)
+        tx = x + 2*mm
+        if align == "center":
+            tx = x + w/2
+        elif align == "right":
+            tx = x + w - 2*mm
+        write(tx, y - h/2 + 2.2, value, size=size, bold=bold, align=align)
 
-    # Sort Centre
-    table_data.append([p(section_names.get("sort", "CUK8 Sort Centre"), True), "", "", "", "", "", "", "", "", ""])
-    for label, value in [
-        ("Deliveries Planned", extra.get("deliveries_planned", "")),
-        ("Deliveries Arrived", extra.get("deliveries_arrived", "")),
-        ("Planned Same Day Sortation", extra.get("same_day_sortation", "")),
-        ("Planned Next Day Sortation", extra.get("next_day_sortation", ""))
-    ]:
-        table_data.append([p(f"{label} - {value}"), "", "", "", "", "", "", "", "", ""])
-    table_data.append([p(f"Additional Comments - {extra.get('sort_comments','')}"), "", "", "", "", "", "", "", "", ""])
-    table_data.append(["", "", "", "", "", "", "", "", "", ""])
+    def full_row(value="", h=row_h, bold=False, fill=None, size=8, align="left"):
+        nonlocal y
+        new_page_if_needed(h)
+        cell(left, width, h, value, bold=bold, fill=fill, size=size, align=align)
+        y -= h
 
-    # Dispatch
-    table_data.append([p(section_names.get("dispatch", "Dispatch"), True), "", "", "", "", "", "", "", "", ""])
-    table_data.append([p("Collections Arrived"), "", p(extra.get("collections_arrived", "")), "", p("LATE ARRIVALS"), "", p(extra.get("late_arrivals", "")), "", "", ""])
-    table_data.append([p("Trailers On Doors"), "", p(extra.get("trailers_on_doors", "")), "", p("Trailers needed cover today CPT's"), "", "", p(extra.get("trailers_needed_cover", "")), "", ""])
+    def two_row(a, b, ctext="", h=row_h):
+        nonlocal y
+        new_page_if_needed(h)
+        cell(left, width*0.25, h, a)
+        cell(left+width*0.25, width*0.25, h, b)
+        cell(left+width*0.50, width*0.50, h, ctext, align="center")
+        y -= h
 
-    dispatch_rows = extra.get("dispatch_rows", []) or []
-    if dispatch_rows:
-        table_data.append([p("Carrier / Dispatch", True), "", p("VRID", True), "", p("Completed", True), "", p("On Time", True), "", p("Issue", True), ""])
-        for d in dispatch_rows:
-            table_data.append([
-                p(d.get("carrier", "")), "",
-                p(d.get("vrid", "")), "",
-                p(d.get("completed", "")), "",
-                p(d.get("on_time", "")), "",
-                p(d.get("issue", "")), ""
-            ])
+    def line_row(label, value, h=row_h):
+        full_row(f"{label} - {value}", h=h)
 
-    table_data.append([p(f"Additional Comments - {extra.get('dispatch_comments','')}"), "", "", "", "", "", "", "", "", ""])
-    table_data.append(["", "", "", "", "", "", "", "", "", ""])
+    def comments_row(label, value):
+        val = text(value)
+        h = max(16*mm, min(34*mm, 10*mm + (len(val)//95)*5*mm))
+        full_row(f"{label} - {val}", h=h)
 
-    # Suntory
-    table_data.append([p(section_names.get("suntory", "Suntory"), True), "", "", "", "", "", "", "", "", ""])
-    table_data.append([p("Trailers on site to complete"), "", p(extra.get("suntory_trailers_on_site","")), "", p("Completed on shift"), "", p(extra.get("suntory_completed","")), "", p("Left to complete"), p(extra.get("suntory_left",""))])
-    table_data.append([p(f"Additional Comments - {extra.get('suntory_comments','')}"), "", "", "", "", "", "", "", "", ""])
+    # Header
+    c.setLineWidth(0.8)
+    full_row(f"{row['shift'] or 'Day Shift'} Handover", h=9*mm, bold=True, size=11, align="center")
+    two_row(f"Date - {row['date']}", f"Shift - {row['shift']}", f"Attendance - {row['actual_hc']}/{row['planned_hc']}    {absence_text}", h=10*mm)
 
-    # AOB
-    table_data.append([p(section_names.get("aob", "AOB"), True), "", "", "", "", "", "", "", "", ""])
-    table_data.append([p(extra.get("aob", "")), "", "", "", "", "", "", "", "", ""])
-
-    col_widths = [31*mm, 10*mm, 31*mm, 10*mm, 31*mm, 10*mm, 31*mm, 10*mm, 31*mm, 10*mm]
-    t = Table(table_data, colWidths=col_widths, repeatRows=0)
-
-    spans = [
-        ("SPAN", (0,0), (9,0)),
-        ("SPAN", (0,1), (1,1)), ("SPAN", (2,1), (3,1)), ("SPAN", (4,1), (9,1)),
-        ("SPAN", (0,2), (9,2)),
-        ("SPAN", (0,4), (9,4)),
-        ("SPAN", (0,5), (9,5)), ("SPAN", (0,6), (9,6)), ("SPAN", (0,7), (9,7)), ("SPAN", (0,8), (9,8)), ("SPAN", (0,9), (9,9)),
-        ("SPAN", (0,10), (9,10)), ("SPAN", (0,11), (9,11)),
-        ("SPAN", (0,12), (9,12)),
-        ("SPAN", (0,13), (9,13)), ("SPAN", (0,14), (9,14)), ("SPAN", (0,15), (9,15)), ("SPAN", (0,16), (9,16)),
-        ("SPAN", (0,17), (9,17)), ("SPAN", (0,18), (9,18)),
-        ("SPAN", (0,19), (9,19)),
-        ("SPAN", (0,20), (1,20)), ("SPAN", (2,20), (3,20)), ("SPAN", (4,20), (5,20)), ("SPAN", (6,20), (9,20)),
-        ("SPAN", (0,21), (1,21)), ("SPAN", (2,21), (3,21)), ("SPAN", (4,21), (6,21)), ("SPAN", (7,21), (9,21)),
-    ]
-
-    # Dispatch activity rows begin at 22 if present.
-    if dispatch_rows:
-        header_row = 22
-        spans += [
-            ("SPAN", (0,header_row), (1,header_row)),
-            ("SPAN", (2,header_row), (3,header_row)),
-            ("SPAN", (4,header_row), (5,header_row)),
-            ("SPAN", (6,header_row), (7,header_row)),
-            ("SPAN", (8,header_row), (9,header_row)),
+    # Safety
+    if enabled("safety"):
+        full_row(f"{section_names.get('safety','Safety Metrics')} - {extra.get('safe_shift','')}", h=8*mm, align="center")
+        new_page_if_needed(row_h)
+        col_w = width / 9
+        labels = [
+            section_names.get("safety","Safety Metrics"), "SLAMS", extra.get("slams",""),
+            "Safety Cons", extra.get("safety_cons",""), "LOADS", extra.get("loads",""),
+            "Safety Rules", extra.get("safety_rules","")
         ]
-        for r in range(header_row + 1, header_row + 1 + len(dispatch_rows)):
-            spans += [
-                ("SPAN", (0,r), (1,r)),
-                ("SPAN", (2,r), (3,r)),
-                ("SPAN", (4,r), (5,r)),
-                ("SPAN", (6,r), (7,r)),
-                ("SPAN", (8,r), (9,r)),
-            ]
-        after_dispatch = header_row + 1 + len(dispatch_rows)
-    else:
-        after_dispatch = 22
+        x = left
+        for i, val in enumerate(labels):
+            cell(x, col_w, row_h, val, bold=(i == 0), align="center")
+            x += col_w
+        y -= row_h
 
-    spans += [
-        ("SPAN", (0,after_dispatch), (9,after_dispatch)),
-        ("SPAN", (0,after_dispatch+1), (9,after_dispatch+1)),
-        ("SPAN", (0,after_dispatch+2), (9,after_dispatch+2)),
-        ("SPAN", (0,after_dispatch+4), (9,after_dispatch+4)),
-        ("SPAN", (0,after_dispatch+5), (9,after_dispatch+5)),
-        ("SPAN", (0,after_dispatch+6), (9,after_dispatch+6)),
-    ]
+    if enabled("operations"):
+        full_row(section_names.get("operations","Operations Pick"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
+        line_row("Pick Audits Completed", extra.get("pick_audits",""))
+        line_row("Slam Plan", extra.get("slam_plan",""))
+        line_row(f"Picked since {extra.get('picked_since_time','06:00')} hrs", extra.get("picked_since_value",""))
+        line_row("Full Well at start & end of Shift", f"{extra.get('full_well_start','')}/{extra.get('full_well_end','')}")
+        line_row("Well to cover EMC's at start & end of Shift", f"{extra.get('emc_start','')}/{extra.get('emc_end','')}")
+        comments_row("Additional Comments", extra.get("ops_comments",""))
 
-    style_commands = [
-        ("GRID", (0,0), (-1,-1), 0.8, colors.black),
-        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-        ("ALIGN", (0,0), (-1,0), "CENTER"),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-        ("BACKGROUND", (0,4), (-1,4), colors.HexColor("#EAF3FF")),
-        ("BACKGROUND", (0,12), (-1,12), colors.HexColor("#EAF3FF")),
-        ("BACKGROUND", (0,19), (-1,19), colors.HexColor("#EAF3FF")),
-        ("BACKGROUND", (0,after_dispatch+2), (-1,after_dispatch+2), colors.HexColor("#EAF3FF")),
-        ("BACKGROUND", (0,after_dispatch+5), (-1,after_dispatch+5), colors.HexColor("#EAF3FF")),
-        ("LEFTPADDING", (0,0), (-1,-1), 4),
-        ("RIGHTPADDING", (0,0), (-1,-1), 4),
-        ("TOPPADDING", (0,0), (-1,-1), 3),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 3),
-    ] + spans
+    if enabled("sort"):
+        full_row(section_names.get("sort","CUK8 Sort Centre"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
+        line_row("Deliveries Planned", extra.get("deliveries_planned",""))
+        line_row("Deliveries Arrived", extra.get("deliveries_arrived",""))
+        line_row("Planned Same Day Sortation", extra.get("same_day_sortation",""))
+        line_row("Planned Next Day Sortation", extra.get("next_day_sortation",""))
+        comments_row("Additional Comments", extra.get("sort_comments",""))
 
-    t.setStyle(TableStyle(style_commands))
-    story.append(t)
+    if enabled("dispatch"):
+        full_row(section_names.get("dispatch","Dispatch"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
+        new_page_if_needed(row_h*2)
+        cell(left, width*.18, row_h, "Collections Arrived")
+        cell(left+width*.18, width*.12, row_h, extra.get("collections_arrived",""), align="center")
+        cell(left+width*.30, width*.18, row_h, "LATE ARRIVALS", align="center")
+        cell(left+width*.48, width*.12, row_h, extra.get("late_arrivals",""), align="center")
+        cell(left+width*.60, width*.20, row_h, "Trailers On Doors")
+        cell(left+width*.80, width*.20, row_h, extra.get("trailers_on_doors",""), align="center")
+        y -= row_h
+        cell(left, width*.35, row_h, "Trailers needed cover today CPT's")
+        cell(left+width*.35, width*.15, row_h, extra.get("trailers_needed_cover",""), align="center")
+        cell(left+width*.50, width*.50, row_h, "")
+        y -= row_h
 
-    doc.build(story)
+        dispatch_rows = extra.get("dispatch_rows", []) or []
+        if dispatch_rows:
+            widths = [width*.32, width*.24, width*.14, width*.14, width*.16]
+            headers = ["Carrier / Dispatch", "VRID", "Completed", "On Time", "Issue"]
+            x = left
+            for w, htxt in zip(widths, headers):
+                cell(x, w, row_h, htxt, bold=True, align="center", fill=colors.HexColor("#F8FAFC"))
+                x += w
+            y -= row_h
+            for d in dispatch_rows:
+                new_page_if_needed(row_h)
+                vals = [d.get("carrier",""), d.get("vrid",""), d.get("completed",""), d.get("on_time",""), d.get("issue","")]
+                x = left
+                for w, val in zip(widths, vals):
+                    cell(x, w, row_h, val, align="center")
+                    x += w
+                y -= row_h
+        comments_row("Additional Comments", extra.get("dispatch_comments",""))
+
+    if enabled("suntory"):
+        full_row(section_names.get("suntory","Suntory"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
+        new_page_if_needed(row_h)
+        cell(left, width*.28, row_h, "Trailers on site to complete")
+        cell(left+width*.28, width*.12, row_h, extra.get("suntory_trailers_on_site",""), align="center")
+        cell(left+width*.40, width*.24, row_h, "Completed on shift")
+        cell(left+width*.64, width*.12, row_h, extra.get("suntory_completed",""), align="center")
+        cell(left+width*.76, width*.16, row_h, "Left to complete")
+        cell(left+width*.92, width*.08, row_h, extra.get("suntory_left",""), align="center")
+        y -= row_h
+        comments_row("Additional Comments", extra.get("suntory_comments",""))
+
+    # Custom sections
+    custom_values = extra.get("custom_sections", []) or []
+    for cs in custom_values:
+        if text(cs.get("name")):
+            full_row(cs.get("name"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
+            comments_row("Details", cs.get("value",""))
+
+    if enabled("aob"):
+        full_row(section_names.get("aob","AOB"), h=7*mm, bold=True, fill=colors.HexColor("#EAF3FF"))
+        comments_row("AOB", extra.get("aob",""))
+
+    c.save()
     buffer.seek(0)
     return buffer
 
@@ -3381,14 +3392,51 @@ def get_handover_template(user_id):
     return row
 
 def parse_handover_template(row):
+    """Return section configuration with default sections plus custom dynamic sections.
+
+    section_names is kept backward compatible:
+    {
+      "attendance": "Attendance",
+      ...
+      "_enabled": {"attendance": true, ...},
+      "_custom": [{"id": "custom_xxx", "name": "New section"}]
+    }
+    """
     names = default_handover_section_names()
+    names["_enabled"] = {key: True for key in default_handover_section_names().keys()}
+    names["_custom"] = []
     try:
         saved = json.loads(row_get(row, "section_names", "{}") or "{}")
         if isinstance(saved, dict):
-            names.update(saved)
+            for key in default_handover_section_names().keys():
+                if saved.get(key):
+                    names[key] = saved.get(key)
+            if isinstance(saved.get("_enabled"), dict):
+                for key in default_handover_section_names().keys():
+                    names["_enabled"][key] = bool(saved["_enabled"].get(key, True))
+            if isinstance(saved.get("_custom"), list):
+                custom = []
+                for item in saved["_custom"]:
+                    if isinstance(item, dict) and item.get("name"):
+                        cid = item.get("id") or ("custom_" + re.sub(r"[^a-z0-9]+", "_", item.get("name","").lower()).strip("_"))
+                        custom.append({"id": cid, "name": item.get("name")})
+                names["_custom"] = custom
     except Exception:
         pass
     return names
+
+def enabled_section(section_names, key):
+    try:
+        return bool(section_names.get("_enabled", {}).get(key, True))
+    except Exception:
+        return True
+
+def custom_sections_from_names(section_names):
+    custom = section_names.get("_custom", [])
+    return custom if isinstance(custom, list) else []
+
+def compact_text(value):
+    return str(value or "").strip()
 
 @app.route("/handover/template", methods=["POST"])
 @login_required
@@ -3396,8 +3444,40 @@ def parse_handover_template(row):
 def save_handover_template():
     user = current_user()
     section_names = {}
-    for key in default_handover_section_names().keys():
-        section_names[key] = request.form.get(f"section_{key}", "").strip() or default_handover_section_names()[key]
+    enabled = {}
+    defaults = default_handover_section_names()
+
+    for key in defaults.keys():
+        section_names[key] = request.form.get(f"section_{key}", "").strip() or defaults[key]
+        enabled[key] = True if request.form.get(f"enable_{key}") == "on" else False
+
+    # Existing custom sections
+    custom_sections = []
+    custom_ids = request.form.getlist("custom_section_id[]")
+    custom_names = request.form.getlist("custom_section_name[]")
+    custom_enabled = set(request.form.getlist("custom_section_enabled[]"))
+    for cid, name in zip(custom_ids, custom_names):
+        cid = re.sub(r"[^a-zA-Z0-9_]+", "_", (cid or "").strip()) or f"custom_{len(custom_sections)+1}"
+        name = (name or "").strip()
+        if name and cid in custom_enabled:
+            custom_sections.append({"id": cid, "name": name})
+
+    # Add new section
+    new_name = request.form.get("new_custom_section_name", "").strip()
+    if new_name:
+        base = re.sub(r"[^a-z0-9]+", "_", new_name.lower()).strip("_") or "section"
+        cid = f"custom_{base}"
+        existing_ids = {x["id"] for x in custom_sections}
+        n = 2
+        original = cid
+        while cid in existing_ids:
+            cid = f"{original}_{n}"
+            n += 1
+        custom_sections.append({"id": cid, "name": new_name})
+
+    section_names["_enabled"] = enabled
+    section_names["_custom"] = custom_sections
+
     force_upper = 1 if request.form.get("force_vrid_uppercase") == "on" else 0
     template_name = request.form.get("template_name", "").strip() or "Default Handover"
 
@@ -3480,8 +3560,21 @@ def handover():
 
         # Allow the main handover section headers to be edited directly on the form.
         posted_section_names = {}
+        posted_enabled = {}
         for key in default_handover_section_names().keys():
             posted_section_names[key] = request.form.get(f"handover_section_{key}", "").strip() or section_names.get(key) or default_handover_section_names()[key]
+            posted_enabled[key] = enabled_section(section_names, key)
+
+        custom_sections = custom_sections_from_names(section_names)
+        custom_values = []
+        for item in custom_sections:
+            cid = item.get("id")
+            name = request.form.get(f"custom_section_name_{cid}", "").strip() or item.get("name")
+            value = request.form.get(f"custom_section_value_{cid}", "").strip()
+            custom_values.append({"id": cid, "name": name, "value": value})
+
+        posted_section_names["_enabled"] = posted_enabled
+        posted_section_names["_custom"] = [{"id": x.get("id"), "name": x.get("name")} for x in custom_sections]
         section_names = posted_section_names
 
         # VRID uppercase is controlled inside Dispatch Activities on each handover.
@@ -3489,6 +3582,7 @@ def handover():
 
         extra["absence_rows"] = absence_rows
         extra["dispatch_rows"] = dispatch_rows
+        extra["custom_sections"] = custom_values
         extra["section_names"] = section_names
         extra["force_vrid_uppercase"] = force_vrid_uppercase
 
@@ -3525,7 +3619,7 @@ def handover():
     conn = get_db()
     rows = conn.execute("SELECT * FROM handovers WHERE user_id = ? ORDER BY date DESC, id DESC", (user["id"],)).fetchall()
     conn.close()
-    return render_template("handover.html", rows=rows, page="handover", template=template, section_names=section_names, force_vrid_uppercase=force_vrid_uppercase)
+    return render_template("handover.html", rows=rows, page="handover", template=template, section_names=section_names, custom_sections=custom_sections_from_names(section_names), enabled_section=enabled_section, force_vrid_uppercase=force_vrid_uppercase)
 
 
 @app.route("/handover/<int:item_id>/download")
@@ -3695,7 +3789,7 @@ def export_team():
 
 @app.route("/handover/export")
 @login_required
-@plan_required("pro")
+@plan_required("business")
 def export_handovers():
     user = current_user()
     conn = get_db()
@@ -3710,13 +3804,11 @@ def export_handovers():
     from openpyxl.utils import get_column_letter
 
     thin = Side(style="thin", color="000000")
-    medium = Side(style="medium", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    header_fill = PatternFill("solid", fgColor="D9EAF7")
-    title_fill = PatternFill("solid", fgColor="FFFFFF")
     section_fill = PatternFill("solid", fgColor="EAF3FF")
+    header_fill = PatternFill("solid", fgColor="F8FAFC")
     bold = Font(bold=True)
-    title_font = Font(bold=True, size=13)
+    title_font = Font(bold=True, size=12)
 
     def cell(r, c, value="", bold_text=False, fill=None, align="left"):
         ws.cell(r, c, value)
@@ -3739,6 +3831,9 @@ def export_handovers():
                     ws.cell(rr, cc).fill = fill
         return ws.cell(r1, c1)
 
+    def enabled(names, key):
+        return bool(names.get("_enabled", {}).get(key, True))
+
     row_num = 1
     max_col = 10
 
@@ -3748,132 +3843,144 @@ def export_handovers():
         except Exception:
             extra = {}
 
-        section_names = default_handover_section_names()
+        names = default_handover_section_names()
+        names["_enabled"] = {key: True for key in default_handover_section_names()}
+        names["_custom"] = []
         if isinstance(extra.get("section_names"), dict):
-            section_names.update(extra.get("section_names"))
+            saved = extra.get("section_names")
+            for key in default_handover_section_names():
+                if saved.get(key):
+                    names[key] = saved.get(key)
+            if isinstance(saved.get("_enabled"), dict):
+                names["_enabled"].update(saved.get("_enabled"))
+            if isinstance(saved.get("_custom"), list):
+                names["_custom"] = saved.get("_custom")
 
         absence = extra.get("absence_rows", []) or []
         absence_text = " / ".join([f"{x.get('count','')} {x.get('type','')}" for x in absence if x.get("type") or x.get("count")])
 
-        # Title
-        merge(row_num, 1, row_num, max_col, f"{h['shift'] or 'Day Shift'} Handover", True, title_fill, "center")
+        merge(row_num, 1, row_num, max_col, f"{h['shift'] or 'Day Shift'} Handover", True, None, "center")
         ws.cell(row_num, 1).font = title_font
         row_num += 1
-
-        # Header / attendance
-        merge(row_num, 1, row_num, 2, f"Date - {h['date']}", False, None, "left")
-        merge(row_num, 3, row_num, 4, f"Shift - {h['shift']}", False, None, "left")
+        merge(row_num, 1, row_num, 2, f"Date - {h['date']}")
+        merge(row_num, 3, row_num, 4, f"Shift - {h['shift']}")
         merge(row_num, 5, row_num + 1, max_col, f"Attendance - {h['actual_hc']}/{h['planned_hc']}\n{absence_text}", False, None, "center")
         row_num += 2
 
-        # Safety
-        merge(row_num, 1, row_num, 4, f"{section_names.get('safety','Safety Metrics')} - {extra.get('safe_shift','')}", False, None, "center")
-        merge(row_num, 5, row_num, max_col, "", False, None, "center")
-        row_num += 1
-        labels_values = [
-            ("SLAMS", extra.get("slams", "")),
-            ("Safety Cons", extra.get("safety_cons", "")),
-            ("LOADS", extra.get("loads", "")),
-            ("Safety Rules", extra.get("safety_rules", ""))
-        ]
-        c = 1
-        cell(row_num, c, section_names.get("safety", "Safety Metrics"), True, None, "center"); c += 1
-        for label, value in labels_values:
-            cell(row_num, c, label, False, None, "center"); c += 1
-            cell(row_num, c, value, False, None, "center"); c += 1
-        while c <= max_col:
-            cell(row_num, c, "", False, None, "center"); c += 1
-        row_num += 1
-
-        # Operations
-        merge(row_num, 1, row_num, max_col, section_names.get("operations", "Operations Pick"), True, section_fill, "left")
-        row_num += 1
-        ops_lines = [
-            ("Pick Audits Completed", extra.get("pick_audits", "")),
-            ("Slam Plan", extra.get("slam_plan", "")),
-            (f"Picked since {extra.get('picked_since_time','06:00')} hrs", extra.get("picked_since_value", "")),
-            ("Full Well at start & end of Shift", f"{extra.get('full_well_start','')}/{extra.get('full_well_end','')}"),
-            ("Well to cover EMC's at start & end of Shift", f"{extra.get('emc_start','')}/{extra.get('emc_end','')}")
-        ]
-        for label, value in ops_lines:
-            merge(row_num, 1, row_num, max_col, f"{label} - {value}", False, None, "left")
+        if enabled(names, "safety"):
+            merge(row_num, 1, row_num, 4, f"{names.get('safety')} - {extra.get('safe_shift','')}", False, None, "center")
+            merge(row_num, 5, row_num, max_col, "")
             row_num += 1
-        merge(row_num, 1, row_num + 2, max_col, f"Additional Comments - {extra.get('ops_comments','')}", False, None, "left")
-        row_num += 3
-
-        # Sort centre
-        merge(row_num, 1, row_num, max_col, section_names.get("sort", "CUK8 Sort Centre"), True, section_fill, "left")
-        row_num += 1
-        sort_lines = [
-            ("Deliveries Planned", extra.get("deliveries_planned", "")),
-            ("Deliveries Arrived", extra.get("deliveries_arrived", "")),
-            ("Planned Same Day Sortation", extra.get("same_day_sortation", "")),
-            ("Planned Next Day Sortation", extra.get("next_day_sortation", ""))
-        ]
-        for label, value in sort_lines:
-            merge(row_num, 1, row_num, max_col, f"{label} - {value}", False, None, "left")
+            vals = [names.get("safety"), "SLAMS", extra.get("slams",""), "Safety Cons", extra.get("safety_cons",""), "LOADS", extra.get("loads",""), "Safety Rules", extra.get("safety_rules","")]
+            for c, val in enumerate(vals, 1):
+                cell(row_num, c, val, bold_text=(c == 1), align="center", fill=header_fill if c == 1 else None)
+            for c in range(len(vals)+1, max_col+1):
+                cell(row_num, c, "")
             row_num += 1
-        merge(row_num, 1, row_num + 2, max_col, f"Additional Comments - {extra.get('sort_comments','')}", False, None, "left")
-        row_num += 3
 
-        # Dispatch
-        merge(row_num, 1, row_num, max_col, section_names.get("dispatch", "Dispatch"), True, section_fill, "left")
-        row_num += 1
-        merge(row_num, 1, row_num, 2, "Collections Arrived", False, None, "left")
-        merge(row_num, 3, row_num, 4, extra.get("collections_arrived", ""), False, None, "center")
-        merge(row_num, 5, row_num, 6, "LATE ARRIVALS", False, None, "center")
-        merge(row_num, 7, row_num, max_col, extra.get("late_arrivals", ""), False, None, "center")
-        row_num += 1
-        merge(row_num, 1, row_num, 2, "Trailers On Doors", False, None, "left")
-        merge(row_num, 3, row_num, 4, extra.get("trailers_on_doors", ""), False, None, "center")
-        merge(row_num, 5, row_num, 7, "Trailers needed cover today CPT's", False, None, "left")
-        merge(row_num, 8, row_num, max_col, extra.get("trailers_needed_cover", ""), False, None, "center")
-        row_num += 1
-
-        dispatch_rows = extra.get("dispatch_rows", [])
-        if dispatch_rows:
-            headers = ["Carrier / Dispatch", "VRID", "Completed", "On Time", "Issue"]
-            col_ranges = [(1,2), (3,5), (6,7), (8,9), (10,10)]
-            for idx, hname in enumerate(headers):
-                merge(row_num, col_ranges[idx][0], row_num, col_ranges[idx][1], hname, True, header_fill, "center")
+        if enabled(names, "operations"):
+            merge(row_num, 1, row_num, max_col, names.get("operations"), True, section_fill)
             row_num += 1
-            for d in dispatch_rows:
-                vals = [d.get("carrier",""), d.get("vrid",""), d.get("completed",""), d.get("on_time",""), d.get("issue","")]
-                for idx, val in enumerate(vals):
-                    merge(row_num, col_ranges[idx][0], row_num, col_ranges[idx][1], val, False, None, "center")
+            for label, value in [
+                ("Pick Audits Completed", extra.get("pick_audits","")),
+                ("Slam Plan", extra.get("slam_plan","")),
+                (f"Picked since {extra.get('picked_since_time','06:00')} hrs", extra.get("picked_since_value","")),
+                ("Full Well at start & end of Shift", f"{extra.get('full_well_start','')}/{extra.get('full_well_end','')}"),
+                ("Well to cover EMC's at start & end of Shift", f"{extra.get('emc_start','')}/{extra.get('emc_end','')}")
+            ]:
+                merge(row_num, 1, row_num, max_col, f"{label} - {value}")
                 row_num += 1
+            merge(row_num, 1, row_num + 2, max_col, f"Additional Comments - {extra.get('ops_comments','')}")
+            row_num += 3
 
-        merge(row_num, 1, row_num + 1, max_col, f"Additional Comments - {extra.get('dispatch_comments','')}", False, None, "left")
-        row_num += 2
+        if enabled(names, "sort"):
+            merge(row_num, 1, row_num, max_col, names.get("sort"), True, section_fill)
+            row_num += 1
+            for label, value in [
+                ("Deliveries Planned", extra.get("deliveries_planned","")),
+                ("Deliveries Arrived", extra.get("deliveries_arrived","")),
+                ("Planned Same Day Sortation", extra.get("same_day_sortation","")),
+                ("Planned Next Day Sortation", extra.get("next_day_sortation",""))
+            ]:
+                merge(row_num, 1, row_num, max_col, f"{label} - {value}")
+                row_num += 1
+            merge(row_num, 1, row_num + 2, max_col, f"Additional Comments - {extra.get('sort_comments','')}")
+            row_num += 3
 
-        # Suntory
-        merge(row_num, 1, row_num, max_col, section_names.get("suntory", "Suntory"), True, section_fill, "left")
-        row_num += 1
-        merge(row_num, 1, row_num, 3, "Trailers on site to complete", False, None, "left")
-        merge(row_num, 4, row_num, 4, extra.get("suntory_trailers_on_site",""), False, None, "center")
-        merge(row_num, 5, row_num, 7, "Completed on shift", False, None, "left")
-        merge(row_num, 8, row_num, max_col, extra.get("suntory_completed",""), False, None, "center")
-        row_num += 1
-        merge(row_num, 1, row_num, 3, "Left to complete", False, None, "left")
-        merge(row_num, 4, row_num, max_col, extra.get("suntory_left",""), False, None, "center")
-        row_num += 1
-        merge(row_num, 1, row_num + 1, max_col, f"Additional Comments - {extra.get('suntory_comments','')}", False, None, "left")
-        row_num += 2
+        if enabled(names, "dispatch"):
+            merge(row_num, 1, row_num, max_col, names.get("dispatch"), True, section_fill)
+            row_num += 1
+            merge(row_num, 1, row_num, 2, "Collections Arrived")
+            merge(row_num, 3, row_num, 4, extra.get("collections_arrived",""), align="center")
+            merge(row_num, 5, row_num, 6, "LATE ARRIVALS", align="center")
+            merge(row_num, 7, row_num, max_col, extra.get("late_arrivals",""), align="center")
+            row_num += 1
+            merge(row_num, 1, row_num, 2, "Trailers On Doors")
+            merge(row_num, 3, row_num, 4, extra.get("trailers_on_doors",""), align="center")
+            merge(row_num, 5, row_num, 7, "Trailers needed cover today CPT's")
+            merge(row_num, 8, row_num, max_col, extra.get("trailers_needed_cover",""), align="center")
+            row_num += 1
 
-        # AOB
-        merge(row_num, 1, row_num, max_col, section_names.get("aob", "AOB"), True, section_fill, "left")
-        row_num += 1
-        merge(row_num, 1, row_num + 2, max_col, extra.get("aob",""), False, None, "left")
-        row_num += 4
+            dispatch_rows = extra.get("dispatch_rows", []) or []
+            if dispatch_rows:
+                ranges = [(1,2), (3,5), (6,7), (8,9), (10,10)]
+                for (c1,c2), label in zip(ranges, ["Carrier / Dispatch", "VRID", "Completed", "On Time", "Issue"]):
+                    merge(row_num, c1, row_num, c2, label, True, header_fill, "center")
+                row_num += 1
+                for d in dispatch_rows:
+                    for (c1,c2), val in zip(ranges, [d.get("carrier",""), d.get("vrid",""), d.get("completed",""), d.get("on_time",""), d.get("issue","")]):
+                        merge(row_num, c1, row_num, c2, val, align="center")
+                    row_num += 1
+            merge(row_num, 1, row_num + 1, max_col, f"Additional Comments - {extra.get('dispatch_comments','')}")
+            row_num += 2
 
-    # Layout
-    widths = [16, 16, 12, 12, 18, 14, 14, 14, 14, 14]
+        if enabled(names, "suntory"):
+            merge(row_num, 1, row_num, max_col, names.get("suntory"), True, section_fill)
+            row_num += 1
+            merge(row_num, 1, row_num, 3, "Trailers on site to complete")
+            merge(row_num, 4, row_num, 4, extra.get("suntory_trailers_on_site",""), align="center")
+            merge(row_num, 5, row_num, 7, "Completed on shift")
+            merge(row_num, 8, row_num, max_col, extra.get("suntory_completed",""), align="center")
+            row_num += 1
+            merge(row_num, 1, row_num, 3, "Left to complete")
+            merge(row_num, 4, row_num, max_col, extra.get("suntory_left",""), align="center")
+            row_num += 1
+            merge(row_num, 1, row_num + 1, max_col, f"Additional Comments - {extra.get('suntory_comments','')}")
+            row_num += 2
+
+        for cs in extra.get("custom_sections", []) or []:
+            if cs.get("name"):
+                merge(row_num, 1, row_num, max_col, cs.get("name"), True, section_fill)
+                row_num += 1
+                merge(row_num, 1, row_num + 2, max_col, cs.get("value",""))
+                row_num += 3
+
+        if enabled(names, "aob"):
+            merge(row_num, 1, row_num, max_col, names.get("aob"), True, section_fill)
+            row_num += 1
+            merge(row_num, 1, row_num + 2, max_col, extra.get("aob",""))
+            row_num += 3
+
+        row_num += 1
+
+    widths = [18, 14, 16, 14, 18, 14, 14, 14, 14, 14]
     for i, width in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = width
     for r in range(1, row_num + 1):
-        ws.row_dimensions[r].height = 20
+        ws.row_dimensions[r].height = 21
+
+    # PDF-ready Excel layout
     ws.sheet_view.showGridLines = False
-    ws.freeze_panes = None
+    ws.page_setup.orientation = "landscape"
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_margins.left = 0.25
+    ws.page_margins.right = 0.25
+    ws.page_margins.top = 0.35
+    ws.page_margins.bottom = 0.35
+    ws.print_area = f"A1:J{max(row_num, 1)}"
 
     return excel_response(wb, "handover-dhl-style.xlsx")
 

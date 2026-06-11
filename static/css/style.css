@@ -2285,3 +2285,59 @@ button:disabled {
 .vrid-input.force-uppercase {
     text-transform: uppercase;
 }
+
+/* V3.8 Template builder */
+.template-builder { display: grid; gap: 16px; }
+.template-section-list { display: grid; gap: 10px; }
+.template-section-row {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+}
+.template-enabled {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 900;
+}
+.template-enabled input { width: 18px; height: 18px; }
+.template-section-input small {
+    display: block;
+    color: #64748b;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 4px;
+}
+.template-section-input input {
+    width: 100%;
+}
+.delete-help {
+    color: #dc2626;
+    font-weight: 800;
+    font-size: .85rem;
+}
+.add-section-box {
+    border: 1px dashed #93c5fd;
+    background: #eff6ff;
+    border-radius: 16px;
+    padding: 14px;
+}
+.add-section-inline {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.add-section-inline input { flex: 1; }
+.custom-live-section {
+    border-style: dashed !important;
+}
+@media (max-width: 700px) {
+    .template-section-row { grid-template-columns: 1fr; }
+    .add-section-inline { flex-direction: column; align-items: stretch; }
+}
