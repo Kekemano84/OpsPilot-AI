@@ -105,7 +105,7 @@
     <button type="button" class="small-btn ghost-small" id="weatherUseSavedBtn">Use saved site address</button>
   </div>
 <p class="muted weather-help" id="weatherHelp">
-    Uses browser location first. If that fails, it uses your saved site/address.
+    Uses User Location first. If that fails, it uses your saved site/address.
   </p>
 </section>
 
@@ -316,17 +316,9 @@
 })();
 </script>
 
-<section class="dashboard-focus-grid">
-    {% for day in dashboard_days %}
-    <a class="dash-mini-card status-{{ day.status|lower|replace(' ', '-') }}" href="{{ url_for('shift_calendar') }}">
-        <span>{{ day.label }} · {{ day.date|dateuk }}</span>
-        <strong>{{ day.status or 'Not Set' }}</strong>
-        <small>{% if day.shift_name %}{{ day.shift_name }} · {% endif %}{% if day.start_time or day.end_time %}{{ day.start_time }} - {{ day.end_time }}{% else %}No shift time set{% endif %}</small>
-    </a>
-    {% endfor %}
-
+<section class="dashboard-clean-grid">
     {% if annual_leave %}
-    <a class="dash-mini-card blue" href="{{ url_for('holiday_tracker') }}">
+    <a class="dash-mini-card blue no-red-dot" href="{{ url_for('holiday_tracker') }}">
         <span>Holiday Tracker {{ annual_leave.year }}</span>
         <strong>{{ annual_leave.remaining_days }} days</strong>
         <small>{{ annual_leave.remaining_hours }} hrs left · {{ annual_leave.used_days }} used</small>
@@ -334,10 +326,19 @@
     {% endif %}
 
     <a class="dash-mini-card" href="{{ url_for('handover') }}">
-        <span>{{ t("handover") }}</span>
+        <span>Open Handover</span>
         <strong>Open</strong>
-        <small>Shift reports</small>
+        <small>Continue or create handover</small>
     </a>
+</section>
+
+<section class="dashboard-favourites-strip">
+    {% for key, icon, label, endpoint in favorite_tools %}
+    <a class="dash-favourite-tile" href="{{ url_for(endpoint) }}">
+        <span class="fav-icon">{{ icon }}</span>
+        <strong>{{ label }}</strong>
+    </a>
+    {% endfor %}
 </section>
 
 {% endblock %}

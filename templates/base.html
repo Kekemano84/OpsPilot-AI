@@ -86,6 +86,7 @@
                 <a class="{{ 'active' if page == 'morning_brief' else '' }} nav-link" href="{{ url_for('morning_brief') }}"><span class="nav-ico">☀️</span><span>{{ t("morning_brief") }}</span></a>
                 <a class="{{ 'active' if page == 'shift_calendar' else '' }} nav-link" href="{{ url_for('shift_calendar') }}"><span class="nav-ico">📅</span><span>{{ t("calendar") }}</span><span class="trial-chip">14 DAY</span></a>
                 <a class="{{ 'active' if page == 'handover' else '' }} nav-link" href="{{ url_for('handover') }}"><span class="nav-ico">📋</span><span>{{ t("handover") }}</span>{% if user.plan == 'free' and handover_trial and handover_trial.allowed %}<span class="trial-chip">{{ handover_trial.days_left }}d</span>{% elif user.plan == 'free' %}<span class="lock-chip">🔒</span>{% endif %}</a>
+                <a class="{{ 'active' if page == 'favourites' else '' }} nav-link" href="{{ url_for('favourites') }}"><span class="nav-ico">⭐</span><span>Favourites</span></a>
             </details>
 
             <details class="nav-group" open>

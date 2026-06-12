@@ -755,34 +755,50 @@ def current_language():
     return row_get(user, "language", session.get("language", "en")) if user else session.get("language", "en")
 
 FAVORITE_TOOL_OPTIONS = [
-    ("morning_brief", "📢", "morning_brief", "morning_brief"),
-    ("mileage", "🚗", "mileage", "mileage"),
-    ("expenses", "💷", "expenses", "expenses"),
-    ("handover", "📝", "handover", "handover"),
-    ("yard_check", "🚛", "yard_check", "yard_check"),
-    ("shift_calendar", "📅", "calendar", "shift_calendar"),
-    ("team", "👥", "team", "team"),
-    ("daily_shift_log", "📋", "daily_log", "daily_shift_log"),
-    ("actions", "✅", "actions", "actions"),
-    ("absence", "🗓️", "absence", "absence"),
-    ("evidence", "📷", "evidence", "evidence"),
-    ("search", "🔎", "search", "global_search"),
+    ("morning_brief", "📢", "Brief", "morning_brief"),
+    ("shift_calendar", "📅", "Calendar", "shift_calendar"),
+    ("handover", "📝", "Handover", "handover"),
+    ("yard_check", "🚛", "Yard Check", "yard_check"),
+    ("mileage", "🚗", "Mileage", "mileage"),
+    ("expenses", "💷", "Expenses", "expenses"),
+    ("team", "👥", "Team", "team"),
+    ("holiday_tracker", "🌴", "Holiday Tracker", "holiday_tracker"),
+    ("index", "☁️", "Weather", "index"),
+    ("yard_settings", "⚙️", "Yard Settings", "yard_settings"),
+    ("admin", "🛡️", "Admin", "admin_dashboard"),
 ]
 
 def get_favorite_tools(user):
-    raw = row_get(user, "favorite_tools", "morning_brief,mileage,expenses,handover") or "morning_brief,mileage,expenses,handover"
+    default = "morning_brief,shift_calendar,handover,yard_check"
+    raw = row_get(user, "favorite_tools", default) or default
     selected = [x.strip() for x in raw.split(",") if x.strip()]
     option_map = {x[0]: x for x in FAVORITE_TOOL_OPTIONS}
     out = []
+    is_admin = bool(user and row_get(user, "email", "") == "admin@opspilot.ai")
+
     for key in selected:
+        if key == "admin" and not is_admin:
+            continue
         if key in option_map and key not in [x[0] for x in out]:
             out.append(option_map[key])
-    for key in ["morning_brief", "mileage", "expenses", "handover"]:
+
+    for key in ["morning_brief", "shift_calendar", "handover", "yard_check"]:
         if len(out) >= 4:
             break
         if key in option_map and key not in [x[0] for x in out]:
             out.append(option_map[key])
+
     return out[:4]
+
+def available_favorite_options(user):
+    is_admin = bool(user and row_get(user, "email", "") == "admin@opspilot.ai")
+    options = []
+    for option in FAVORITE_TOOL_OPTIONS:
+        if option[0] == "admin" and not is_admin:
+            continue
+        options.append(option)
+    return options
+
 
 @app.template_filter("days_until")
 def days_until(value):
@@ -2226,6 +2242,46 @@ def index():
 
 
 
+
+@app.route("/favourites", methods=["GET", "POST"])
+@login_required
+def favourites():
+    user = current_user()
+    options = available_favorite_options(user)
+    allowed = [x[0] for x in options]
+
+    if request.method == "POST":
+        selected = []
+        for key in request.form.getlist("favorite_tools"):
+            key = key.strip()
+            if key in allowed and key not in selected:
+                selected.append(key)
+            if len(selected) >= 4:
+                break
+
+        for key in ["morning_brief", "shift_calendar", "handover", "yard_check"]:
+            if len(selected) >= 4:
+                break
+            if key in allowed and key not in selected:
+                selected.append(key)
+
+        conn = get_db()
+        conn.execute("UPDATE users SET favorite_tools=? WHERE id=?", (",".join(selected[:4]), user["id"]))
+        conn.commit()
+        conn.close()
+        flash("Favourites saved.", "success")
+        return redirect(url_for("favourites"))
+
+    selected_tools = get_favorite_tools(user)
+    selected_keys = [x[0] for x in selected_tools]
+    return render_template(
+        "favourites.html",
+        page="favourites",
+        options=options,
+        selected_tools=selected_tools,
+        selected_keys=selected_keys
+    )
+
 @app.route("/account/export-data")
 @login_required
 def export_account_data():
@@ -2267,7 +2323,7 @@ def register():
             cur = conn.execute("""
                 INSERT INTO users (name, email, password_hash, plan, business_name, created_at, language, favorite_tools)
                 VALUES (?, ?, ?, 'free', ?, ?, ?, ?)
-            """, (name, email, generate_password_hash(password), f"{name}'s Business", datetime.now().isoformat(), session.get("language", "en"), "morning_brief,mileage,expenses,handover"))
+            """, (name, email, generate_password_hash(password), f"{name}'s Business", datetime.now().isoformat(), session.get("language", "en"), "morning_brief,shift_calendar,handover,yard_check"))
             conn.commit()
             session["user_id"] = cur.lastrowid
             conn.execute("UPDATE users SET last_login_at=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), cur.lastrowid))
