@@ -10,6 +10,24 @@
 </section>
 
 
+<section class="panel open-handover-panel" id="openHandoverPanel" style="display:none;">
+  <div class="panel-head">
+    <div>
+      <h3>📝 Open Handover</h3>
+      <p class="muted">Continue the handover draft you started during the shift.</p>
+    </div>
+    <a class="small-btn" href="{{ url_for('handover') }}">Continue Editing</a>
+  </div>
+  <div class="open-handover-card">
+    <div>
+      <span>Current draft</span>
+      <strong id="openHandoverTitle">Draft found</strong>
+      <small id="openHandoverMeta">Last edited on this device</small>
+    </div>
+    <a class="btn primary" href="{{ url_for('handover') }}">Open Handover</a>
+  </div>
+</section>
+
 
 <section class="panel compact-panel weather-widget-free weather-pro-widget">
   <div class="panel-head">
@@ -43,6 +61,16 @@
     <div><span>🌅 Sunrise</span><strong id="weatherSunrise">--</strong></div>
     <div><span>🌇 Sunset</span><strong id="weatherSunset">--</strong></div>
   </div>
+
+
+  <div class="weather-alert-card weather-alert-low" id="weatherAlertCard">
+    <div>
+      <span>Weather Alert</span>
+      <strong id="weatherAlertTitle">Checking yard risk…</strong>
+      <small id="weatherAlertText">Live alert for yard work conditions.</small>
+    </div>
+  </div>
+
 
   <details class="weather-more-details">
     <summary id="weatherDetailsToggle">More Details ▼</summary>
@@ -91,7 +119,8 @@
     risk: $("weatherRisk"), riskNote: $("weatherRiskNote"), riskCard: $("weatherRiskCard"),
     hourly: $("weatherHourly"), daily: $("weatherDaily"), help: $("weatherHelp"), btn: $("weatherRefreshBtn"),
     allowBtn: $("weatherAllowLocationBtn"), savedBtn: $("weatherUseSavedBtn"), permissionBox: $("weatherPermissionBox"),
-    sunrise: $("weatherSunrise"), sunset: $("weatherSunset")
+    sunrise: $("weatherSunrise"), sunset: $("weatherSunset"),
+    alertCard: $("weatherAlertCard"), alertTitle: $("weatherAlertTitle"), alertText: $("weatherAlertText")
   };
   if (!els.temp) return;
 
@@ -108,6 +137,33 @@
     if (v === null || v === undefined) return "--";
     return (Number(v) / 1000).toFixed(1) + " km";
   }
+  function buildWeatherAlert(data) {
+    const riskLevel = (data.risk && data.risk.level ? data.risk.level : "Low").toLowerCase();
+    const rain = Number(data.precipitation || 0);
+    const wind = Number(data.wind_speed || 0);
+    const notes = data.risk && data.risk.notes ? data.risk.notes : [];
+
+    let level = riskLevel;
+    let title = "Good conditions";
+    let text = "No major weather risk for yard activity.";
+
+    if (riskLevel === "high" || wind >= 40 || rain >= 4) {
+      level = "high";
+      title = "High weather risk";
+      text = notes.length ? notes.join(" · ") : "Take extra care with yard movement, doors, straps and loading.";
+    } else if (riskLevel === "medium" || wind >= 25 || rain >= 1) {
+      level = "medium";
+      title = "Weather caution";
+      text = notes.length ? notes.join(" · ") : "Rain or wind may affect yard work. Monitor trailers and slips.";
+    } else if (rain > 0) {
+      level = "medium";
+      title = "Light rain alert";
+      text = "Light rain in the yard. Watch slips and visibility.";
+    }
+
+    return {level, title, text};
+  }
+
   function setLoading() {
     if (els.permissionBox) els.permissionBox.style.display = "none";
     els.source.textContent = "Checking location...";
@@ -117,6 +173,12 @@
     els.rain.textContent = "--";
     if (els.sunrise) els.sunrise.textContent = "--";
     if (els.sunset) els.sunset.textContent = "--";
+    if (els.alertCard) {
+      els.alertCard.classList.remove("weather-alert-low","weather-alert-medium","weather-alert-high");
+      els.alertCard.classList.add("weather-alert-low");
+    }
+    if (els.alertTitle) els.alertTitle.textContent = "Checking yard risk…";
+    if (els.alertText) els.alertText.textContent = "Live alert for yard work conditions.";
     if (els.help) els.help.textContent = "Loading weather...";
   }
   function render(data) {
@@ -139,6 +201,13 @@
     if (els.riskCard) {
       els.riskCard.classList.remove("risk-low","risk-medium","risk-high");
       els.riskCard.classList.add("risk-" + (data.risk?.level || "Low").toLowerCase());
+    }
+    if (els.alertCard && els.alertTitle && els.alertText) {
+      const alert = buildWeatherAlert(data);
+      els.alertCard.classList.remove("weather-alert-low","weather-alert-medium","weather-alert-high");
+      els.alertCard.classList.add("weather-alert-" + alert.level);
+      els.alertTitle.textContent = alert.title;
+      els.alertText.textContent = alert.text;
     }
     if (els.hourly) {
       els.hourly.innerHTML = (data.hourly || []).map(function(h){
@@ -164,6 +233,12 @@
   function useFallback(showBox) {
     fetchWeather().catch(function(err){
       els.desc.textContent = "Weather unavailable";
+      if (els.alertCard) {
+        els.alertCard.classList.remove("weather-alert-low","weather-alert-medium","weather-alert-high");
+        els.alertCard.classList.add("weather-alert-medium");
+      }
+      if (els.alertTitle) els.alertTitle.textContent = "Weather not available";
+      if (els.alertText) els.alertText.textContent = "Check local conditions before yard activity.";
       if (els.help) els.help.textContent = err.message || "Could not load weather.";
       if (els.permissionBox && showBox) els.permissionBox.style.display = "block";
     }).finally(finishButton);
@@ -203,6 +278,44 @@
   window.addEventListener("load", function(){ loadWeather(true); });
 })();
 </script>
+
+<script>
+(function () {
+  const panel = document.getElementById("openHandoverPanel");
+  if (!panel) return;
+
+  const title = document.getElementById("openHandoverTitle");
+  const meta = document.getElementById("openHandoverMeta");
+  const latestKey = localStorage.getItem("opspilot_handover_draft_v1_latest");
+
+  function findDraft() {
+    if (latestKey && localStorage.getItem(latestKey)) return latestKey;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf("opspilot_handover_draft_v1_") === 0 && k !== "opspilot_handover_draft_v1_latest") {
+        if (localStorage.getItem(k)) return k;
+      }
+    }
+    return null;
+  }
+
+  const key = findDraft();
+  if (!key) return;
+
+  try {
+    const data = JSON.parse(localStorage.getItem(key) || "{}");
+    const date = data.date || key.replace("opspilot_handover_draft_v1_", "");
+    const shift = data.shift || data.shift_name || "Handover draft";
+    const saved = data.__saved_at ? new Date(data.__saved_at) : null;
+    panel.style.display = "";
+    if (title) title.textContent = shift + " · " + date;
+    if (meta) meta.textContent = saved ? "Last edited: " + saved.toLocaleString([], {dateStyle:"short", timeStyle:"short"}) : "Saved on this device";
+  } catch (e) {
+    panel.style.display = "";
+  }
+})();
+</script>
+
 <section class="dashboard-focus-grid">
     {% for day in dashboard_days %}
     <a class="dash-mini-card status-{{ day.status|lower|replace(' ', '-') }}" href="{{ url_for('shift_calendar') }}">

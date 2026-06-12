@@ -2969,3 +2969,93 @@ button:disabled {
     .yard-row-actions .small-btn { flex: 1 1 100%; }
     .yard-matrix-table { min-width: 920px; }
 }
+
+/* V6.1 Dashboard Open Handover + Weather Alert */
+.open-handover-panel {
+    border: 1px solid #dbe7f5;
+}
+.open-handover-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #0f172a, #2563eb);
+    color: #fff;
+}
+.open-handover-card span {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: .78rem;
+    opacity: .9;
+    font-weight: 900;
+}
+.open-handover-card strong {
+    display: block;
+    font-size: 1.35rem;
+    margin-top: 4px;
+}
+.open-handover-card small {
+    display: block;
+    margin-top: 5px;
+    opacity: .9;
+    font-weight: 800;
+}
+.open-handover-card .btn {
+    background: #fff;
+    color: #1d4ed8;
+    white-space: nowrap;
+}
+
+.weather-alert-card {
+    margin-top: 14px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    border: 1px solid #dbe7f5;
+}
+.weather-alert-card span {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: .78rem;
+    font-weight: 900;
+    color: #64748b;
+}
+.weather-alert-card strong {
+    display: block;
+    font-size: 1.25rem;
+    margin-top: 3px;
+}
+.weather-alert-card small {
+    display: block;
+    margin-top: 3px;
+    font-weight: 800;
+    color: #64748b;
+}
+.weather-alert-low {
+    background: #ecfdf5;
+    border-color: #bbf7d0;
+}
+.weather-alert-low strong { color: #166534; }
+.weather-alert-medium {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+.weather-alert-medium strong { color: #92400e; }
+.weather-alert-high {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+.weather-alert-high strong { color: #991b1b; }
+
+@media (max-width: 700px) {
+    .open-handover-card {
+        display: block;
+    }
+    .open-handover-card .btn {
+        width: 100%;
+        margin-top: 14px;
+    }
+}
