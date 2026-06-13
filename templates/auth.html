@@ -38,7 +38,7 @@
 
         {% if mode == "register" %}
         <h2>{{ t('create_account') }}</h2>
-        <form method="POST" class="auth-form">
+        <form method="POST" class="auth-form" id="authForm">
             <label>{{ t('name') }}</label>
             <input name="name" placeholder="Laszlo Kertesz">
             <label>{{ t('email') }}</label>
@@ -50,7 +50,7 @@
 <p class="muted auth-switch">{{ t('already_have_account') }} <a href="{{ url_for('login') }}">{{ t('login') }}</a></p>
         {% else %}
         <h2>{{ t('login') }}</h2>
-        <form method="POST" class="auth-form">
+        <form method="POST" class="auth-form" id="loginForm">
             <label>{{ t('email') }}</label>
             <input type="email" name="email" placeholder="you@example.com">
             <label>{{ t('password') }}</label>
@@ -65,4 +65,18 @@
         {% endif %}
     </section>
 </div>
+
+<script id="opspilot-login-enter-fix">
+document.addEventListener("DOMContentLoaded", function () {
+  const forms = document.querySelectorAll(".auth-form");
+  forms.forEach(function(form) {
+    form.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) {
+        e.preventDefault();
+        form.requestSubmit ? form.requestSubmit() : form.submit();
+      }
+    });
+  });
+});
+</script>
 {% endblock %}

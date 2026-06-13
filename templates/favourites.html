@@ -1,67 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Favourites{% endblock %}
 {% block content %}
-
 <section class="hero-card">
-    <div>
-        <p class="eyebrow">MANAGER TOOLKIT</p>
-        <h3>Dashboard Favourites</h3>
-        <p>Choose the 4 shortcut tiles you want to see on the dashboard.</p>
-    </div>
+  <div>
+    <p class="eyebrow">MANAGER TOOLKIT</p>
+    <h3>Dashboard Favourites</h3>
+    <p>Choose the 4 shortcut tiles you want to see on the dashboard.</p>
+  </div>
 </section>
-
 <section class="panel">
-    <div class="panel-head">
-        <div>
-            <h3>Current 4 Favourites</h3>
-            <p class="muted">These are shown under the dashboard cards.</p>
-        </div>
-    </div>
-
-    <div class="dashboard-favourites-strip preview-favourites">
-        {% for key, icon, label, endpoint in selected_tools %}
-        <a class="dash-favourite-tile" href="{{ url_for(endpoint) }}">
-            <span class="fav-icon">{{ icon }}</span>
-            <strong>{{ label }}</strong>
-        </a>
+  <div class="panel-head"><div><h3>Current 4 Favourites</h3><p class="muted">These are shown on your dashboard.</p></div></div>
+  <div class="dashboard-favourites-strip preview-favourites">
+    {% for key, icon, label, endpoint in selected_tools %}
+    <a class="dash-favourite-tile" href="{{ url_for(endpoint) }}"><span class="fav-icon">{{ icon }}</span><strong>{{ label }}</strong></a>
+    {% endfor %}
+  </div>
+</section>
+<section class="panel">
+  <form method="POST" class="favourites-form">
+    <div class="panel-head"><div><h3>Edit Favourites</h3><p class="muted">Slot 1 to Slot 4 controls the order.</p></div><button class="btn primary" type="submit">Save Favourites</button></div>
+    <div class="fav-slot-grid">
+      {% for slot in range(4) %}
+      <div class="fav-slot-card"><label>Favourite {{ slot + 1 }}</label><select name="favorite_tools">
+        {% for key, icon, label, endpoint in options %}
+        <option value="{{ key }}" {% if selected_keys|length > slot and selected_keys[slot] == key %}selected{% endif %}>{{ icon }} {{ label }}</option>
         {% endfor %}
+      </select></div>
+      {% endfor %}
     </div>
+  </form>
 </section>
-
-<section class="panel">
-    <form method="POST" class="favourites-form">
-        <div class="panel-head">
-            <div>
-                <h3>Edit Favourites</h3>
-                <p class="muted">Slot 1 to Slot 4 controls the order on the dashboard.</p>
-            </div>
-            <button class="btn primary" type="submit">Save Favourites</button>
-        </div>
-
-        <div class="fav-slot-grid">
-            {% for slot in range(4) %}
-            <div class="fav-slot-card">
-                <label>Favourite {{ slot + 1 }}</label>
-                <select name="favorite_tools">
-                    {% for key, icon, label, endpoint in options %}
-                    <option value="{{ key }}" {% if selected_keys|length > slot and selected_keys[slot] == key %}selected{% endif %}>
-                        {{ icon }} {{ label }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="fav-tool-list">
-            {% for key, icon, label, endpoint in options %}
-            <div class="fav-tool-option">
-                <span>{{ icon }}</span>
-                <strong>{{ label }}</strong>
-            </div>
-            {% endfor %}
-        </div>
-    </form>
-</section>
-
 {% endblock %}

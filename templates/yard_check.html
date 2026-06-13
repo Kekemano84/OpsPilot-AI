@@ -6,27 +6,55 @@ function removeYardMatrixRow(btn) {
     if (body.querySelectorAll("tr").length <= 1) return;
     btn.closest("tr").remove();
 }
-
-function addYardMatrixRow(typeValue) {
+function addYardMatrixRow() {
     const body = document.getElementById("yardMatrixBody");
     if (!body) return;
-    const base = body.querySelector("tr");
-    const clone = base.cloneNode(true);
-
-    clone.querySelectorAll("input").forEach(input => input.value = "");
-    clone.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
-
-    const typeInput = clone.querySelector('[name="row_location_type[]"]');
-    const numberInput = clone.querySelector('[name="row_location_number[]"]');
-
-    if (typeInput) typeInput.value = typeValue || "Other";
-    if (numberInput) {
-        const sameTypeCount = Array.from(body.querySelectorAll('[name="row_location_type[]"]'))
-            .filter(el => (el.value || "").toLowerCase() === (typeValue || "").toLowerCase()).length + 1;
-        numberInput.value = sameTypeCount;
-    }
-
+    const clone = body.querySelector("tr").cloneNode(true);
+    clone.querySelectorAll("input").forEach(input => {
+        input.value = "";
+        if (input.name === "row_location[]") input.placeholder = "Fence 121 / Door 6 / Yard location";
+        if (input.name === "row_trailer_id[]") input.placeholder = "LG072";
+    });
     body.appendChild(clone);
+}
+function showYardVoiceHint(input) {
+    window.currentYardVoiceInput = input;
+    const hint = document.getElementById("yardVoiceHint");
+    if (hint) hint.style.display = "flex";
+}
+function hideYardVoiceHint() {
+    const hint = document.getElementById("yardVoiceHint");
+    if (hint) hint.style.display = "none";
+}
+function startYardVoiceRecord(btn) {
+    const row = btn.closest("tr");
+    const trailerInput = row ? row.querySelector('[name="row_trailer_id[]"]') : window.currentYardVoiceInput;
+    if (!trailerInput) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Voice recording is not supported in this browser. You can type manually.");
+        trailerInput.focus();
+        return;
+    }
+    const rec = new SpeechRecognition();
+    rec.lang = "en-GB";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    btn.textContent = "🎙️...";
+    rec.onresult = function(event) {
+        const text = event.results[0][0].transcript || "";
+        trailerInput.value = text.replace(/\s+/g, "").toUpperCase();
+        btn.textContent = "🎙️";
+        trailerInput.focus();
+    };
+    rec.onerror = function() {
+        btn.textContent = "🎙️";
+        trailerInput.focus();
+    };
+    rec.onend = function() {
+        btn.textContent = "🎙️";
+    };
+    rec.start();
 }
 </script>
 {% endblock %}
@@ -88,15 +116,6 @@ function addYardMatrixRow(typeValue) {
                 {% endfor %}
             </select>
         </div>
-        <div>
-            <label>Status</label>
-            <select name="status">
-                <option value="">All</option>
-                {% for st in statuses %}
-                <option value="{{ st }}" {{ "selected" if status_filter == st else "" }}>{{ st }}</option>
-                {% endfor %}
-            </select>
-        </div>
         <div class="form-actions">
             <button class="btn primary" type="submit">Search Yard</button>
         </div>
@@ -107,12 +126,10 @@ function addYardMatrixRow(typeValue) {
     <div class="panel-head yard-matrix-head">
         <div>
             <h3>Yard Board Entry</h3>
-            <p class="muted">20 Fence rows first and 5 Door rows at the end. Location Type can be Door, Fence or anything else you type.</p>
+            <p class="muted">Locations are created from Yard Settings. Required: Location and Trailer ID. Notes and Custom Marker are optional.</p>
         </div>
         <div class="yard-row-actions top-actions">
-            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Fence')">+ Add Fence Row</button>
-            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Door')">+ Add Door Row</button>
-            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Other')">+ Add Custom Row</button>
+            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow()">+ Add Row</button>
         </div>
     </div>
 
@@ -121,51 +138,42 @@ function addYardMatrixRow(typeValue) {
         <input type="hidden" name="date" value="{{ today_iso }}">
         <input type="hidden" name="source" value="Manual">
 
+        <div class="voice-hint" id="yardVoiceHint" style="display:none;">
+            <strong>Voice record available</strong>
+            <span>Click the mic to record trailer details, or press X and type manually.</span>
+            <button type="button" onclick="hideYardVoiceHint()">×</button>
+        </div>
+
         <div class="yard-matrix-scroll">
             <table class="yard-matrix-table" id="yardMatrixTable">
                 <thead>
                     <tr>
-                        <th>Location Type</th>
-                        <th>Number / Location</th>
+                        <th>Location</th>
                         <th>Trailer ID</th>
-                        <th>Custom Marker</th>
-                        <th>Source</th>
                         <th>Notes</th>
+                        <th>Custom Marker</th>
+                        <th>Voice</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody id="yardMatrixBody">
-                    {% for i in range(1, 21) %}
+                    {% for i in range(fence_start, fence_end + 1) %}
                     <tr>
-                        <td><input name="row_location_type[]" list="locationTypeList" value="Fence" placeholder="Door / Fence / Other"></td>
-                        <td><input name="row_location_number[]" value="{{ i }}" inputmode="numeric" placeholder="Number or location"></td>
-                        <td><input name="row_trailer_id[]" placeholder="LG072" oninput="this.value=this.value.toUpperCase()"></td>
-                        <td><input name="row_marker[]" placeholder="Loaded / Empty / Seal / Bay note"></td>
-                        <td>
-                            <select name="row_source[]">
-                                <option>Manual</option>
-                                <option>Voice</option>
-                                <option>Photo</option>
-                            </select>
-                        </td>
+                        <td><input name="row_location[]" value="Fence {{ i }}" required placeholder="Fence {{ i }}"></td>
+                        <td><input name="row_trailer_id[]" required placeholder="LG072" onfocus="showYardVoiceHint(this)" oninput="this.value=this.value.toUpperCase()"></td>
                         <td><input name="row_notes[]" placeholder="Optional notes"></td>
+                        <td><input name="row_marker[]" placeholder="Loaded / Empty / Seal / Bay note"></td>
+                        <td><button class="small-btn ghost-small mic-btn" type="button" onclick="startYardVoiceRecord(this)">🎙️</button></td>
                         <td><button class="small-btn ghost-small danger-mini" type="button" onclick="removeYardMatrixRow(this)">Delete</button></td>
                     </tr>
                     {% endfor %}
-                    {% for i in range(1, 6) %}
+                    {% for i in range(door_start, door_end + 1) %}
                     <tr>
-                        <td><input name="row_location_type[]" list="locationTypeList" value="Door" placeholder="Door / Fence / Other"></td>
-                        <td><input name="row_location_number[]" value="{{ i }}" inputmode="numeric" placeholder="Number or location"></td>
-                        <td><input name="row_trailer_id[]" placeholder="LG072" oninput="this.value=this.value.toUpperCase()"></td>
-                        <td><input name="row_marker[]" placeholder="Loaded / Empty / Seal / Bay note"></td>
-                        <td>
-                            <select name="row_source[]">
-                                <option>Manual</option>
-                                <option>Voice</option>
-                                <option>Photo</option>
-                            </select>
-                        </td>
+                        <td><input name="row_location[]" value="Door {{ i }}" required placeholder="Door {{ i }}"></td>
+                        <td><input name="row_trailer_id[]" required placeholder="LG072" onfocus="showYardVoiceHint(this)" oninput="this.value=this.value.toUpperCase()"></td>
                         <td><input name="row_notes[]" placeholder="Optional notes"></td>
+                        <td><input name="row_marker[]" placeholder="Loaded / Empty / Seal / Bay note"></td>
+                        <td><button class="small-btn ghost-small mic-btn" type="button" onclick="startYardVoiceRecord(this)">🎙️</button></td>
                         <td><button class="small-btn ghost-small danger-mini" type="button" onclick="removeYardMatrixRow(this)">Delete</button></td>
                     </tr>
                     {% endfor %}
@@ -173,16 +181,8 @@ function addYardMatrixRow(typeValue) {
             </table>
         </div>
 
-        <datalist id="locationTypeList">
-            <option value="Door">
-            <option value="Fence">
-            <option value="Other">
-        </datalist>
-
         <div class="yard-row-actions">
-            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Fence')">+ Add Fence Row</button>
-            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Door')">+ Add Door Row</button>
-            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow('Other')">+ Add Custom Row</button>
+            <button class="small-btn ghost-small" type="button" onclick="addYardMatrixRow()">+ Add Row</button>
         </div>
 
         <div class="form-actions">
@@ -204,10 +204,8 @@ function addYardMatrixRow(typeValue) {
                     <th>Date</th>
                     <th>Trailer</th>
                     <th>Location</th>
-                    <th>Detail</th>
-                    <th>Status</th>
-                    <th>Source</th>
-                    <th>Notes</th><th>Photo</th><th>Actions</th>
+                    <th>Notes</th>
+                    <th>Source</th><th>Photo</th><th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -215,11 +213,9 @@ function addYardMatrixRow(typeValue) {
                 <tr>
                     <td>{{ row.date|dateuk }}</td>
                     <td><strong>{{ row.trailer_id }}</strong></td>
-                    <td>{{ row.location_type }}</td>
-                    <td>{{ row.location_detail or "-" }}</td>
-                    <td><span class="status yard">{{ row.status }}</span></td>
-                    <td>{{ row.source }}</td>
+                    <td>{{ row.location_detail or row.location_type }}</td>
                     <td>{{ row.notes or "-" }}</td>
+                    <td>{{ row.source }}</td>
                     <td>{% if row.photo_filename %}<span class="status yard">Photo</span>{% else %}-{% endif %}</td>
                     <td>
                         <div class="mini-actions">
@@ -239,6 +235,7 @@ function addYardMatrixRow(typeValue) {
 </section>
 
 
+
 <script>
 function removeYardMatrixRow(btn) {
     const body = document.getElementById("yardMatrixBody");
@@ -246,27 +243,55 @@ function removeYardMatrixRow(btn) {
     if (body.querySelectorAll("tr").length <= 1) return;
     btn.closest("tr").remove();
 }
-
-function addYardMatrixRow(typeValue) {
+function addYardMatrixRow() {
     const body = document.getElementById("yardMatrixBody");
     if (!body) return;
-    const base = body.querySelector("tr");
-    const clone = base.cloneNode(true);
-
-    clone.querySelectorAll("input").forEach(input => input.value = "");
-    clone.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
-
-    const typeInput = clone.querySelector('[name="row_location_type[]"]');
-    const numberInput = clone.querySelector('[name="row_location_number[]"]');
-
-    if (typeInput) typeInput.value = typeValue || "Other";
-    if (numberInput) {
-        const sameTypeCount = Array.from(body.querySelectorAll('[name="row_location_type[]"]'))
-            .filter(el => (el.value || "").toLowerCase() === (typeValue || "").toLowerCase()).length + 1;
-        numberInput.value = sameTypeCount;
-    }
-
+    const clone = body.querySelector("tr").cloneNode(true);
+    clone.querySelectorAll("input").forEach(input => {
+        input.value = "";
+        if (input.name === "row_location[]") input.placeholder = "Fence 121 / Door 6 / Yard location";
+        if (input.name === "row_trailer_id[]") input.placeholder = "LG072";
+    });
     body.appendChild(clone);
+}
+function showYardVoiceHint(input) {
+    window.currentYardVoiceInput = input;
+    const hint = document.getElementById("yardVoiceHint");
+    if (hint) hint.style.display = "flex";
+}
+function hideYardVoiceHint() {
+    const hint = document.getElementById("yardVoiceHint");
+    if (hint) hint.style.display = "none";
+}
+function startYardVoiceRecord(btn) {
+    const row = btn.closest("tr");
+    const trailerInput = row ? row.querySelector('[name="row_trailer_id[]"]') : window.currentYardVoiceInput;
+    if (!trailerInput) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Voice recording is not supported in this browser. You can type manually.");
+        trailerInput.focus();
+        return;
+    }
+    const rec = new SpeechRecognition();
+    rec.lang = "en-GB";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    btn.textContent = "🎙️...";
+    rec.onresult = function(event) {
+        const text = event.results[0][0].transcript || "";
+        trailerInput.value = text.replace(/\s+/g, "").toUpperCase();
+        btn.textContent = "🎙️";
+        trailerInput.focus();
+    };
+    rec.onerror = function() {
+        btn.textContent = "🎙️";
+        trailerInput.focus();
+    };
+    rec.onend = function() {
+        btn.textContent = "🎙️";
+    };
+    rec.start();
 }
 </script>
 {% endblock %}

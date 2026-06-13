@@ -774,30 +774,22 @@ def get_favorite_tools(user):
     selected = [x.strip() for x in raw.split(",") if x.strip()]
     option_map = {x[0]: x for x in FAVORITE_TOOL_OPTIONS}
     out = []
-    is_admin = bool(user and row_get(user, "email", "") == "admin@opspilot.ai")
-
+    is_admin_user = bool(user and row_get(user, "email", "") == "admin@opspilot.ai")
     for key in selected:
-        if key == "admin" and not is_admin:
+        if key == "admin" and not is_admin_user:
             continue
         if key in option_map and key not in [x[0] for x in out]:
             out.append(option_map[key])
-
     for key in ["morning_brief", "shift_calendar", "handover", "yard_check"]:
         if len(out) >= 4:
             break
         if key in option_map and key not in [x[0] for x in out]:
             out.append(option_map[key])
-
     return out[:4]
 
 def available_favorite_options(user):
-    is_admin = bool(user and row_get(user, "email", "") == "admin@opspilot.ai")
-    options = []
-    for option in FAVORITE_TOOL_OPTIONS:
-        if option[0] == "admin" and not is_admin:
-            continue
-        options.append(option)
-    return options
+    is_admin_user = bool(user and row_get(user, "email", "") == "admin@opspilot.ai")
+    return [x for x in FAVORITE_TOOL_OPTIONS if x[0] != "admin" or is_admin_user]
 
 
 @app.template_filter("days_until")
@@ -1193,7 +1185,6 @@ Role: {role or 'Not specified'}
 Today's Plan:
 - Expected volume: {volume}
 - Available HC: {available_hc}
-- Late trailers: {late_trailers}
 
 Safety Message:
 {safety_message or 'Keep the area safe, clean and controlled. Report hazards immediately.'}
@@ -2258,13 +2249,11 @@ def favourites():
                 selected.append(key)
             if len(selected) >= 4:
                 break
-
         for key in ["morning_brief", "shift_calendar", "handover", "yard_check"]:
             if len(selected) >= 4:
                 break
             if key in allowed and key not in selected:
                 selected.append(key)
-
         conn = get_db()
         conn.execute("UPDATE users SET favorite_tools=? WHERE id=?", (",".join(selected[:4]), user["id"]))
         conn.commit()
@@ -2273,14 +2262,7 @@ def favourites():
         return redirect(url_for("favourites"))
 
     selected_tools = get_favorite_tools(user)
-    selected_keys = [x[0] for x in selected_tools]
-    return render_template(
-        "favourites.html",
-        page="favourites",
-        options=options,
-        selected_tools=selected_tools,
-        selected_keys=selected_keys
-    )
+    return render_template("favourites.html", page="favourites", options=options, selected_tools=selected_tools, selected_keys=[x[0] for x in selected_tools])
 
 @app.route("/account/export-data")
 @login_required
@@ -2323,7 +2305,7 @@ def register():
             cur = conn.execute("""
                 INSERT INTO users (name, email, password_hash, plan, business_name, created_at, language, favorite_tools)
                 VALUES (?, ?, ?, 'free', ?, ?, ?, ?)
-            """, (name, email, generate_password_hash(password), f"{name}'s Business", datetime.now().isoformat(), session.get("language", "en"), "morning_brief,shift_calendar,handover,yard_check"))
+            """, (name, email, generate_password_hash(password), f"{name}'s Business", datetime.now().isoformat(), session.get("language", "en"), "morning_brief,mileage,expenses,handover"))
             conn.commit()
             session["user_id"] = cur.lastrowid
             conn.execute("UPDATE users SET last_login_at=? WHERE id=?", (datetime.now().isoformat(timespec="seconds"), cur.lastrowid))
@@ -2937,7 +2919,7 @@ def morning_brief():
         role = request.form.get("role", "").strip()
         volume = int(request.form.get("volume") or 0)
         available_hc = int(request.form.get("available_hc") or 0)
-        late_trailers = int(request.form.get("late_trailers") or 0)
+        late_trailers = 0
         safety_message = request.form.get("safety_message", "").strip()
         priorities = request.form.get("priorities", "").strip()
         team_messages = request.form.get("team_messages", "").strip()
@@ -3030,45 +3012,46 @@ def yard_check():
         conn = get_db()
 
         if entry_mode == "matrix":
-            row_dates = request.form.getlist("row_date[]")
+            row_locations = request.form.getlist("row_location[]")
             trailer_ids = request.form.getlist("row_trailer_id[]")
-            location_types = request.form.getlist("row_location_type[]")
-            location_numbers = request.form.getlist("row_location_number[]")
-            markers = request.form.getlist("row_marker[]")
-            row_statuses = request.form.getlist("row_status[]")
-            row_sources = request.form.getlist("row_source[]")
             row_notes = request.form.getlist("row_notes[]")
+            markers = request.form.getlist("row_marker[]")
+            row_sources = request.form.getlist("row_source[]")
 
-            max_rows = max(
-                len(trailer_ids), len(location_types), len(location_numbers),
-                len(markers), len(row_statuses), len(row_sources), len(row_notes), 0
-            )
+            max_rows = max(len(row_locations), len(trailer_ids), len(row_notes), len(markers), len(row_sources), 0)
 
             for i in range(max_rows):
+                location_text = (row_locations[i] if i < len(row_locations) else "").strip()
                 trailer_id = (trailer_ids[i] if i < len(trailer_ids) else "").strip().upper()
-                location_type = (location_types[i] if i < len(location_types) else "Door").strip() or "Door"
-                location_detail = (location_numbers[i] if i < len(location_numbers) else "").strip()
-                marker = (markers[i] if i < len(markers) else "").strip()
-                row_status = (row_statuses[i] if i < len(row_statuses) else status).strip() or status
-                row_source = (row_sources[i] if i < len(row_sources) else source).strip() or source
                 note_value = (row_notes[i] if i < len(row_notes) else "").strip()
-                row_date = (row_dates[i] if i < len(row_dates) else date).strip() or date
+                marker = (markers[i] if i < len(markers) else "").strip()
+                row_source = (row_sources[i] if i < len(row_sources) else source).strip() or source
 
-                if not trailer_id and not location_detail and not marker and not note_value:
+                # Required fields: Location and Trailer ID
+                if not location_text or not trailer_id:
                     continue
 
-                if marker and note_value:
-                    combined_notes = f"{marker} - {note_value}"
-                else:
-                    combined_notes = marker or note_value or notes
+                location_type = "Other"
+                if location_text.lower().startswith("door"):
+                    location_type = "Door"
+                elif location_text.lower().startswith("fence"):
+                    location_type = "Fence"
+                elif location_text.lower().startswith("yard"):
+                    location_type = "Yard"
 
-                if trailer_id:
-                    conn.execute("""
-                        INSERT INTO yard_checks
-                        (user_id, date, trailer_id, location_type, location_detail, status, notes, source, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (user["id"], row_date, trailer_id, location_type, location_detail, row_status, combined_notes, row_source, datetime.now().isoformat()))
-                    saved_count += 1
+                combined_notes = []
+                if note_value:
+                    combined_notes.append(f"Notes: {note_value}")
+                if marker:
+                    combined_notes.append(f"Marker: {marker}")
+                combined_notes = " | ".join(combined_notes)
+
+                conn.execute("""
+                    INSERT INTO yard_checks
+                    (user_id, date, trailer_id, location_type, location_detail, status, notes, source, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (user["id"], date, trailer_id, location_type, location_text, "Recorded", combined_notes, row_source, datetime.now().isoformat()))
+                saved_count += 1
 
         elif entry_mode == "batch":
             batch_text = request.form.get("batch_text", "").strip()
@@ -3314,16 +3297,33 @@ def export_yard_check():
     wb = Workbook()
     ws = wb.active
     ws.title = "Yard Check"
-    headers = ["Date", "Trailer ID", "Location", "Detail", "Status", "Notes", "Source", "Recorded At"]
+    headers = ["Date", "Location", "Trailer ID", "Notes", "Custom Marker", "Source", "Recorded At"]
     ws.append(headers)
     for cell in ws[1]:
         cell.font = Font(bold=True, color="FFFFFF")
         cell.fill = PatternFill("solid", fgColor="2563EB")
         cell.alignment = Alignment(horizontal="center")
+
     for row in rows:
-        ws.append([row["date"], row["trailer_id"], row["location_type"], row["location_detail"], row["status"], row["notes"], row["source"], row["created_at"]])
-    for col in ws.columns:
-        ws.column_dimensions[col[0].column_letter].width = 18
+        raw_notes = row["notes"] or ""
+        note_text = raw_notes
+        marker_text = ""
+        if "Marker:" in raw_notes:
+            parts = [p.strip() for p in raw_notes.split("|")]
+            note_parts = []
+            for part in parts:
+                if part.startswith("Marker:"):
+                    marker_text = part.replace("Marker:", "", 1).strip()
+                elif part.startswith("Notes:"):
+                    note_parts.append(part.replace("Notes:", "", 1).strip())
+                else:
+                    note_parts.append(part)
+            note_text = " | ".join([p for p in note_parts if p])
+        ws.append([row["date"], row["location_detail"] or row["location_type"], row["trailer_id"], note_text, marker_text, row["source"], row["created_at"]])
+
+    widths = [16, 22, 18, 35, 28, 16, 22]
+    for idx, width in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(idx)].width = width
 
     buffer = BytesIO()
     wb.save(buffer)
@@ -3344,7 +3344,7 @@ def kpi_dashboard():
         actual_hc = int(request.form.get("actual_hc") or 0)
         target_rate = float(request.form.get("target_rate") or 0)
         actual_rate = float(request.form.get("actual_rate") or 0)
-        late_trailers = int(request.form.get("late_trailers") or 0)
+        late_trailers = 0
         errors = int(request.form.get("errors") or 0)
         notes = request.form.get("notes", "").strip()
         conn = get_db()
@@ -3517,7 +3517,7 @@ def handover():
         volume = 0
         planned_hc = int(request.form.get("planned_hc") or 0)
         actual_hc = int(request.form.get("actual_hc") or 0)
-        late_trailers = int(request.form.get("late_trailers") or 0)
+        late_trailers = 0
         issues = request.form.get("issues", "").strip()
         actions = request.form.get("actions", "").strip()
 
